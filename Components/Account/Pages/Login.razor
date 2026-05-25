@@ -1,0 +1,20 @@
+@page "/Account/Login"
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+
+@inject NavigationManager Navigation
+@inject IConfiguration Configuration
+
+@code {
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override void OnInitialized()
+    {
+        var authWebBase = (Configuration["AuthWeb:BaseUrl"] ?? string.Empty).TrimEnd('/');
+        var clientId = Configuration["AuthWeb:ClientId"] ?? "saf";
+        var returnUrl = Uri.EscapeDataString(ReturnUrl ?? Navigation.BaseUri);
+        Navigation.NavigateTo(
+            $"{authWebBase}/Account/Login?clientId={Uri.EscapeDataString(clientId)}&returnUrl={returnUrl}",
+            forceLoad: true);
+    }
+}

@@ -1,0 +1,143 @@
+@page "/status-contabilidad"
+@inherits SAF.Components.PermissionPageBase
+
+<PageTitle>Status Contabilidad</PageTitle>
+
+<RadzenStack>
+    <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+        <RadzenColumn>
+            <h2>Status Contabilidad</h2>
+        </RadzenColumn>
+        <RadzenColumn>
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+                <RadzenButton Text="Exportar Excel"
+                              Icon="download"
+                              ButtonStyle="ButtonStyle.Secondary"
+                              Click="@ExportarExcel"
+                              Disabled="@(_items.Count == 0)" />
+            </RadzenStack>
+        </RadzenColumn>
+    </RadzenRow>
+
+    @if (_loading)
+    {
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else
+    {
+        <RadzenDataGrid @ref="_grid"
+                        Data="@_items"
+                        TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel"
+                        AllowFiltering="true"
+                        AllowSorting="true"
+                        AllowColumnResize="true"
+                        FilterMode="FilterMode.SimpleWithMenu"
+                        PageSize="50"
+                        AllowPaging="true"
+                        PagerHorizontalAlign="HorizontalAlign.Center"
+                        EditMode="DataGridEditMode.Single"
+                        RowUpdate="@OnRowUpdate"
+                        RowCreate="@OnRowCreate">
+            <Columns>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="TipoDev" Title="Tipo Dev" Width="90px" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="NroDev" Title="Nro Dev" Width="90px" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="Expediente" Title="Expediente" Width="150px" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="Empresa" Title="Empresa" Width="200px" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="ImporteTotal" Title="Importe" Width="120px" FormatString="{0:N2}" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="StatusDgayfNombre" Title="Status DGAyF" Width="150px" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="FirmadaPorMiguel" Title="Firmada por Miguel?" Width="160px" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="FechaPedidoFactura1" Title="Fecha Ped. Factura 1" Width="165px" FormatString="{0:dd/MM/yyyy}" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="FechaPedidoFactura2" Title="Fecha Ped. Factura 2" Width="165px" FormatString="{0:dd/MM/yyyy}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.FechaPedidoFactura2" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="ReiterarPedidoFactura3" Title="Reit. Ped. Factura 3" Width="165px" FormatString="{0:dd/MM/yyyy}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.ReiterarPedidoFactura3" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="FechaIngresoFactura" Title="Ingreso Factura" Width="145px" FormatString="{0:dd/MM/yyyy}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.FechaIngresoFactura" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="StatusContableNombre" Title="Status Contable" Width="150px">
+                    <EditTemplate Context="item">
+                        <RadzenDropDown @bind-Value="item.StatusContableOpcionId"
+                                        Data="@_statusContableOpciones"
+                                        TextProperty="Nombre"
+                                        ValueProperty="Id"
+                                        AllowClear="true"
+                                        Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="ObservacionesCuentasPagar" Title="Obs. Ctas. a Pagar" Width="200px">
+                    <EditTemplate Context="item">
+                        <RadzenTextArea @bind-Value="item.ObservacionesCuentasPagar" Style="width:100%" Rows="2" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="TramitadorCuentasPagarNombre" Title="Tramitador Ctas. Pagar" Width="190px">
+                    <EditTemplate Context="item">
+                        <RadzenDropDown @bind-Value="item.TramitadorCuentasPagarOpcionId"
+                                        Data="@_tramitadoresCuentasPagar"
+                                        TextProperty="Nombre"
+                                        ValueProperty="Id"
+                                        AllowClear="true"
+                                        Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="TramitadorLiquidacionesNombre" Title="Tramitador Liquidaciones" Width="200px">
+                    <EditTemplate Context="item">
+                        <RadzenDropDown @bind-Value="item.TramitadorLiquidacionesOpcionId"
+                                        Data="@_tramitadoresLiquidaciones"
+                                        TextProperty="Nombre"
+                                        ValueProperty="Id"
+                                        AllowClear="true"
+                                        Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="ObservacionesLiquidaciones" Title="Obs. Liquidaciones" Width="200px">
+                    <EditTemplate Context="item">
+                        <RadzenTextArea @bind-Value="item.ObservacionesLiquidaciones" Style="width:100%" Rows="2" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="FaltaPoliza" Title="Falta Póliza" Width="110px">
+                    <Template Context="item">
+                        @(item.FaltaPoliza ? "Sí" : "No")
+                    </Template>
+                    <EditTemplate Context="item">
+                        <RadzenCheckBox @bind-Value="item.FaltaPoliza" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="EeSade" Title="EE SADE" Width="250px" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="Observaciones" Title="Observaciones" Width="200px" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="Ccoo" Title="CCOO" Width="130px" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="FechaCcoo" Title="Fecha CCOO" Width="130px" FormatString="{0:dd/MM/yyyy}" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="FechaNotificacion" Title="Fecha Notificación" Width="155px" FormatString="{0:dd/MM/yyyy}" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="BuzonSade" Title="Buzón SADE" Width="140px" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="UltimoMovimientoSade" Title="Último Movimiento" Width="160px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.UltimoMovimientoSade" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Property="DiasEnElArea" Title="Días en el Área" Width="130px" />
+                @if (CanEdit)
+                {
+                    <RadzenDataGridColumn TItem="SAF.ViewModels.StatusContabilidad.StatusContabilidadViewModel" Title="Acciones" Width="120px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right">
+                        <Template Context="item">
+                            <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                          Click="@(() => _grid.EditRow(item))" />
+                        </Template>
+                        <EditTemplate Context="item">
+                            <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                          Click="@(() => _grid.UpdateRow(item))" />
+                            <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                          Click="@(() => _grid.CancelEditRow(item))" />
+                        </EditTemplate>
+                    </RadzenDataGridColumn>
+                }
+            </Columns>
+        </RadzenDataGrid>
+    }
+</RadzenStack>

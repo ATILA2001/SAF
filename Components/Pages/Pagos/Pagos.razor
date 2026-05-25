@@ -1,0 +1,169 @@
+@page "/pagos"
+@inherits SAF.Components.PermissionPageBase
+
+<PageTitle>Pagos</PageTitle>
+
+<RadzenStack>
+    <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+        <RadzenColumn>
+            <h2>Pagos</h2>
+        </RadzenColumn>
+        <RadzenColumn>
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+                <RadzenButton Text="Exportar Excel"
+                              Icon="download"
+                              ButtonStyle="ButtonStyle.Secondary"
+                              Click="@ExportarExcel"
+                              Disabled="@(_items.Count == 0)" />
+            </RadzenStack>
+        </RadzenColumn>
+    </RadzenRow>
+
+    @if (_loading)
+    {
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else
+    {
+        <RadzenDataGrid @ref="_grid"
+                        Data="@_items"
+                        TItem="SAF.ViewModels.Pagos.PagoViewModel"
+                        AllowFiltering="true"
+                        AllowSorting="true"
+                        AllowColumnResize="true"
+                        FilterMode="FilterMode.SimpleWithMenu"
+                        PageSize="50"
+                        AllowPaging="true"
+                        PagerHorizontalAlign="HorizontalAlign.Center"
+                        EditMode="DataGridEditMode.Single"
+                        RowUpdate="@OnRowUpdate"
+                        RowCreate="@OnRowCreate">
+            <Columns>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="TipoDev" Title="Tipo Dev" Width="90px" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="NroDev" Title="Nro Dev" Width="90px" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="FechaDevengado" Title="Fecha Devengado" Width="140px" FormatString="{0:dd/MM/yyyy}" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="Expediente" Title="Expediente" Width="150px" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="Empresa" Title="Empresa" Width="200px" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="Importe" Title="Importe" Width="120px" FormatString="{0:N2}" />
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="StatusDgayfNombre" Title="Status DGAyF" Width="150px">
+                    <EditTemplate Context="item">
+                        <RadzenDropDown @bind-Value="item.StatusDgayfOpcionId"
+                                        Data="@_statusDgayfOpciones"
+                                        TextProperty="Nombre"
+                                        ValueProperty="Id"
+                                        AllowClear="true"
+                                        Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="StatusOpNombre" Title="Status OP" Width="150px">
+                    <EditTemplate Context="item">
+                        <RadzenDropDown @bind-Value="item.StatusOpOpcionId"
+                                        Data="@_statusOpOpciones"
+                                        TextProperty="Nombre"
+                                        ValueProperty="Id"
+                                        AllowClear="true"
+                                        Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="FechaFirmaOp" Title="Fecha Firma OP" Width="140px" FormatString="{0:dd/MM/yyyy}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.FechaFirmaOp" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="Observaciones" Title="Observaciones" Width="200px">
+                    <EditTemplate Context="item">
+                        <RadzenTextArea @bind-Value="item.Observaciones" Style="width:100%" Rows="2" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="Ccoo" Title="CCOO" Width="150px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.Ccoo" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="FechaCcoo" Title="Fecha CCOO" Width="140px" FormatString="{0:dd/MM/yyyy}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.FechaCcoo" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="FechaNotificacion" Title="Fecha Notificación" Width="150px" FormatString="{0:dd/MM/yyyy}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.FechaNotificacion" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="StatusContable" Title="Status Contable" Width="150px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.StatusContable" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="SegurosTeso" Title="Seguros Teso" Width="150px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.SegurosTeso" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="FechaDePagoNoCaf" Title="Fecha Pago No CAF" Width="155px" FormatString="{0:dd/MM/yyyy}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.FechaDePagoNoCaf" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="FechaDePagoCaf" Title="Fecha Pago CAF" Width="145px" FormatString="{0:dd/MM/yyyy}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.FechaDePagoCaf" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="FechaPagoTotal" Title="Fecha Pago Total" Width="150px" FormatString="{0:dd/MM/yyyy}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.FechaPagoTotal" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="FechaSade" Title="Fecha SADE" Width="130px" FormatString="{0:dd/MM/yyyy}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.FechaSade" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="BuzonSade" Title="Buzón SADE" Width="140px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.BuzonSade" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="PedidoFactura2" Title="Pedido Factura 2" Width="150px" FormatString="{0:dd/MM/yyyy}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.PedidoFactura2" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="PedidoFactura3" Title="Pedido Factura 3" Width="150px" FormatString="{0:dd/MM/yyyy}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.PedidoFactura3" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="FechaFacturaCorrecta" Title="Fecha Factura Correcta" Width="170px" FormatString="{0:dd/MM/yyyy}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.FechaFacturaCorrecta" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Property="CafSiNo" Title="CAF" Width="80px">
+                    <Template Context="item">
+                        @(item.CafSiNo == true ? "Sí" : item.CafSiNo == false ? "No" : "")
+                    </Template>
+                    <EditTemplate Context="item">
+                        <RadzenCheckBox @bind-Value="item.CafSiNo" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                @if (CanEdit)
+                {
+                    <RadzenDataGridColumn TItem="SAF.ViewModels.Pagos.PagoViewModel" Title="Acciones" Width="120px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right">
+                        <Template Context="item">
+                            <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                          Click="@(() => _grid.EditRow(item))" />
+                        </Template>
+                        <EditTemplate Context="item">
+                            <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                          Click="@(() => _grid.UpdateRow(item))" />
+                            <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                          Click="@(() => _grid.CancelEditRow(item))" />
+                        </EditTemplate>
+                    </RadzenDataGridColumn>
+                }
+            </Columns>
+        </RadzenDataGrid>
+    }
+</RadzenStack>
