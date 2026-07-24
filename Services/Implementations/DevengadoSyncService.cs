@@ -1,5 +1,6 @@
 #nullable enable
 using Microsoft.EntityFrameworkCore;
+using SAF.Application.Common;
 using SAF.Data;
 using SAF.Data.Entities;
 using SAF.Services.Abstractions;
@@ -61,7 +62,11 @@ public class DevengadoSyncService(IvcDbContext ivc, AppDbContext db) : IDevengad
                 TipoDev = c.TipoDev,
                 NroDev = c.NroDev,
                 FechaImputacion = c.FechaImputacion,
-                Expediente = c.EeFinanciera,
+                // Misma normalización que el alta manual (PagosService): las dos vías de
+                // ingesta deben producir la misma clave o los cruces CAF/Seguros fallan
+                // en silencio. Si IVC trae un formato no reconocido, se conserva el crudo
+                // (con Trim) para no perder la fila.
+                Expediente = ExpedienteKey.Normalizar(c.EeFinanciera) ?? c.EeFinanciera?.Trim(),
                 Empresa = c.Descripcion,
                 ImportePp = c.ImportePp,
                 FechaImportacion = DateTime.UtcNow,
