@@ -19,6 +19,18 @@
         </RadzenColumn>
     </RadzenRow>
 
+    @if (_erroresValidacion.Count > 0)
+    {
+        <div class="saf-errores-validacion">
+            <ul>
+                @foreach (var error in _erroresValidacion)
+                {
+                    <li>@error</li>
+                }
+            </ul>
+        </div>
+    }
+
     @if (_loading)
     {
         <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
@@ -139,7 +151,7 @@
                         </Template>
                         <EditTemplate Context="item">
                             <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
-                                          Click="@(() => _grid.UpdateRow(item))" />
+                                          Click="@(() => GuardarFila(item))" />
                             <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
                                           Click="@(() => _grid.CancelEditRow(item))" />
                         </EditTemplate>

@@ -238,3 +238,20 @@ html, body, #app {
     overflow: auto !important;
     min-height: 0 !important;
 }
+
+/* ===========================================================================
+   Errores de validación de fila: visibles en la página, no solo como aviso
+   flotante (el aviso puede pasar desapercibido al confirmar una fila).
+   =========================================================================== */
+.saf-errores-validacion {
+    border-left: 4px solid var(--rz-danger, #d32f2f);
+    background: rgba(211, 47, 47, 0.12);
+    color: inherit;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+}
+
+.saf-errores-validacion ul {
+    margin: 0;
+    padding-left: 1.25rem;
+}

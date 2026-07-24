@@ -25,6 +25,9 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     protected List<TItem> _items = new();
     protected bool _loading = true;
 
+    /// <summary>Errores de la última validación, para mostrarlos sobre la grilla.</summary>
+    protected IReadOnlyList<string> _erroresValidacion = Array.Empty<string>();
+
     /// <summary>Ruta de la página, para resolver permisos (ej: "/caf").</summary>
     protected abstract string PageUrl { get; }
 
@@ -82,9 +85,29 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
         }
     }
 
-    protected async Task AddRow() => await _grid.InsertRow(NuevaFila());
+    protected async Task AddRow()
+    {
+        _erroresValidacion = Array.Empty<string>();
+        await _grid.InsertRow(NuevaFila());
+    }
 
-    protected void CancelEdit(TItem item) => _grid.CancelEditRow(item);
+    protected void CancelEdit(TItem item)
+    {
+        _erroresValidacion = Array.Empty<string>();
+        _grid.CancelEditRow(item);
+    }
+
+    /// <summary>
+    /// Guarda la fila en edición. Valida ANTES de delegar en la grilla: si Radzen confirma
+    /// la fila, la cierra y lo cargado se pierde, así que el error tiene que frenar antes.
+    /// </summary>
+    protected async Task GuardarFila(TItem item)
+    {
+        // La fila del alta todavía no está en la lista: eso la distingue de una edición.
+        if (!FilaValida(item, esAlta: !_items.Contains(item))) return;
+
+        await _grid.UpdateRow(item);
+    }
 
     protected async Task OnRowCreate(TItem item)
     {
@@ -95,7 +118,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
             return;
         }
 
-        if (!await FilaValidaAsync(item, esAlta: true)) return;
+        if (!FilaValida(item, esAlta: true)) return;
 
         try
         {
@@ -117,7 +140,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
             return;
         }
 
-        if (!await FilaValidaAsync(item, esAlta: false)) return;
+        if (!FilaValida(item, esAlta: false)) return;
 
         PrepararParaGuardar(item);
 
@@ -159,26 +182,16 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     }
 
     /// <summary>
-    /// Valida la fila y, si no pasa, reabre la edición con lo que el usuario ya cargó
-    /// (Radzen cierra la fila al confirmar, así que hay que volver a abrirla).
+    /// Valida la fila y publica los errores sobre la grilla (además del aviso flotante).
     /// </summary>
-    private async Task<bool> FilaValidaAsync(TItem item, bool esAlta)
+    private bool FilaValida(TItem item, bool esAlta)
     {
         var errores = Validar(item, esAlta);
+        _erroresValidacion = errores;
+
         if (errores.Count == 0) return true;
 
         Notification.ShowError(string.Join(" ", errores), "Revisá los datos");
-
-        try
-        {
-            if (esAlta) await _grid.InsertRow(item);
-            else await _grid.EditRow(item);
-        }
-        catch
-        {
-            // Si la grilla no puede reabrir la fila, el error ya quedó informado.
-        }
-
         return false;
     }
 
