@@ -31,13 +31,23 @@ public partial class StatusContabilidad
     {
         await LoadPermissionsAsync("/status-contabilidad");
 
-        // Secuencial: comparten el AppDbContext scoped (EF Core no admite
-        // operaciones concurrentes sobre la misma instancia de DbContext).
-        _statusContableOpciones    = await LookupService.GetStatusContableOpcionesAsync();
-        _tramitadoresCuentasPagar  = await LookupService.GetTramitadoresCuentasPagarAsync();
-        _tramitadoresLiquidaciones = await LookupService.GetTramitadoresLiquidacionesAsync();
-        _items = (await StatusContabilidadService.GetAllAsync()).ToList();
-        _loading = false;
+        try
+        {
+            // Secuencial: comparten el AppDbContext scoped (EF Core no admite
+            // operaciones concurrentes sobre la misma instancia de DbContext).
+            _statusContableOpciones    = await LookupService.GetStatusContableOpcionesAsync();
+            _tramitadoresCuentasPagar  = await LookupService.GetTramitadoresCuentasPagarAsync();
+            _tramitadoresLiquidaciones = await LookupService.GetTramitadoresLiquidacionesAsync();
+            _items = (await StatusContabilidadService.GetAllAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Notification.ShowError(ex.Message, "Error al cargar Status Contabilidad");
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     private async Task OnRowUpdate(StatusContabilidadViewModel item)
@@ -53,8 +63,15 @@ public partial class StatusContabilidad
         item.TramitadorCuentasPagarNombre = _tramitadoresCuentasPagar.FirstOrDefault(x => x.Id == item.TramitadorCuentasPagarOpcionId)?.Nombre;
         item.TramitadorLiquidacionesNombre = _tramitadoresLiquidaciones.FirstOrDefault(x => x.Id == item.TramitadorLiquidacionesOpcionId)?.Nombre;
 
-        await StatusContabilidadService.UpsertAsync(item);
-        await _grid.Reload();
+        try
+        {
+            await StatusContabilidadService.UpsertAsync(item);
+            await _grid.Reload();
+        }
+        catch (Exception ex)
+        {
+            Notification.ShowError(ex.Message, "Error al guardar");
+        }
     }
 
     private Task OnRowCreate(StatusContabilidadViewModel item) => Task.CompletedTask;

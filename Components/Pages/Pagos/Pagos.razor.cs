@@ -32,13 +32,23 @@ public partial class Pagos
     {
         await LoadPermissionsAsync("/pagos");
 
-        // Secuencial: comparten el AppDbContext scoped (EF Core no admite
-        // operaciones concurrentes sobre la misma instancia de DbContext).
-        _statusDgayfOpciones = await LookupService.GetStatusDgayfOpcionesAsync();
-        _statusOpOpciones = await LookupService.GetStatusOpOpcionesAsync();
-        _items = (await PagosService.GetAllAsync()).ToList();
-        _ultimaActualizacion = await PagosService.GetUltimaFechaImputacionAsync();
-        _loading = false;
+        try
+        {
+            // Secuencial: comparten el AppDbContext scoped (EF Core no admite
+            // operaciones concurrentes sobre la misma instancia de DbContext).
+            _statusDgayfOpciones = await LookupService.GetStatusDgayfOpcionesAsync();
+            _statusOpOpciones = await LookupService.GetStatusOpOpcionesAsync();
+            _items = (await PagosService.GetAllAsync()).ToList();
+            _ultimaActualizacion = await PagosService.GetUltimaFechaImputacionAsync();
+        }
+        catch (Exception ex)
+        {
+            Notification.ShowError(ex.Message, "Error al cargar Pagos");
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     private async Task OnRowUpdate(PagoViewModel item)
@@ -54,8 +64,15 @@ public partial class Pagos
         item.StatusDgayfNombre = _statusDgayfOpciones.FirstOrDefault(x => x.Id == item.StatusDgayfOpcionId)?.Nombre;
         item.StatusOpNombre = _statusOpOpciones.FirstOrDefault(x => x.Id == item.StatusOpOpcionId)?.Nombre;
 
-        await PagosService.UpsertAsync(item);
-        await _grid.Reload();
+        try
+        {
+            await PagosService.UpsertAsync(item);
+            await _grid.Reload();
+        }
+        catch (Exception ex)
+        {
+            Notification.ShowError(ex.Message, "Error al guardar");
+        }
     }
 
     private async Task AddRow()
@@ -140,7 +157,7 @@ public partial class Pagos
 
                 case SyncStatus.YaActualizado:
                     Notification.ShowInfo(
-                        $"Los datos ya están actualizados al {result.UltimaFecha:dd/MM/yyyy}. No se ejecutó la sincronización.",
+                        $"Los datos ya están actualizados al {result.UltimaFecha:dd/MM/yyyy}. No hay filas nuevas para importar.",
                         "Datos actualizados");
                     break;
 
