@@ -1,31 +1,28 @@
 #nullable enable
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SAF.Data.Entities;
 
 /// <summary>
-/// Mapea la tabla [IVC].[dbo].[DEVENGADOS] (solo lectura).
-/// La clave es compuesta (TipoDev, NroDev).
-/// Los nombres de columna deben verificarse contra el esquema real de IVC.
+/// Tabla acumulativa propia de SAF (ledger de devengados), equivalente al
+/// "segundo Excel" histórico. Se llena por sincronización manual desde IVC
+/// (ver DevengadoSyncService) aplicando el filtro de la vista Pagos
+/// (TIPO_DEV NOT IN ('C55','CPS') AND IMPORTE_PP > 0).
+/// Conserva histórico aunque IVC borre/recargue su tabla a diario.
+/// Las filas se guardan tal cual (sin agrupar).
 /// </summary>
-[Table("DEVENGADOS", Schema = "dbo")]
 public class Devengado
 {
-    [Column("TIPO_DEV")]
-    public string TipoDev { get; set; } = string.Empty;
+    public int Id { get; set; }
 
-    [Column("NRO_DEV")]
+    // Clave de negocio (referencia al devengado de IVC)
+    public string TipoDev { get; set; } = string.Empty;
     public int NroDev { get; set; }
 
-    [Column("FECHA_DEVENGADO")]
-    public DateTime? FechaDevengado { get; set; }
+    public DateTime? FechaImputacion { get; set; }   // FECHA_IMPUTACION de IVC
+    public string? Expediente { get; set; }          // EE_FINANCIERA de IVC
+    public string? Empresa { get; set; }             // DESCRIPCION de IVC
+    public decimal? ImportePp { get; set; }          // IMPORTE_PP de IVC
 
-    [Column("EXPEDIENTE")]
-    public string? Expediente { get; set; }
-
-    [Column("EMPRESA")]
-    public string? Empresa { get; set; }
-
-    [Column("IMPORTE")]
-    public decimal? Importe { get; set; }
+    /// <summary>Momento en que SAF importó esta fila desde IVC.</summary>
+    public DateTime FechaImportacion { get; set; } = DateTime.UtcNow;
 }
