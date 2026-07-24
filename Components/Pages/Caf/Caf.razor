@@ -1,0 +1,138 @@
+@page "/caf"
+@inherits SAF.Components.PermissionPageBase
+
+<PageTitle>CAF</PageTitle>
+
+<RadzenStack>
+    <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+        <RadzenColumn>
+            <h2>Expedientes CAF</h2>
+        </RadzenColumn>
+        <RadzenColumn>
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+                @if (CanCreate)
+                {
+                    <RadzenButton Text="Nuevo"
+                                  Icon="add"
+                                  ButtonStyle="ButtonStyle.Primary"
+                                  Click="@AddRow"
+                                  Disabled="@_loading" />
+                }
+                <RadzenButton Text="Exportar Excel"
+                              Icon="download"
+                              ButtonStyle="ButtonStyle.Secondary"
+                              Click="@ExportarExcel"
+                              Disabled="@(_items.Count == 0)" />
+            </RadzenStack>
+        </RadzenColumn>
+    </RadzenRow>
+
+    @if (_loading)
+    {
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else
+    {
+        <RadzenDataGrid @ref="_grid"
+                        Data="@_items"
+                        TItem="SAF.Application.Caf.Dtos.CafViewModel"
+                        AllowFiltering="true"
+                        AllowSorting="true"
+                        AllowColumnResize="true"
+                        FilterMode="FilterMode.CheckBoxList"
+                        ClearFilterText="Limpiar"
+                        ApplyFilterText="Aplicar"
+                        PageSize="50"
+                        AllowPaging="true"
+                        PagerHorizontalAlign="HorizontalAlign.Center"
+                        EditMode="DataGridEditMode.Single"
+                        RowUpdate="@OnRowUpdate"
+                        RowCreate="@OnRowCreate">
+            <Columns>
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Anio" Title="Año" Width="80px" />
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Expediente" Title="Expediente" Width="230px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.Expediente" Style="width:100%"
+                                       Placeholder="@SAF.Application.Common.ExpedienteKey.FormatosAceptados" />
+                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin:0;">
+                            Formato: @SAF.Application.Common.ExpedienteKey.FormatosAceptados
+                        </RadzenText>
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Op" Title="OP" Width="110px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.Op" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Beneficiario" Title="Beneficiario" Width="200px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.Beneficiario" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="ImporteNeto" Title="Importe Neto" Width="130px" FormatString="{0:N2}">
+                    <EditTemplate Context="item">
+                        <RadzenNumeric @bind-Value="item.ImporteNeto" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Iibb" Title="IIBB (9010/8)" Width="120px" FormatString="{0:N2}">
+                    <EditTemplate Context="item">
+                        <RadzenNumeric @bind-Value="item.Iibb" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Cuenta" Title="Cuenta" Width="110px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.Cuenta" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="FechaPago" Title="Fecha Pago" Width="130px" FormatString="{0:dd/MM/yyyy}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.FechaPago" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Cargado" Title="Cargado" Width="160px" FormatString="{0:dd/MM/yyyy HH:mm}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.Cargado" ShowTime="true" DateFormat="dd/MM/yyyy HH:mm" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="CcPagadora" Title="CC Pagadora" Width="130px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.CcPagadora" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Pase" Title="Pase" Width="120px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.Pase" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Revisado" Title="Revisado" Width="160px" FormatString="{0:dd/MM/yyyy HH:mm}">
+                    <EditTemplate Context="item">
+                        <RadzenDatePicker @bind-Value="item.Revisado" ShowTime="true" DateFormat="dd/MM/yyyy HH:mm" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                @if (CanEdit || CanDelete)
+                {
+                    <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Title="Acciones" Width="140px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
+                        <Template Context="item">
+                            @if (CanEdit)
+                            {
+                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                              Click="@(() => _grid.EditRow(item))" />
+                            }
+                            @if (CanDelete)
+                            {
+                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                              Click="@(() => DeleteRow(item))" />
+                            }
+                        </Template>
+                        <EditTemplate Context="item">
+                            <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                          Click="@(() => _grid.UpdateRow(item))" />
+                            <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                          Click="@(() => CancelEdit(item))" />
+                        </EditTemplate>
+                    </RadzenDataGridColumn>
+                }
+            </Columns>
+        </RadzenDataGrid>
+    }
+</RadzenStack>
