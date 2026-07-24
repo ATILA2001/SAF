@@ -1,6 +1,8 @@
 #nullable enable
 using ClosedXML.Excel;
+using SAF.Application.Common;
 using SAF.Services.Abstractions;
+using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 
 namespace SAF.Services.Implementations;
@@ -12,11 +14,15 @@ public class ExportService : IExportService
         using var wb = new XLWorkbook();
         var ws = wb.Worksheets.Add(sheetName);
 
-        var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        // Solo propiedades exportables, con el título de la planilla ([Display(Name)])
+        // en lugar del nombre técnico de la propiedad.
+        var props = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.GetCustomAttribute<ExportIgnoreAttribute>() is null)
+            .ToArray();
 
         // Header row
         for (int i = 0; i < props.Length; i++)
-            ws.Cell(1, i + 1).Value = props[i].Name;
+            ws.Cell(1, i + 1).Value = props[i].GetCustomAttribute<DisplayAttribute>()?.Name ?? props[i].Name;
 
         // Data rows
         for (int row = 0; row < data.Count; row++)
