@@ -40,13 +40,13 @@ public class StatusContabilidadExtraRepository(AppDbContext db) : IStatusContabi
             existing.FechaPedidoFactura2 = entity.FechaPedidoFactura2;
             existing.ReiterarPedidoFactura3 = entity.ReiterarPedidoFactura3;
             existing.FechaIngresoFactura = entity.FechaIngresoFactura;
+            existing.SinFacturaMotivo = entity.SinFacturaMotivo;
             existing.StatusContableOpcionId = entity.StatusContableOpcionId;
             existing.ObservacionesCuentasPagar = entity.ObservacionesCuentasPagar;
             existing.TramitadorCuentasPagarOpcionId = entity.TramitadorCuentasPagarOpcionId;
             existing.TramitadorLiquidacionesOpcionId = entity.TramitadorLiquidacionesOpcionId;
             existing.ObservacionesLiquidaciones = entity.ObservacionesLiquidaciones;
             existing.FaltaPoliza = entity.FaltaPoliza;
-            existing.UltimoMovimientoSade = entity.UltimoMovimientoSade;
             existing.FechaModificacion = DateTime.UtcNow;
         }
 

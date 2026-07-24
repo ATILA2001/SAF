@@ -1,5 +1,5 @@
 #nullable enable
-using SAF.ViewModels.StatusContabilidad;
+using SAF.Application.StatusContabilidad.Dtos;
 
 namespace SAF.Services.Abstractions;
 

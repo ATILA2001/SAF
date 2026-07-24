@@ -21,4 +21,7 @@ public class LookupService(ILookupRepository repo) : ILookupService
 
     public Task<IReadOnlyList<TramitadorLiquidacionesOpcion>> GetTramitadoresLiquidacionesAsync(CancellationToken ct = default)
         => repo.GetTramitadoresLiquidacionesAsync(ct);
+
+    public Task<IReadOnlyList<SeguroOpcion>> GetSeguroOpcionesAsync(CancellationToken ct = default)
+        => repo.GetSeguroOpcionesAsync(ct);
 }

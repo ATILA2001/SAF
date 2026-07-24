@@ -24,6 +24,10 @@ public class StatusContabilidadExtra
     // Col K: Fecha de ingreso factura (correcta)
     public DateTime? FechaIngresoFactura { get; set; }
 
+    // Col K (variante texto): en el Excel la misma columna mezcla fechas con marcas
+    // "N/C" / "CCOO" / "PAV" / "Anulado". Acá se separan: fecha tipada + motivo aparte.
+    public string? SinFacturaMotivo { get; set; }
+
     // Col L: Status Contable
     public int? StatusContableOpcionId { get; set; }
     public StatusContableOpcion? StatusContableOpcion { get; set; }
@@ -45,8 +49,9 @@ public class StatusContabilidadExtra
     // Col Q: Falta Póliza
     public bool FaltaPoliza { get; set; } = false;
 
-    // Col X: Último Movimiento SADE (manual o lookup)
-    public string? UltimoMovimientoSade { get; set; }
+    // Col W (Buzón SADE), X (Último Movimiento) e Y (Días en el área) son derivadas
+    // de IVC.PASES_SADE por expediente (VLOOKUP a la hoja SADE en el Excel):
+    // se calculan en StatusContabilidadService y no se persisten aquí.
 
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
     public DateTime FechaModificacion { get; set; } = DateTime.UtcNow;

@@ -10,4 +10,5 @@ public interface ILookupRepository
     Task<IReadOnlyList<StatusContableOpcion>> GetStatusContableOpcionesAsync(CancellationToken ct = default);
     Task<IReadOnlyList<TramitadorCuentasPagarOpcion>> GetTramitadoresCuentasPagarAsync(CancellationToken ct = default);
     Task<IReadOnlyList<TramitadorLiquidacionesOpcion>> GetTramitadoresLiquidacionesAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<SeguroOpcion>> GetSeguroOpcionesAsync(CancellationToken ct = default);
 }

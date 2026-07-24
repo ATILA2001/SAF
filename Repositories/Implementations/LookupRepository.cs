@@ -22,4 +22,7 @@ public class LookupRepository(AppDbContext db) : ILookupRepository
 
     public async Task<IReadOnlyList<TramitadorLiquidacionesOpcion>> GetTramitadoresLiquidacionesAsync(CancellationToken ct = default)
         => await db.TramitadoresLiquidaciones.Where(x => x.Activo).OrderBy(x => x.Orden).ToListAsync(ct);
+
+    public async Task<IReadOnlyList<SeguroOpcion>> GetSeguroOpcionesAsync(CancellationToken ct = default)
+        => await db.SeguroOpciones.Where(x => x.Activo).OrderBy(x => x.Orden).ToListAsync(ct);
 }
