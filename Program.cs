@@ -19,6 +19,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddRadzenComponents();
+// Persiste el tema (claro/oscuro) en cookie. IsSecure=false para que la cookie
+// también viaje por http (dev) y el servidor la lea en cada navegación; sin esto,
+// sobre http la cookie Secure no se envía y el tema se "reinicia" al navegar.
+builder.Services.AddRadzenCookieThemeService(options =>
+{
+    options.Name = "RadzenTheme";
+    options.Duration = TimeSpan.FromDays(365);
+    options.IsSecure = false;
+});
 
 builder.Services.AddCascadingAuthenticationState();
 
@@ -102,14 +111,23 @@ builder.Services.AddAuthorizationBuilder()
         .Build());
 
 // ── Application services ───────────────────────────────────────────────────────────────────
+builder.Services.AddTransient<IDevengadoRepository, DevengadoRepository>();
+builder.Services.AddTransient<ISadeRepository, SadeRepository>();
+builder.Services.AddTransient<ISigafOpRepository, SigafOpRepository>();
 builder.Services.AddTransient<IDevengadoExtraRepository, DevengadoExtraRepository>();
 builder.Services.AddTransient<IStatusContabilidadExtraRepository, StatusContabilidadExtraRepository>();
+builder.Services.AddTransient<ICafRepository, CafRepository>();
+builder.Services.AddTransient<ISeguroRepository, SeguroRepository>();
 builder.Services.AddTransient<ILookupRepository, LookupRepository>();
 
 builder.Services.AddScoped<IPagosService, PagosService>();
 builder.Services.AddScoped<IStatusContabilidadService, StatusContabilidadService>();
+builder.Services.AddScoped<ICafService, CafService>();
+builder.Services.AddScoped<ISeguroService, SeguroService>();
 builder.Services.AddScoped<ILookupService, LookupService>();
 builder.Services.AddScoped<IExportService, ExportService>();
+builder.Services.AddScoped<IDevengadoSyncService, DevengadoSyncService>();
+builder.Services.AddScoped<SAF.Shared.INotificationHelper, SAF.Shared.NotificationHelper>();
 
 // Permission service — reads perms_json claim from Auth.Web cookie
 builder.Services.AddScoped<IPermissionService, PermissionService>();
@@ -190,14 +208,10 @@ app.UseAntiforgery();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-// Root redirect to first allowed page
-app.MapGet("/", (HttpContext ctx, IPermissionService permSvc) =>
+// Root redirect: landing común para todos los usuarios autenticados
+app.MapGet("/", (HttpContext ctx) =>
 {
-    var pages = permSvc.GetAllowedPages(ctx.User);
-    var target = AdminClaims.IsAdmin(ctx.User)
-        ? "/pagos"
-        : pages.Count > 0 ? pages[0] : "/Account/AccessDenied";
-    ctx.Response.Redirect(target, permanent: false);
+    ctx.Response.Redirect("/home", permanent: false);
 }).RequireAuthorization();
 
 // Logout
@@ -207,6 +221,25 @@ app.MapGet("/Account/Logout", async (HttpContext ctx, IConfiguration cfg) =>
     var authWebBase = cfg["AuthWeb:BaseUrl"] ?? string.Empty;
     ctx.Response.Redirect($"{authWebBase}/Account/Login");
 }).AllowAnonymous();
+
+// Warmup en background: paga al arrancar la construcción del modelo EF y la apertura
+// de conexiones a los SQL remotos, para que el primer usuario no lo sufra en su vista.
+// Best-effort: si falla, el primer request paga el costo normal.
+_ = Task.Run(async () =>
+{
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<AppDbContext>()
+            .Devengados.AsNoTracking().AnyAsync();
+        await scope.ServiceProvider.GetRequiredService<IvcDbContext>()
+            .PasesSade.AsNoTracking().AnyAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Warmup de bases falló; el primer request pagará el costo inicial.");
+    }
+});
 
 await app.RunAsync();
 
