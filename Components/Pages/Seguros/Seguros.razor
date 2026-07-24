@@ -1,0 +1,117 @@
+@page "/seguros"
+@inherits SAF.Components.PermissionPageBase
+
+<PageTitle>Seguros</PageTitle>
+
+<RadzenStack>
+    <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+        <RadzenColumn>
+            <h2>Seguros</h2>
+        </RadzenColumn>
+        <RadzenColumn>
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
+                @if (CanCreate)
+                {
+                    <RadzenButton Text="Nuevo"
+                                  Icon="add"
+                                  ButtonStyle="ButtonStyle.Primary"
+                                  Click="@AddRow"
+                                  Disabled="@_loading" />
+                }
+                <RadzenButton Text="Exportar Excel"
+                              Icon="download"
+                              ButtonStyle="ButtonStyle.Secondary"
+                              Click="@ExportarExcel"
+                              Disabled="@(_items.Count == 0)" />
+            </RadzenStack>
+        </RadzenColumn>
+    </RadzenRow>
+
+    @if (_loading)
+    {
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else
+    {
+        <RadzenDataGrid @ref="_grid"
+                        Data="@_items"
+                        TItem="SAF.Application.Seguros.Dtos.SeguroViewModel"
+                        AllowFiltering="true"
+                        AllowSorting="true"
+                        AllowColumnResize="true"
+                        FilterMode="FilterMode.CheckBoxList"
+                        ClearFilterText="Limpiar"
+                        ApplyFilterText="Aplicar"
+                        PageSize="50"
+                        AllowPaging="true"
+                        PagerHorizontalAlign="HorizontalAlign.Center"
+                        EditMode="DataGridEditMode.Single"
+                        RowUpdate="@OnRowUpdate"
+                        RowCreate="@OnRowCreate">
+            <Columns>
+                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Expediente" Title="Expediente" Width="230px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.Expediente" Style="width:100%"
+                                       Placeholder="@SAF.Application.Common.ExpedienteKey.FormatosAceptados" />
+                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin:0;">
+                            Formato: @SAF.Application.Common.ExpedienteKey.FormatosAceptados
+                        </RadzenText>
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Op" Title="OP" Width="110px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.Op" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Beneficiario" Title="Beneficiario" Width="220px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.Beneficiario" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="ImporteNeto" Title="Importe Neto" Width="130px" FormatString="{0:N2}">
+                    <EditTemplate Context="item">
+                        <RadzenNumeric @bind-Value="item.ImporteNeto" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Estado" Title="Estado" Width="130px">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.Estado" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="SeguroNombre" Title="Seguro" Width="130px">
+                    <EditTemplate Context="item">
+                        <RadzenDropDown @bind-Value="item.SeguroOpcionId"
+                                        Data="@_seguroOpciones"
+                                        TextProperty="Nombre"
+                                        ValueProperty="Id"
+                                        AllowClear="true"
+                                        Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                @if (CanEdit || CanDelete)
+                {
+                    <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Title="Acciones" Width="140px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
+                        <Template Context="item">
+                            @if (CanEdit)
+                            {
+                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                              Click="@(() => _grid.EditRow(item))" />
+                            }
+                            @if (CanDelete)
+                            {
+                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                              Click="@(() => DeleteRow(item))" />
+                            }
+                        </Template>
+                        <EditTemplate Context="item">
+                            <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                          Click="@(() => _grid.UpdateRow(item))" />
+                            <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                          Click="@(() => CancelEdit(item))" />
+                        </EditTemplate>
+                    </RadzenDataGridColumn>
+                }
+            </Columns>
+        </RadzenDataGrid>
+    }
+</RadzenStack>
