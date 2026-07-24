@@ -12,13 +12,16 @@ public sealed class PermissionVersionService : IPermissionVersionService
     private readonly IMemoryCache _cache;
     private readonly ILogger<PermissionVersionService> _logger;
 
-    private DateTime? _lastCheckedAt;
-
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan CallTimeout = TimeSpan.FromSeconds(2);
     private const string PermsVersionClaimType = "perms_version";
 
     internal static string CookieCacheKey(string userId) => $"cookie_hdr:{userId}";
+
+    // La marca "ya chequeado hace <5 min" vive en IMemoryCache (singleton), no en un
+    // campo de instancia: este servicio es scoped (por circuito) y un campo hacía que
+    // cada F5/nueva pestaña repitiera el HTTP a Auth.Web aunque recién se hubiera chequeado.
+    private static string CheckedCacheKey(string userId) => $"perms_version_ok:{userId}";
 
     public PermissionVersionService(
         IHttpClientFactory httpClientFactory,
@@ -32,9 +35,6 @@ public sealed class PermissionVersionService : IPermissionVersionService
 
     public async Task<bool> IsVersionCurrentAsync(ClaimsPrincipal user)
     {
-        if (_lastCheckedAt.HasValue && DateTime.UtcNow - _lastCheckedAt.Value < CacheTtl)
-            return true;
-
         var userId = user.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userId))
         {
@@ -42,13 +42,16 @@ public sealed class PermissionVersionService : IPermissionVersionService
             return true;
         }
 
+        if (_cache.TryGetValue(CheckedCacheKey(userId), out _))
+            return true;
+
         var cookieVersion = ParseVersion(user);
 
         var rawCookieHeader = _cache.Get<string>(CookieCacheKey(userId));
         if (string.IsNullOrEmpty(rawCookieHeader))
         {
             _logger.LogWarning("perms_version check: no cookie header in cache for user {UserId}. Fail open.", userId);
-            _lastCheckedAt = DateTime.UtcNow;
+            _cache.Set(CheckedCacheKey(userId), true, CacheTtl);
             return true;
         }
 
@@ -66,7 +69,7 @@ public sealed class PermissionVersionService : IPermissionVersionService
             {
                 _logger.LogWarning("perms_version check returned {Status} for user {UserId}. Fail open.",
                     response.StatusCode, userId);
-                _lastCheckedAt = DateTime.UtcNow;
+                _cache.Set(CheckedCacheKey(userId), true, CacheTtl);
                 return true;
             }
 
@@ -83,19 +86,19 @@ public sealed class PermissionVersionService : IPermissionVersionService
                 return false;
             }
 
-            _lastCheckedAt = DateTime.UtcNow;
+            _cache.Set(CheckedCacheKey(userId), true, CacheTtl);
             return true;
         }
         catch (OperationCanceledException)
         {
             _logger.LogWarning("perms_version check timed out for user {UserId}. Fail open.", userId);
-            _lastCheckedAt = DateTime.UtcNow;
+            _cache.Set(CheckedCacheKey(userId), true, CacheTtl);
             return true;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "perms_version check failed for user {UserId}. Fail open.", userId);
-            _lastCheckedAt = DateTime.UtcNow;
+            _cache.Set(CheckedCacheKey(userId), true, CacheTtl);
             return true;
         }
     }
