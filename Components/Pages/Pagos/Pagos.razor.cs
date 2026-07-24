@@ -1,11 +1,7 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
-using Radzen;
-using Radzen.Blazor;
 using SAF.Data.Entities;
 using SAF.Services.Abstractions;
 using SAF.Application.Pagos.Dtos;
-using SAF.Shared;
 
 namespace SAF.Components.Pages.Pagos;
 
@@ -13,124 +9,51 @@ public partial class Pagos
 {
     [Inject] private IPagosService PagosService { get; set; } = null!;
     [Inject] private ILookupService LookupService { get; set; } = null!;
-    [Inject] private IExportService ExportService { get; set; } = null!;
     [Inject] private IDevengadoSyncService SyncService { get; set; } = null!;
-    [Inject] private INotificationHelper Notification { get; set; } = null!;
-    [Inject] private DialogService DialogService { get; set; } = null!;
-    [Inject] private IJSRuntime JS { get; set; } = null!;
 
-    private RadzenDataGrid<PagoViewModel> _grid = null!;
-    private List<PagoViewModel> _items = new();
-    private bool _loading = true;
     private bool _syncing;
     private DateTime? _ultimaActualizacion;
 
     private IReadOnlyList<StatusDgayfOpcion> _statusDgayfOpciones = Array.Empty<StatusDgayfOpcion>();
     private IReadOnlyList<StatusOpOpcion> _statusOpOpciones = Array.Empty<StatusOpOpcion>();
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadPermissionsAsync("/pagos");
+    protected override string PageUrl => "/pagos";
+    protected override string TituloEntidad => "devengados";
+    protected override string ExportNombreHoja => "Pagos";
+    protected override string ExportNombreArchivo => "Pagos.xlsx";
 
-        try
-        {
-            // Secuencial: comparten el AppDbContext scoped (EF Core no admite
-            // operaciones concurrentes sobre la misma instancia de DbContext).
-            _statusDgayfOpciones = await LookupService.GetStatusDgayfOpcionesAsync();
-            _statusOpOpciones = await LookupService.GetStatusOpOpcionesAsync();
-            _items = (await PagosService.GetAllAsync()).ToList();
-            _ultimaActualizacion = await PagosService.GetUltimaFechaImputacionAsync();
-        }
-        catch (Exception ex)
-        {
-            Notification.ShowError(ex.Message, "Error al cargar Pagos");
-        }
-        finally
-        {
-            _loading = false;
-        }
+    protected override async Task CargarAuxiliaresAsync()
+    {
+        _statusDgayfOpciones = await LookupService.GetStatusDgayfOpcionesAsync();
+        _statusOpOpciones = await LookupService.GetStatusOpOpcionesAsync();
+        _ultimaActualizacion = await PagosService.GetUltimaFechaImputacionAsync();
     }
 
-    private async Task OnRowUpdate(PagoViewModel item)
-    {
-        // La UI esconde el botón, pero el permiso se revalida acá (server-side).
-        if (!CanEdit)
-        {
-            Notification.ShowError("No tenés permiso para editar Pagos.", "Permiso denegado");
-            return;
-        }
+    protected override async Task<List<PagoViewModel>> ObtenerDatosAsync() =>
+        (await PagosService.GetAllAsync()).ToList();
 
-        // Actualizar nombre visible en la grilla
+    protected override PagoViewModel NuevaFila() => new() { FechaDevengado = DateTime.Today };
+
+    protected override string DescripcionFila(PagoViewModel item) =>
+        $"Devengado {item.TipoDev} {item.NroDev}";
+
+    protected override string TextoConfirmacionEliminar(PagoViewModel item) =>
+        $"Se eliminará la fila del devengado {item.TipoDev} {item.NroDev} " +
+        $"(expediente {item.Expediente}, importe {item.Importe:N2}) junto con sus datos " +
+        "cargados (status, observaciones, fechas). Esta acción no se puede deshacer.";
+
+    protected override void PrepararParaGuardar(PagoViewModel item)
+    {
+        // Nombres visibles en la grilla (la edición guarda el Id de la opción).
         item.StatusDgayfNombre = _statusDgayfOpciones.FirstOrDefault(x => x.Id == item.StatusDgayfOpcionId)?.Nombre;
         item.StatusOpNombre = _statusOpOpciones.FirstOrDefault(x => x.Id == item.StatusOpOpcionId)?.Nombre;
-
-        try
-        {
-            await PagosService.UpsertAsync(item);
-            await _grid.Reload();
-        }
-        catch (Exception ex)
-        {
-            Notification.ShowError(ex.Message, "Error al guardar");
-        }
     }
 
-    private async Task AddRow()
-    {
-        var nuevo = new PagoViewModel { FechaDevengado = DateTime.Today };
-        await _grid.InsertRow(nuevo);
-    }
+    protected override Task CrearAsync(PagoViewModel item) => PagosService.CreateDevengadoAsync(item);
 
-    private async Task OnRowCreate(PagoViewModel item)
-    {
-        // La UI esconde el botón, pero el permiso se revalida acá (server-side).
-        if (!CanCreate)
-        {
-            Notification.ShowError("No tenés permiso para cargar devengados.", "Permiso denegado");
-            return;
-        }
+    protected override Task ActualizarAsync(PagoViewModel item) => PagosService.UpsertAsync(item);
 
-        try
-        {
-            await PagosService.CreateDevengadoAsync(item);
-            _items = (await PagosService.GetAllAsync()).ToList();
-            await _grid.Reload();
-            Notification.ShowSuccess($"Devengado {item.TipoDev} {item.NroDev} cargado.", "Alta exitosa");
-        }
-        catch (Exception ex)
-        {
-            Notification.ShowError(ex.Message, "Error al cargar devengado");
-        }
-    }
-
-    private async Task DeleteRow(PagoViewModel item)
-    {
-        if (!CanDelete)
-        {
-            Notification.ShowError("No tenés permiso para eliminar devengados.", "Permiso denegado");
-            return;
-        }
-
-        var confirmado = await DialogService.Confirm(
-            $"Se eliminará la fila del devengado {item.TipoDev} {item.NroDev} " +
-            $"(expediente {item.Expediente}, importe {item.Importe:N2}) junto con sus datos " +
-            "cargados (status, observaciones, fechas). Esta acción no se puede deshacer.",
-            "Eliminar devengado",
-            new ConfirmOptions { OkButtonText = "Eliminar", CancelButtonText = "Cancelar" });
-        if (confirmado != true) return;
-
-        try
-        {
-            await PagosService.DeleteDevengadoAsync(item.Id);
-            _items = (await PagosService.GetAllAsync()).ToList();
-            await _grid.Reload();
-            Notification.ShowSuccess($"Devengado {item.TipoDev} {item.NroDev} eliminado.", "Baja exitosa");
-        }
-        catch (Exception ex)
-        {
-            Notification.ShowError(ex.Message, "Error al eliminar");
-        }
-    }
+    protected override Task EliminarAsync(PagoViewModel item) => PagosService.DeleteDevengadoAsync(item.Id);
 
     private async Task SincronizarDevengados()
     {
@@ -149,7 +72,7 @@ public partial class Pagos
             switch (result.Status)
             {
                 case SyncStatus.Importado:
-                    _items = (await PagosService.GetAllAsync()).ToList();
+                    await ReloadAsync();
                     Notification.ShowSuccess(
                         $"{result.Insertados} devengado(s) nuevo(s) importado(s).",
                         "Sincronización completa");
@@ -176,13 +99,5 @@ public partial class Pagos
         {
             _syncing = false;
         }
-    }
-
-    private async Task ExportarExcel()
-    {
-        var bytes = ExportService.ExportToXlsx(_items, "Pagos");
-        var base64 = Convert.ToBase64String(bytes);
-        await JS.InvokeVoidAsync("downloadFileFromBase64", base64, "Pagos.xlsx",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
 }

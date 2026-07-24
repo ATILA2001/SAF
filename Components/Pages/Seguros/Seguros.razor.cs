@@ -1,11 +1,7 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
-using Radzen;
-using Radzen.Blazor;
 using SAF.Data.Entities;
 using SAF.Services.Abstractions;
 using SAF.Application.Seguros.Dtos;
-using SAF.Shared;
 
 namespace SAF.Components.Pages.Seguros;
 
@@ -13,124 +9,27 @@ public partial class Seguros
 {
     [Inject] private ISeguroService SeguroService { get; set; } = null!;
     [Inject] private ILookupService LookupService { get; set; } = null!;
-    [Inject] private IExportService ExportService { get; set; } = null!;
-    [Inject] private INotificationHelper Notification { get; set; } = null!;
-    [Inject] private DialogService DialogService { get; set; } = null!;
-    [Inject] private IJSRuntime JS { get; set; } = null!;
-
-    private RadzenDataGrid<SeguroViewModel> _grid = null!;
-    private List<SeguroViewModel> _items = new();
-    private bool _loading = true;
 
     private IReadOnlyList<SeguroOpcion> _seguroOpciones = Array.Empty<SeguroOpcion>();
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadPermissionsAsync("/seguros");
+    protected override string PageUrl => "/seguros";
+    protected override string TituloEntidad => "seguros";
+    protected override string ExportNombreHoja => "Seguros";
+    protected override string ExportNombreArchivo => "Seguros.xlsx";
 
-        try
-        {
-            // Secuencial: comparten el AppDbContext scoped.
-            _seguroOpciones = await LookupService.GetSeguroOpcionesAsync();
-            _items = (await SeguroService.GetAllAsync()).ToList();
-        }
-        catch (Exception ex)
-        {
-            Notification.ShowError(ex.Message, "Error al cargar Seguros");
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
+    protected override async Task CargarAuxiliaresAsync() =>
+        _seguroOpciones = await LookupService.GetSeguroOpcionesAsync();
 
-    private async Task AddRow()
-    {
-        var nuevo = new SeguroViewModel();
-        await _grid.InsertRow(nuevo);
-    }
+    protected override async Task<List<SeguroViewModel>> ObtenerDatosAsync() =>
+        (await SeguroService.GetAllAsync()).ToList();
 
-    private async Task OnRowCreate(SeguroViewModel item)
-    {
-        // La UI esconde los botones, pero el permiso se revalida acá (server-side).
-        if (!CanCreate)
-        {
-            Notification.ShowError("No tenés permiso para crear seguros.", "Permiso denegado");
-            return;
-        }
+    protected override string DescripcionFila(SeguroViewModel item) =>
+        $"Seguro del expediente {item.Expediente}";
 
-        try
-        {
-            await SeguroService.CreateAsync(item);
-            await ReloadAsync();
-            Notification.ShowSuccess("Seguro creado.", "Alta exitosa");
-        }
-        catch (Exception ex)
-        {
-            Notification.ShowError(ex.Message, "Error al crear");
-        }
-    }
+    protected override Task CrearAsync(SeguroViewModel item) => SeguroService.CreateAsync(item);
 
-    private async Task OnRowUpdate(SeguroViewModel item)
-    {
-        if (!CanEdit)
-        {
-            Notification.ShowError("No tenés permiso para editar seguros.", "Permiso denegado");
-            return;
-        }
+    protected override Task ActualizarAsync(SeguroViewModel item) => SeguroService.UpdateAsync(item);
 
-        try
-        {
-            await SeguroService.UpdateAsync(item);
-            await ReloadAsync();
-        }
-        catch (Exception ex)
-        {
-            Notification.ShowError(ex.Message, "Error al guardar");
-        }
-    }
-
-    private void CancelEdit(SeguroViewModel item) => _grid.CancelEditRow(item);
-
-    private async Task DeleteRow(SeguroViewModel item)
-    {
-        if (!CanDelete)
-        {
-            Notification.ShowError("No tenés permiso para eliminar seguros.", "Permiso denegado");
-            return;
-        }
-
-        var confirmado = await DialogService.Confirm(
-            $"Se eliminará el seguro del expediente {item.Expediente}. " +
-            "Esta acción no se puede deshacer.",
-            "Eliminar seguro",
-            new ConfirmOptions { OkButtonText = "Eliminar", CancelButtonText = "Cancelar" });
-        if (confirmado != true) return;
-
-        try
-        {
-            if (item.Id != 0)
-                await SeguroService.DeleteAsync(item.Id);
-            await ReloadAsync();
-            Notification.ShowSuccess("Seguro eliminado.", "Baja exitosa");
-        }
-        catch (Exception ex)
-        {
-            Notification.ShowError(ex.Message, "Error al eliminar");
-        }
-    }
-
-    private async Task ReloadAsync()
-    {
-        _items = (await SeguroService.GetAllAsync()).ToList();
-        await _grid.Reload();
-    }
-
-    private async Task ExportarExcel()
-    {
-        var bytes = ExportService.ExportToXlsx(_items, "Seguros");
-        var base64 = Convert.ToBase64String(bytes);
-        await JS.InvokeVoidAsync("downloadFileFromBase64", base64, "Seguros.xlsx",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-    }
+    protected override Task EliminarAsync(SeguroViewModel item) =>
+        item.Id != 0 ? SeguroService.DeleteAsync(item.Id) : Task.CompletedTask;
 }
