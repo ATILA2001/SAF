@@ -186,26 +186,13 @@ public class PagosService(
     public Task<DateTime?> GetUltimaFechaImputacionAsync(CancellationToken ct = default)
         => devengadoRepo.GetMaxFechaImputacionAsync(ct);
 
-    // Tipos que la vista Pagos excluye (mismo filtro que el sync con IVC).
-    private static readonly string[] TiposExcluidos = ["C55", "CPS"];
-
     public async Task<PagoViewModel> CreateDevengadoAsync(PagoViewModel vm, CancellationToken ct = default)
     {
-        var tipoDev = (vm.TipoDev ?? string.Empty).Trim().ToUpperInvariant();
-        if (tipoDev.Length == 0)
-            throw new ArgumentException("El tipo de devengado es obligatorio (ej.: PRD, DGG, DRG, DGT).");
-        if (TiposExcluidos.Contains(tipoDev))
-            throw new ArgumentException($"El tipo {tipoDev} está excluido de la vista Pagos (mismo filtro que la sincronización).");
-        if (vm.NroDev <= 0)
-            throw new ArgumentException("El número de devengado es obligatorio y debe ser mayor a cero.");
-        if (vm.FechaDevengado is null)
-            throw new ArgumentException("La fecha de devengado es obligatoria.");
-        if (vm.Importe is not > 0)
-            throw new ArgumentException("El importe es obligatorio y debe ser mayor a cero (mismo filtro que la sincronización).");
+        var errores = Application.Pagos.PagoValidator.ValidarAlta(vm);
+        if (errores.Count > 0) throw new ArgumentException(string.Join(" ", errores));
 
-        var expediente = Application.Common.ExpedienteKey.Normalizar(vm.Expediente)
-            ?? throw new ArgumentException(
-                $"Expediente inválido: \"{vm.Expediente}\". Formatos aceptados: {Application.Common.ExpedienteKey.FormatosAceptados}.");
+        var tipoDev = (vm.TipoDev ?? string.Empty).Trim().ToUpperInvariant();
+        var expediente = Application.Common.ExpedienteKey.Normalizar(vm.Expediente)!;
 
         if (await devengadoRepo.ExistsExactoAsync(tipoDev, vm.NroDev, vm.FechaDevengado, vm.Importe, ct))
             throw new ArgumentException(

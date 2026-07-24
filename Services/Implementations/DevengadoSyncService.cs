@@ -14,7 +14,8 @@ namespace SAF.Services.Implementations;
 /// </summary>
 public class DevengadoSyncService(IvcDbContext ivc, AppDbContext db) : IDevengadoSyncService
 {
-    private static readonly string[] TiposExcluidos = ["C55", "CPS"];
+    // Mismo filtro que la vista Pagos y el alta manual (fuente única).
+    private static readonly string[] TiposExcluidos = ReglasDevengado.TiposExcluidos;
 
     public async Task<SyncResult> SyncAsync(CancellationToken ct = default)
     {

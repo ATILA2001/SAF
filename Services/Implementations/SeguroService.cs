@@ -3,6 +3,7 @@ using SAF.Data.Entities;
 using SAF.Repositories.Abstractions;
 using SAF.Services.Abstractions;
 using SAF.Application.Common;
+using SAF.Application.Seguros;
 using SAF.Application.Seguros.Dtos;
 
 namespace SAF.Services.Implementations;
@@ -17,6 +18,7 @@ public class SeguroService(ISeguroRepository repo) : ISeguroService
 
     public async Task<SeguroViewModel> CreateAsync(SeguroViewModel vm, CancellationToken ct = default)
     {
+        Validar(vm);
         var entity = MapToEntity(vm, new ExpedienteSeguro());
         entity.FechaCreacion = DateTime.UtcNow;
         entity.FechaModificacion = DateTime.UtcNow;
@@ -26,6 +28,7 @@ public class SeguroService(ISeguroRepository repo) : ISeguroService
 
     public async Task UpdateAsync(SeguroViewModel vm, CancellationToken ct = default)
     {
+        Validar(vm);
         var entity = await repo.GetByIdAsync(vm.Id, ct);
         if (entity is null) return;
 
@@ -35,6 +38,12 @@ public class SeguroService(ISeguroRepository repo) : ISeguroService
     }
 
     public Task DeleteAsync(int id, CancellationToken ct = default) => repo.DeleteAsync(id, ct);
+
+    private static void Validar(SeguroViewModel vm)
+    {
+        var errores = SeguroValidator.Validar(vm);
+        if (errores.Count > 0) throw new ArgumentException(string.Join(" ", errores));
+    }
 
     private static ExpedienteSeguro MapToEntity(SeguroViewModel vm, ExpedienteSeguro e)
     {

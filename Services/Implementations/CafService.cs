@@ -3,6 +3,7 @@ using SAF.Data.Entities;
 using SAF.Repositories.Abstractions;
 using SAF.Services.Abstractions;
 using SAF.Application.Common;
+using SAF.Application.Caf;
 using SAF.Application.Caf.Dtos;
 
 namespace SAF.Services.Implementations;
@@ -17,6 +18,7 @@ public class CafService(ICafRepository repo) : ICafService
 
     public async Task<CafViewModel> CreateAsync(CafViewModel vm, CancellationToken ct = default)
     {
+        Validar(vm);
         var entity = MapToEntity(vm, new ExpedienteCaf());
         entity.FechaCreacion = DateTime.UtcNow;
         entity.FechaModificacion = DateTime.UtcNow;
@@ -26,6 +28,7 @@ public class CafService(ICafRepository repo) : ICafService
 
     public async Task UpdateAsync(CafViewModel vm, CancellationToken ct = default)
     {
+        Validar(vm);
         var entity = await repo.GetByIdAsync(vm.Id, ct);
         if (entity is null) return;
 
@@ -35,6 +38,12 @@ public class CafService(ICafRepository repo) : ICafService
     }
 
     public Task DeleteAsync(int id, CancellationToken ct = default) => repo.DeleteAsync(id, ct);
+
+    private static void Validar(CafViewModel vm)
+    {
+        var errores = CafValidator.Validar(vm);
+        if (errores.Count > 0) throw new ArgumentException(string.Join(" ", errores));
+    }
 
     private static ExpedienteCaf MapToEntity(CafViewModel vm, ExpedienteCaf e)
     {
