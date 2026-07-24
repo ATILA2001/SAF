@@ -31,19 +31,15 @@ public class DevengadoSyncService(IvcDbContext ivc, AppDbContext db) : IDevengad
         if (ultimaFecha is null)
             return new SyncResult(SyncStatus.SinDatosEnIvc, 0, null);
 
-        // Guarda "una vez por día": si SAF ya está al día con la última fecha de IVC,
-        // no se ejecuta la importación (evita reprocesar y cualquier riesgo de duplicado).
-        var ultimaFechaSaf = await db.Devengados.AsNoTracking()
-            .Select(d => d.FechaImputacion)
-            .MaxAsync(ct);
-        if (ultimaFechaSaf == ultimaFecha)
-            return new SyncResult(SyncStatus.YaActualizado, 0, ultimaFechaSaf);
-
+        // Sin guarda por fecha máxima: el diff de filas corre siempre. Comparar solo
+        // max(SAF) == max(IVC) descartaba el día entero cuando un alta manual fechada
+        // hoy igualaba las fechas, o cuando una corrida previa importó un parcial
+        // durante la recarga diaria de IVC. El diff ya garantiza la idempotencia.
         var candidatos = await query
             .Where(d => d.FechaImputacion == ultimaFecha)
             .ToListAsync(ct);
         if (candidatos.Count == 0)
-            return new SyncResult(SyncStatus.YaActualizado, 0, ultimaFechaSaf);
+            return new SyncResult(SyncStatus.YaActualizado, 0, ultimaFecha);
 
         // Idempotencia: no reinsertar filas de esa fecha ya presentes (misma línea exacta).
         var existentes = await db.Devengados.AsNoTracking()
