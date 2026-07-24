@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using SAF.Data.Entities;
 using SAF.Services.Abstractions;
+using SAF.Application.Pagos;
 using SAF.Application.Pagos.Dtos;
 
 namespace SAF.Components.Pages.Pagos;
@@ -48,6 +49,11 @@ public partial class Pagos
         item.StatusDgayfNombre = _statusDgayfOpciones.FirstOrDefault(x => x.Id == item.StatusDgayfOpcionId)?.Nombre;
         item.StatusOpNombre = _statusOpOpciones.FirstOrDefault(x => x.Id == item.StatusOpOpcionId)?.Nombre;
     }
+
+    // Solo el alta: en la edición los campos que vienen de IVC son de solo lectura, y las
+    // filas históricas del ledger pueden no cumplir las reglas del alta manual.
+    protected override IReadOnlyList<string> Validar(PagoViewModel item, bool esAlta) =>
+        esAlta ? PagoValidator.ValidarAlta(item) : Array.Empty<string>();
 
     protected override Task CrearAsync(PagoViewModel item) => PagosService.CreateDevengadoAsync(item);
 

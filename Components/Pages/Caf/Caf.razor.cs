@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using SAF.Services.Abstractions;
+using SAF.Application.Caf;
 using SAF.Application.Caf.Dtos;
 
 namespace SAF.Components.Pages.Caf;
@@ -24,6 +25,9 @@ public partial class Caf
     protected override string TextoConfirmacionEliminar(CafViewModel item) =>
         $"Se eliminará el expediente CAF {item.Expediente} (año {item.Anio}). " +
         "Esta acción no se puede deshacer.";
+
+    protected override IReadOnlyList<string> Validar(CafViewModel item, bool esAlta) =>
+        CafValidator.Validar(item);
 
     protected override Task CrearAsync(CafViewModel item) => CafService.CreateAsync(item);
 

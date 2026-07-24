@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using SAF.Data.Entities;
 using SAF.Services.Abstractions;
+using SAF.Application.Seguros;
 using SAF.Application.Seguros.Dtos;
 
 namespace SAF.Components.Pages.Seguros;
@@ -25,6 +26,9 @@ public partial class Seguros
 
     protected override string DescripcionFila(SeguroViewModel item) =>
         $"Seguro del expediente {item.Expediente}";
+
+    protected override IReadOnlyList<string> Validar(SeguroViewModel item, bool esAlta) =>
+        SeguroValidator.Validar(item);
 
     protected override Task CrearAsync(SeguroViewModel item) => SeguroService.CreateAsync(item);
 

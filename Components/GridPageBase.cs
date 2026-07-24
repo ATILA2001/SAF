@@ -48,6 +48,12 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     /// <summary>Descripción de la fila para los mensajes de alta/baja y la confirmación.</summary>
     protected virtual string DescripcionFila(TItem item) => string.Empty;
 
+    /// <summary>
+    /// Reglas de la fila (lista vacía = válida). Mismas reglas que aplica el servicio:
+    /// acá solo se anticipan para no cerrar la edición y perder lo cargado.
+    /// </summary>
+    protected virtual IReadOnlyList<string> Validar(TItem item, bool esAlta) => Array.Empty<string>();
+
     protected virtual Task CrearAsync(TItem item) => throw new NotSupportedException();
     protected virtual Task ActualizarAsync(TItem item) => throw new NotSupportedException();
     protected virtual Task EliminarAsync(TItem item) => throw new NotSupportedException();
@@ -89,6 +95,8 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
             return;
         }
 
+        if (!await FilaValidaAsync(item, esAlta: true)) return;
+
         try
         {
             await CrearAsync(item);
@@ -108,6 +116,8 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
             Notification.ShowError($"No tenés permiso para editar {TituloEntidad}.", "Permiso denegado");
             return;
         }
+
+        if (!await FilaValidaAsync(item, esAlta: false)) return;
 
         PrepararParaGuardar(item);
 
@@ -146,6 +156,30 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
         {
             Notification.ShowError(ex.Message, "Error al eliminar");
         }
+    }
+
+    /// <summary>
+    /// Valida la fila y, si no pasa, reabre la edición con lo que el usuario ya cargó
+    /// (Radzen cierra la fila al confirmar, así que hay que volver a abrirla).
+    /// </summary>
+    private async Task<bool> FilaValidaAsync(TItem item, bool esAlta)
+    {
+        var errores = Validar(item, esAlta);
+        if (errores.Count == 0) return true;
+
+        Notification.ShowError(string.Join(" ", errores), "Revisá los datos");
+
+        try
+        {
+            if (esAlta) await _grid.InsertRow(item);
+            else await _grid.EditRow(item);
+        }
+        catch
+        {
+            // Si la grilla no puede reabrir la fila, el error ya quedó informado.
+        }
+
+        return false;
     }
 
     /// <summary>
