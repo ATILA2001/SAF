@@ -13,37 +13,17 @@
                         <RadzenLabel Text="@context.User.Identity?.Name" />
                     </Authorized>
                 </AuthorizeView>
-                @if (_otherApps.Count > 0)
-                {
-                    <div style="position: relative; display: inline-block;">
-                        <RadzenButton Text="Aplicaciones"
-                                      Icon="grid_view"
-                                      ButtonStyle="ButtonStyle.Secondary"
-                                      Click="@ToggleAppSwitcher" />
-                        @if (_appSwitcherOpen)
-                        {
-                            <div style="position: absolute; right: 0; top: calc(100% + 4px); min-width: 220px; z-index: 1000;
-                                        background: var(--rz-base-background-color); border: 1px solid rgba(255,255,255,.15);
-                                        border-radius: 4px; box-shadow: 0 4px 16px rgba(0,0,0,.5); overflow: hidden;">
-                                @foreach (var app in _otherApps)
-                                {
-                                    <a href="@app.Url"
-                                       style="display: block; padding: 10px 16px; text-decoration: none; color: var(--rz-text-color);"
-                                       @onclick="@(() => _appSwitcherOpen = false)">@app.Label</a>
-                                }
-                            </div>
-                        }
-                    </div>
-                }
-                <a class="rz-button rz-button-md rz-variant-filled rz-danger rz-shade-default" href="/Account/Logout">
-                    <span class="rz-button-icon-left rzi">logout</span>
-                    <span class="rz-button-text">Cerrar sesión</span>
-                </a>
+                <RadzenAppearanceToggle />
+                <RadzenButton Icon="logout"
+                              Text="Salir"
+                              ButtonStyle="ButtonStyle.Danger"
+                              Click="@(() => Navigation.NavigateTo("/Account/Logout", forceLoad: true))" />
             </RadzenStack>
         </RadzenStack>
     </RadzenHeader>
     <RadzenSidebar Responsive="false" Style="width: max-content">
         <RadzenPanelMenu DisplayStyle="@(sidebarExpanded? Radzen.MenuItemDisplayStyle.IconAndText : Radzen.MenuItemDisplayStyle.Icon)" ShowArrow="false">
+            <RadzenPanelMenuItem Text="Inicio" Icon="home" Path="/home" />
             @if (CanShowPage("/pagos"))
             {
                 <RadzenPanelMenuItem Text="Pagos" Icon="payments" Path="/pagos" />
@@ -52,9 +32,20 @@
             {
                 <RadzenPanelMenuItem Text="Status Contabilidad" Icon="account_balance" Path="/status-contabilidad" />
             }
+            @if (CanShowPage("/caf"))
+            {
+                <RadzenPanelMenuItem Text="CAF" Icon="request_quote" Path="/caf" />
+            }
+            @if (CanShowPage("/seguros"))
+            {
+                <RadzenPanelMenuItem Text="Seguros" Icon="verified_user" Path="/seguros" />
+            }
         </RadzenPanelMenu>
     </RadzenSidebar>
     <RadzenBody>
         @Body
     </RadzenBody>
+    <RadzenFooter>
+        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0;">SAF · Sistema de Administración Financiera</RadzenText>
+    </RadzenFooter>
 </RadzenLayout>

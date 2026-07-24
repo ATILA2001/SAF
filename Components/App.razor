@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="SAF.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <RadzenTheme Theme="material-dark" />
+    <RadzenTheme Theme="@_theme" @rendermode="RenderModeForPage" />
     <HeadOutlet @rendermode="RenderModeForPage" />
 </head>
 
@@ -25,7 +25,20 @@
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
 
+    // Tema persistido por RadzenCookieThemeService (cookie "RadzenTheme"); el SSR
+    // debe leerla para no pisarla con el valor por defecto en cada carga.
+    // Default: "material" (tema claro).
+    private string _theme = "material";
+
+    // Sin prerender: con prerender, cada vista ejecuta OnInitializedAsync DOS veces
+    // (SSR + circuito interactivo), duplicando toda la carga de datos contra IVC/SAF.
+    private static readonly IComponentRenderMode InteractiveServerSinPrerender =
+        new InteractiveServerRenderMode(prerender: false);
+
     private IComponentRenderMode? RenderModeForPage => HttpContext.Request.Path.StartsWithSegments("/Account")
         ? null
-        : InteractiveServer;
+        : InteractiveServerSinPrerender;
+
+    protected override void OnInitialized()
+        => _theme = HttpContext.Request.Cookies["RadzenTheme"] is { Length: > 0 } t ? t : "material";
 }

@@ -13,37 +13,27 @@ public partial class MainLayout : IDisposable
     [Inject] private IPermissionVersionService PermissionVersionService { get; set; } = null!;
     [Inject] private NavigationManager Navigation { get; set; } = null!;
     [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
-    [Inject] private IConfiguration Configuration { get; set; } = null!;
 
     private ClaimsPrincipal? _user;
     private bool sidebarExpanded = true;
-    private List<AppLink> _otherApps = new();
-
-    private sealed record AppLink(string ClientId, string Label, string Url);
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         _user = authState.User;
 
-        var authWebBase = (Configuration["AuthWeb:BaseUrl"] ?? "").TrimEnd('/');
-        var currentClientId = Configuration["AuthWeb:ClientId"] ?? "saf";
-        _otherApps = _user.Claims
-            .Where(c => c.Type == "available_app"
-                        && !string.Equals(c.Value, currentClientId, StringComparison.OrdinalIgnoreCase))
-            .Select(c => new AppLink(c.Value, GetAppDisplayName(c.Value), $"{authWebBase}/connect/switch-app?clientId={Uri.EscapeDataString(c.Value)}"))
-            .ToList();
-
         Navigation.LocationChanged += OnLocationChanged;
 
-        await CheckPermissionVersionAsync();
         EnsureCurrentPageAccessible();
+        // Fuera del camino crítico: no bloquea el primer render (el chequeo es fail-open;
+        // si la versión está vencida, redirige a Login cuando Auth.Web responde).
+        _ = CheckPermissionVersionAsync();
     }
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        await CheckPermissionVersionAsync();
         EnsureCurrentPageAccessible();
+        await CheckPermissionVersionAsync();
     }
 
     private async Task CheckPermissionVersionAsync()
@@ -83,18 +73,8 @@ public partial class MainLayout : IDisposable
     private static bool IsPublicPath(string path)
         => path.StartsWith("/Account/", StringComparison.OrdinalIgnoreCase)
         || path.Equals("/Error", StringComparison.OrdinalIgnoreCase)
-        || path.Equals("/", StringComparison.OrdinalIgnoreCase);
-
-    private static string GetAppDisplayName(string clientId) => clientId switch
-    {
-        "sai" => "Sistema de Administración de Inventario",
-        "saf" => "Sistema de Administración Financiera",
-        _ => clientId
-    };
-
-    private bool _appSwitcherOpen = false;
-
-    private void ToggleAppSwitcher() => _appSwitcherOpen = !_appSwitcherOpen;
+        || path.Equals("/", StringComparison.OrdinalIgnoreCase)
+        || path.Equals("/home", StringComparison.OrdinalIgnoreCase);
 
     public void Dispose()
         => Navigation.LocationChanged -= OnLocationChanged;

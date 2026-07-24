@@ -1,1 +1,240 @@
 /* SAF - Sistema de Administración Financiera */
+
+/* ===========================================================================
+   Identidad de color (portado del esquema de SAI, con primario propio de SAF).
+   Cambiá --custom-primary-color para reskinear toda la app.
+   =========================================================================== */
+:root {
+    /* variables personalizadas */
+    --custom-primary-color: #375f0f; /* verde financiero propio de SAF (SAI usa #800080 púrpura) */
+    /* Acento claro de la misma familia: para TEXTO/íconos sobre fondo oscuro
+       (menú activo, links), donde el oliva #375f0f quedaría ilegible. */
+    --custom-primary-accent: #8bc34a;
+    /* Secondary fijo en teal para AMBOS temas. En el tema claro de Radzen el
+       secondary es magenta/rojo (#e31c65) y volvía rojos los botones
+       "Aplicaciones" y "Exportar Excel"; lo forzamos al teal del tema oscuro. */
+    --custom-secondary-color: #01a299;
+
+    /* Escala de primario de Radzen: override COMPLETO de la escala para que todos
+       los estados derivados (menú activo, focus, hover, fondos sutiles, filas
+       seleccionadas) usen el verde y no el violeta del tema material-dark.
+       material-dark usa: primary #bb86fc, light #c99efd, lighter rgba(.,.12),
+       dark #966bca, darker #7f5bab. */
+    --rz-primary: var(--custom-primary-color) !important;
+    --rz-primary-light: #4a7d14 !important;
+    --rz-primary-lighter: rgba(55, 95, 15, 0.14) !important;
+    --rz-primary-dark: #2c4c0c !important;
+    --rz-primary-darker: #21390a !important;
+}
+
+.rz-button.rz-primary {
+    background-color: var(--custom-primary-color) !important;
+    color: var(--rz-white) !important;
+}
+
+/* Botones secondary (Aplicaciones, Exportar Excel): teal consistente en claro y
+   oscuro, en vez del magenta/rojo del tema claro. */
+.rz-button.rz-secondary {
+    background-color: var(--custom-secondary-color) !important;
+    color: var(--rz-white) !important;
+}
+
+.rz-clear-filter {
+    background-color: var(--rz-base-dark) !important;
+    color: var(--rz-white) !important;
+}
+
+/* ===========================================================================
+   Variables que se adaptan al tema (claro/oscuro). El RadzenLayout expone en el
+   DOM .rz-material (claro) y .rz-material-dark (oscuro); las usamos como gancho
+   para que acentos y superficies sean legibles en ambos modos.
+   =========================================================================== */
+.rz-layout.rz-material-dark {
+    --menu-active-color: var(--custom-primary-accent); /* verde claro sobre sidebar oscuro */
+    --surface-border: rgba(255, 255, 255, .12);
+    --surface-bg: rgba(255, 255, 255, .04);
+}
+
+.rz-layout.rz-material {
+    --menu-active-color: var(--custom-primary-color); /* verde oliva sobre sidebar claro */
+    --surface-border: rgba(0, 0, 0, .14);
+    --surface-bg: rgba(0, 0, 0, .03);
+}
+
+/* Ítem de menú activo (sidebar): color del primario, adaptado por tema.
+   El tema lo resuelve vía --rz-menu-item-selected-color -> var(--rz-primary),
+   pero la cadena de variables no propaga el override; aplicamos el color directo
+   sobre el link/ícono activo. Sin prefijo de ancestro porque el sidebar usa
+   .rz-panel-menu (no .rz-menu); con !important gana sobre el tema. */
+.rz-navigation-item-wrapper-active .rz-navigation-item-link,
+.rz-navigation-item-wrapper-active .rz-navigation-item-link .rzi,
+.rz-navigation-item-link.active,
+.rz-navigation-item-link.active .rzi:not(.rz-navigation-item-icon-children) {
+    color: var(--menu-active-color, var(--custom-primary-accent)) !important;
+}
+
+/* ===========================================================================
+   Estados de validación
+   =========================================================================== */
+h1:focus {
+    outline: none;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050 !important;
+    outline-offset: -1px;
+    border-color: #26b050 !important;
+}
+
+.invalid {
+    outline: 1px solid #e50000 !important;
+    outline-offset: -1px;
+    border-color: #e50000 !important;
+}
+
+.field-duplicate {
+    outline: 1px solid #e6a817 !important;
+    outline-offset: -1px;
+    border-color: #e6a817 !important;
+}
+
+.validation-message {
+    color: #e50000;
+}
+
+.blazor-error-boundary {
+    background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC42NTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OUwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
+    padding: 1rem 1rem 1rem 3.7rem;
+    color: white;
+}
+
+    .blazor-error-boundary::after {
+        content: "Ha ocurrido un error.";
+    }
+
+/* ===========================================================================
+   RadzenDataGrid: cabecera notoria y celdas compactas
+   =========================================================================== */
+.rz-data-grid table thead th {
+    font-weight: bold !important;
+    border-bottom: 2px solid gray !important;
+}
+
+/* Cambia el padding de todas las celdas de los grid */
+.rz-grid-table td {
+    padding: 0.25rem 1rem !important;
+}
+
+/* ===========================================================================
+   Notificaciones: respetar saltos de línea (\n) en el detalle
+   =========================================================================== */
+.rz-messages-error {
+    position: relative !important;
+}
+
+.rz-notification, .rz-notification .rz-notification, .rz-notification .rz-notification-content, .rz-notification .rz-notification-message, .rz-notification .rz-notification-detail {
+    white-space: pre-line !important;
+}
+
+h1 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+/* ===========================================================================
+   Helpers de layout: la app ocupa la altura del viewport sin depender de vh.
+   El layout de Radzen y el body actúan como columna flex para que la grid
+   ocupe el espacio restante y muestre su propio scroll interno, evitando que
+   scrollee toda la página.
+   =========================================================================== */
+html, body, #app {
+    height: 100%;
+}
+
+.rz-layout {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.rz-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 1rem;
+}
+
+/* El RadzenStack que envuelve una página con grid ocupa todo el alto restante del
+   body (sólo cuando contiene un grid directo, para no afectar formularios/dashboard). */
+.rz-body > .rz-stack:has(> .rz-data-grid) {
+    flex: 1 1 0;
+    min-height: 0;
+}
+
+.rz-body .rz-data-grid {
+    display: flex;
+    flex-direction: column;
+    /* Ocupa el alto restante (no un % que incluye título/toolbar). Por muchas filas
+       que haya, el grid nunca supera la pantalla y scrollea internamente. */
+    flex: 1 1 0;
+    min-height: 0;
+}
+
+.rz-body .rz-data-grid .rz-data-grid-data {
+    /* Área de datos: toma el alto disponible del grid y scrollea en ambos ejes. */
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: auto;
+}
+
+/* La tabla crece según el ancho de sus columnas (habilita scroll horizontal),
+   pero nunca es más angosta que el contenedor. */
+.rz-data-grid .rz-grid-table {
+    width: max-content;
+    min-width: 100%;
+}
+
+/* Encabezado fijo al hacer scroll vertical, para no perder los títulos de columna. */
+.rz-data-grid .rz-grid-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background-color: var(--rz-grid-header-background-color, var(--rz-base-background-color, #fff));
+}
+
+/* Barra de scroll más visible y cómoda para navegar muchos datos. */
+.rz-body .rz-data-grid .rz-data-grid-data {
+    scrollbar-width: thin;
+}
+
+    .rz-body .rz-data-grid .rz-data-grid-data::-webkit-scrollbar {
+        width: 12px;
+        height: 12px;
+    }
+
+    .rz-body .rz-data-grid .rz-data-grid-data::-webkit-scrollbar-thumb {
+        background-color: rgba(128, 128, 128, 0.55);
+        border-radius: 6px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+    }
+
+        .rz-body .rz-data-grid .rz-data-grid-data::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(128, 128, 128, 0.8);
+        }
+
+/* ===========================================================================
+   Diálogos: que no excedan el viewport; scroll interno del contenido
+   =========================================================================== */
+.rz-dialog {
+    height: auto !important;
+    max-height: 90vh !important;
+    overflow: auto !important;
+}
+
+.rz-dialog .rz-dialog-content {
+    max-height: calc(90vh - 4rem) !important;
+    overflow: auto !important;
+    min-height: 0 !important;
+}

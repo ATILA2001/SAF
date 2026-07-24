@@ -1,0 +1,122 @@
+@page "/home"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using SAF.Security
+@using SAF.Services.Abstractions
+@attribute [Authorize]
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IPermissionService PermissionService
+
+<PageTitle>Sistema de Administración Financiera</PageTitle>
+
+<section class="saf-home">
+    <div class="saf-home__header">
+        <span class="saf-home__eyebrow">SAF</span>
+        <h1>Sistema de Administración Financiera</h1>
+        <p>Seleccioná una sección disponible para comenzar.</p>
+    </div>
+
+    @if (VisiblePages.Count == 0)
+    {
+        <div class="saf-home__empty">
+            No tenés páginas disponibles para esta aplicación.
+        </div>
+    }
+    else
+    {
+        <div class="saf-home__grid">
+            @foreach (var link in VisiblePages)
+            {
+                <a class="saf-home__tile" href="@link.Url">
+                    <span class="rzi">@link.Icon</span>
+                    <strong>@link.Title</strong>
+                    <small>@link.Description</small>
+                </a>
+            }
+        </div>
+    }
+</section>
+
+<style>
+    .saf-home {
+        max-width: 1120px;
+        padding: 2rem 1rem;
+    }
+
+    .saf-home__header {
+        margin-bottom: 1.5rem;
+    }
+
+    .saf-home__eyebrow {
+        color: var(--menu-active-color, var(--custom-primary-accent));
+        font-size: .85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .saf-home h1 {
+        margin: .35rem 0 .5rem;
+    }
+
+    .saf-home__grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+    }
+
+    .saf-home__tile {
+        display: grid;
+        gap: .45rem;
+        padding: 1rem;
+        min-height: 140px;
+        color: inherit;
+        text-decoration: none;
+        border: 1px solid var(--surface-border, rgba(255, 255, 255, .12));
+        border-radius: 6px;
+        background: var(--surface-bg, rgba(255, 255, 255, .04));
+    }
+
+    .saf-home__tile:hover {
+        border-color: var(--menu-active-color, var(--custom-primary-accent));
+    }
+
+    .saf-home__tile .rzi {
+        font-size: 1.75rem;
+        color: var(--menu-active-color, var(--custom-primary-accent));
+    }
+
+    .saf-home__tile small,
+    .saf-home__empty {
+        color: var(--rz-text-secondary-color);
+    }
+
+    .saf-home__empty {
+        padding: 1rem;
+        border: 1px solid var(--surface-border, rgba(255, 255, 255, .12));
+        border-radius: 6px;
+        background: var(--surface-bg, rgba(255, 255, 255, .04));
+    }
+</style>
+
+@code {
+    private IReadOnlyList<HomePageLink> VisiblePages { get; set; } = [];
+
+    private static readonly HomePageLink[] Pages =
+    [
+        new("/pagos", "Pagos", "Devengados, sincronización y seguimiento de pagos.", "payments"),
+        new("/status-contabilidad", "Status Contabilidad", "Estado contable y seguimiento de comprobantes.", "account_balance"),
+        new("/caf", "CAF", "Carga y seguimiento de expedientes CAF.", "request_quote"),
+        new("/seguros", "Seguros", "Carga y estado de seguros por expediente.", "verified_user")
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthStateProvider.GetAuthenticationStateAsync()).User;
+
+        VisiblePages = AdminClaims.IsAdmin(user)
+            ? Pages
+            : Pages.Where(page => PermissionService.CanAccess(user, page.Url)).ToArray();
+    }
+
+    private sealed record HomePageLink(string Url, string Title, string Description, string Icon);
+}
