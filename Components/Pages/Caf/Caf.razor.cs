@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Radzen;
 using Radzen.Blazor;
 using SAF.Services.Abstractions;
 using SAF.Application.Caf.Dtos;
@@ -12,6 +13,7 @@ public partial class Caf
     [Inject] private ICafService CafService { get; set; } = null!;
     [Inject] private IExportService ExportService { get; set; } = null!;
     [Inject] private INotificationHelper Notification { get; set; } = null!;
+    [Inject] private DialogService DialogService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
 
     private RadzenDataGrid<CafViewModel> _grid = null!;
@@ -21,8 +23,19 @@ public partial class Caf
     protected override async Task OnInitializedAsync()
     {
         await LoadPermissionsAsync("/caf");
-        _items = (await CafService.GetAllAsync()).ToList();
-        _loading = false;
+
+        try
+        {
+            _items = (await CafService.GetAllAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Notification.ShowError(ex.Message, "Error al cargar expedientes CAF");
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     private async Task AddRow()
@@ -80,6 +93,13 @@ public partial class Caf
             Notification.ShowError("No tenés permiso para eliminar expedientes CAF.", "Permiso denegado");
             return;
         }
+
+        var confirmado = await DialogService.Confirm(
+            $"Se eliminará el expediente CAF {item.Expediente} (año {item.Anio}). " +
+            "Esta acción no se puede deshacer.",
+            "Eliminar expediente CAF",
+            new ConfirmOptions { OkButtonText = "Eliminar", CancelButtonText = "Cancelar" });
+        if (confirmado != true) return;
 
         try
         {

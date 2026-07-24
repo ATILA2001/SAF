@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Radzen;
 using Radzen.Blazor;
 using SAF.Data.Entities;
 using SAF.Services.Abstractions;
@@ -14,6 +15,7 @@ public partial class Seguros
     [Inject] private ILookupService LookupService { get; set; } = null!;
     [Inject] private IExportService ExportService { get; set; } = null!;
     [Inject] private INotificationHelper Notification { get; set; } = null!;
+    [Inject] private DialogService DialogService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
 
     private RadzenDataGrid<SeguroViewModel> _grid = null!;
@@ -25,10 +27,21 @@ public partial class Seguros
     protected override async Task OnInitializedAsync()
     {
         await LoadPermissionsAsync("/seguros");
-        // Secuencial: comparten el AppDbContext scoped.
-        _seguroOpciones = await LookupService.GetSeguroOpcionesAsync();
-        _items = (await SeguroService.GetAllAsync()).ToList();
-        _loading = false;
+
+        try
+        {
+            // Secuencial: comparten el AppDbContext scoped.
+            _seguroOpciones = await LookupService.GetSeguroOpcionesAsync();
+            _items = (await SeguroService.GetAllAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Notification.ShowError(ex.Message, "Error al cargar Seguros");
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     private async Task AddRow()
@@ -86,6 +99,13 @@ public partial class Seguros
             Notification.ShowError("No tenés permiso para eliminar seguros.", "Permiso denegado");
             return;
         }
+
+        var confirmado = await DialogService.Confirm(
+            $"Se eliminará el seguro del expediente {item.Expediente}. " +
+            "Esta acción no se puede deshacer.",
+            "Eliminar seguro",
+            new ConfirmOptions { OkButtonText = "Eliminar", CancelButtonText = "Cancelar" });
+        if (confirmado != true) return;
 
         try
         {
