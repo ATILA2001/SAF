@@ -36,8 +36,11 @@ public static class ExpedienteKey
         foreach (var p in parts)
         {
             if (!p.All(char.IsDigit)) continue;
-            if (p.Length == 4 && anio is null) anio = p;   // año (4 dígitos)
-            else if (p.Length >= 6) numero = p;            // número de expediente
+            if (p.Length == 4 && anio is null) anio = p;        // año (4 dígitos)
+            else if (p.Length is >= 6 and <= 8) numero = p;     // número de expediente (tope 8:
+                                                                // más dígitos no es un expediente
+                                                                // válido y produciría una clave
+                                                                // que nunca cruza con Devengados)
         }
         if (anio is null || numero is null) return null;
 
