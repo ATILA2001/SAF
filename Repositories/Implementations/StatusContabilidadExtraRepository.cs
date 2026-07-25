@@ -32,6 +32,20 @@ public class StatusContabilidadExtraRepository(IDbContextFactory<AppDbContext> d
 
     public async Task UpsertAsync(StatusContabilidadExtra entity, CancellationToken ct = default)
     {
+        try
+        {
+            await GuardarAsync(entity, ct);
+        }
+        catch (DbUpdateException ex) when (ErroresSql.EsClaveDuplicada(ex))
+        {
+            // Otro usuario insertó la fila entre el chequeo y el guardado: al reintentar
+            // ya existe, así que el mismo método la actualiza en vez de insertarla.
+            await GuardarAsync(entity, ct);
+        }
+    }
+
+    private async Task GuardarAsync(StatusContabilidadExtra entity, CancellationToken ct)
+    {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
 
         var existing = await db.StatusContabilidadExtras

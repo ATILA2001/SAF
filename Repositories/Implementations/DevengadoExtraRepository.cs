@@ -30,6 +30,20 @@ public class DevengadoExtraRepository(IDbContextFactory<AppDbContext> dbFactory)
 
     public async Task UpsertAsync(DevengadoExtra entity, CancellationToken ct = default)
     {
+        try
+        {
+            await GuardarAsync(entity, ct);
+        }
+        catch (DbUpdateException ex) when (ErroresSql.EsClaveDuplicada(ex))
+        {
+            // Otro usuario insertó la fila entre el chequeo y el guardado: al reintentar
+            // ya existe, así que el mismo método la actualiza en vez de insertarla.
+            await GuardarAsync(entity, ct);
+        }
+    }
+
+    private async Task GuardarAsync(DevengadoExtra entity, CancellationToken ct)
+    {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
 
         var existing = await db.DevengadosExtra

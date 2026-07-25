@@ -19,7 +19,27 @@ public class DevengadoSyncService(
     // Mismo filtro que la vista Pagos y el alta manual (fuente única).
     private static readonly string[] TiposExcluidos = ReglasDevengado.TiposExcluidos;
 
+    // Una sincronización a la vez. El diff es leer-existentes → insertar-faltantes y
+    // Devengados no puede llevar índice único (hay filas legítimamente repetidas: el
+    // neto y sus retenciones comparten tipo, nro, fecha e importe), así que dos
+    // corridas simultáneas duplicarían la bajada del día sin ningún error visible.
+    // Alcanza con una instancia de la app; con varias haría falta sp_getapplock.
+    private static readonly SemaphoreSlim Candado = new(1, 1);
+
     public async Task<SyncResult> SyncAsync(CancellationToken ct = default)
+    {
+        await Candado.WaitAsync(ct);
+        try
+        {
+            return await SincronizarAsync(ct);
+        }
+        finally
+        {
+            Candado.Release();
+        }
+    }
+
+    private async Task<SyncResult> SincronizarAsync(CancellationToken ct)
     {
         await using var ivc = await ivcFactory.CreateDbContextAsync(ct);
         await using var db = await dbFactory.CreateDbContextAsync(ct);
