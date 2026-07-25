@@ -25,9 +25,6 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     protected List<TItem> _items = new();
     protected bool _loading = true;
 
-    /// <summary>Errores de la última validación, para mostrarlos sobre la grilla.</summary>
-    protected IReadOnlyList<string> _erroresValidacion = Array.Empty<string>();
-
     /// <summary>Ruta de la página, para resolver permisos (ej: "/caf").</summary>
     protected abstract string PageUrl { get; }
 
@@ -85,17 +82,9 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
         }
     }
 
-    protected async Task AddRow()
-    {
-        _erroresValidacion = Array.Empty<string>();
-        await _grid.InsertRow(NuevaFila());
-    }
+    protected async Task AddRow() => await _grid.InsertRow(NuevaFila());
 
-    protected void CancelEdit(TItem item)
-    {
-        _erroresValidacion = Array.Empty<string>();
-        _grid.CancelEditRow(item);
-    }
+    protected void CancelEdit(TItem item) => _grid.CancelEditRow(item);
 
     /// <summary>
     /// Guarda la fila en edición. Valida ANTES de delegar en la grilla: si Radzen confirma
@@ -182,16 +171,15 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     }
 
     /// <summary>
-    /// Valida la fila y publica los errores sobre la grilla (además del aviso flotante).
+    /// Valida la fila y avisa qué falta. Es advertencia y no error: se cierra sola, porque
+    /// el dato inválido ya queda señalado en el campo (clase "invalid") mientras se edita.
     /// </summary>
     private bool FilaValida(TItem item, bool esAlta)
     {
         var errores = Validar(item, esAlta);
-        _erroresValidacion = errores;
-
         if (errores.Count == 0) return true;
 
-        Notification.ShowError(string.Join(" ", errores), "Revisá los datos");
+        Notification.ShowWarning(string.Join(" ", errores), "Revisá los datos");
         return false;
     }
 

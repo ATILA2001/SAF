@@ -19,18 +19,6 @@
         </RadzenColumn>
     </RadzenRow>
 
-    @if (_erroresValidacion.Count > 0)
-    {
-        <div class="saf-errores-validacion">
-            <ul>
-                @foreach (var error in _erroresValidacion)
-                {
-                    <li>@error</li>
-                }
-            </ul>
-        </div>
-    }
-
     @if (_loading)
     {
         <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />

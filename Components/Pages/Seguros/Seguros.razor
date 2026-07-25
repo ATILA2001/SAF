@@ -27,18 +27,6 @@
         </RadzenColumn>
     </RadzenRow>
 
-    @if (_erroresValidacion.Count > 0)
-    {
-        <div class="saf-errores-validacion">
-            <ul>
-                @foreach (var error in _erroresValidacion)
-                {
-                    <li>@error</li>
-                }
-            </ul>
-        </div>
-    }
-
     @if (_loading)
     {
         <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
@@ -64,6 +52,7 @@
                 <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Expediente" Title="Expediente" Width="230px">
                     <EditTemplate Context="item">
                         <RadzenTextBox @bind-Value="item.Expediente" Style="width:100%"
+                                       class="@GetValidationCssClass(SAF.Application.Common.ExpedienteKey.Normalizar(item.Expediente) is not null)"
                                        Placeholder="@SAF.Application.Common.ExpedienteKey.FormatosAceptados" />
                         <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin:0;">
                             Formato: @SAF.Application.Common.ExpedienteKey.FormatosAceptados
@@ -97,6 +86,7 @@
                                         TextProperty="Nombre"
                                         ValueProperty="Id"
                                         AllowClear="true"
+                                        class="@GetValidationCssClass(item.SeguroOpcionId is > 0)"
                                         Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
