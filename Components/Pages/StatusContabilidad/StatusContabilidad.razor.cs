@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using SAF.Data.Entities;
 using SAF.Services.Abstractions;
+using SAF.Application.StatusContabilidad;
 using SAF.Application.StatusContabilidad.Dtos;
 
 namespace SAF.Components.Pages.StatusContabilidad;
@@ -44,6 +45,9 @@ public partial class StatusContabilidad
         item.TramitadorCuentasPagarNombre = _tramitadoresCuentasPagar.FirstOrDefault(x => x.Id == item.TramitadorCuentasPagarOpcionId)?.Nombre;
         item.TramitadorLiquidacionesNombre = _tramitadoresLiquidaciones.FirstOrDefault(x => x.Id == item.TramitadorLiquidacionesOpcionId)?.Nombre;
     }
+
+    protected override IReadOnlyList<string> Validar(StatusContabilidadViewModel item, bool esAlta) =>
+        StatusContabilidadValidator.Validar(item);
 
     // El tablero es de solo edición: las filas nacen del ledger de devengados, no se crean ni borran acá.
     protected override Task ActualizarAsync(StatusContabilidadViewModel item) =>

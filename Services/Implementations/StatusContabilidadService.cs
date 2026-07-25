@@ -148,6 +148,9 @@ public class StatusContabilidadService(
 
     public async Task UpsertAsync(StatusContabilidadViewModel vm, CancellationToken ct = default)
     {
+        var errores = Application.StatusContabilidad.StatusContabilidadValidator.Validar(vm);
+        if (errores.Count > 0) throw new ArgumentException(string.Join(" ", errores));
+
         var entity = new SAF.Data.Entities.StatusContabilidadExtra
         {
             TipoDev = vm.TipoDev,

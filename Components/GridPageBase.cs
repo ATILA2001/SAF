@@ -21,7 +21,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     [Inject] protected INotificationHelper Notification { get; set; } = null!;
     [Inject] private ILogger<GridPageBase<TItem>> Logger { get; set; } = null!;
     [Inject] private IExportService ExportService { get; set; } = null!;
-    [Inject] private DialogService DialogService { get; set; } = null!;
+    [Inject] protected DialogService DialogService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
 
     protected RadzenDataGrid<TItem> _grid = null!;
@@ -154,10 +154,21 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     protected async Task GuardarFila(TItem item)
     {
         // La fila del alta todavía no está en la lista: eso la distingue de una edición.
-        if (!FilaValida(item, esAlta: !_items.Contains(item))) return;
+        var esAlta = !_items.Contains(item);
+        if (!FilaValida(item, esAlta)) return;
+
+        // Se pregunta acá, antes de que la grilla cierre la fila: si el usuario cancela,
+        // conserva lo que cargó.
+        if (!await ConfirmarGuardadoAsync(item, esAlta)) return;
 
         await _grid.UpdateRow(item);
     }
+
+    /// <summary>
+    /// Última pregunta antes de guardar, para casos sospechosos pero permitidos.
+    /// Devolver false cancela el guardado dejando la fila en edición.
+    /// </summary>
+    protected virtual Task<bool> ConfirmarGuardadoAsync(TItem item, bool esAlta) => Task.FromResult(true);
 
     protected async Task OnRowCreate(TItem item)
     {

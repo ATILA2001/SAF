@@ -16,6 +16,9 @@ public interface IPagosService
     /// Alta manual de un devengado en el ledger (complementa la sincronización con IVC,
     /// p. ej. para días que quedaron sin sincronizar). Valida y normaliza los datos.
     /// </summary>
+    /// <summary>Detecta una fila idéntica antes del alta; la vista decide si confirmar.</summary>
+    Task<bool> ExisteDevengadoIdenticoAsync(PagoViewModel vm, CancellationToken ct = default);
+
     Task<PagoViewModel> CreateDevengadoAsync(PagoViewModel vm, CancellationToken ct = default);
 
     /// <summary>Elimina una fila del ledger y sus datos editables asociados.</summary>

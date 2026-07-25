@@ -32,6 +32,23 @@ public static class PagoValidator
             errores.Add("El importe es obligatorio y debe ser mayor a cero (mismo filtro que la sincronización).");
 
         Validaciones.Expediente(errores, vm.Expediente);
+        Validaciones.Largo(errores, vm.Empresa, 255, "Empresa");
+
+        errores.AddRange(ValidarEdicion(vm));
+
+        return errores;
+    }
+
+    /// <summary>
+    /// Campos propios de SAF, editables tanto en el alta como sobre una fila del ledger.
+    /// Los que vienen de IVC son de solo lectura en la edición.
+    /// </summary>
+    public static IReadOnlyList<string> ValidarEdicion(PagoViewModel vm)
+    {
+        var errores = new List<string>();
+
+        Validaciones.Largo(errores, vm.Observaciones, 500, "Observaciones");
+        Validaciones.Largo(errores, vm.Ccoo, 200, "CCOO");
 
         return errores;
     }

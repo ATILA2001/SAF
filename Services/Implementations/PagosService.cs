@@ -165,6 +165,9 @@ public class PagosService(
 
     public async Task UpsertAsync(PagoViewModel vm, CancellationToken ct = default)
     {
+        var errores = Application.Pagos.PagoValidator.ValidarEdicion(vm);
+        if (errores.Count > 0) throw new ArgumentException(string.Join(" ", errores));
+
         var entity = new SAF.Data.Entities.DevengadoExtra
         {
             DevengadoId = vm.Id,
@@ -190,6 +193,15 @@ public class PagosService(
     public Task<DateTime?> GetUltimaFechaImputacionAsync(CancellationToken ct = default)
         => devengadoRepo.GetMaxFechaImputacionAsync(ct);
 
+    /// <summary>
+    /// ¿Ya hay una fila con el mismo tipo, número, fecha e importe? No es un error: un
+    /// devengado puede tener líneas repetidas (existe un caso así en el histórico de IVC),
+    /// pero casi siempre es una carga duplicada, así que la vista lo confirma con el usuario.
+    /// </summary>
+    public Task<bool> ExisteDevengadoIdenticoAsync(PagoViewModel vm, CancellationToken ct = default)
+        => devengadoRepo.ExistsExactoAsync(
+            (vm.TipoDev ?? string.Empty).Trim().ToUpperInvariant(), vm.NroDev, vm.FechaDevengado, vm.Importe, ct);
+
     public async Task<PagoViewModel> CreateDevengadoAsync(PagoViewModel vm, CancellationToken ct = default)
     {
         var errores = Application.Pagos.PagoValidator.ValidarAlta(vm);
@@ -197,10 +209,6 @@ public class PagosService(
 
         var tipoDev = (vm.TipoDev ?? string.Empty).Trim().ToUpperInvariant();
         var expediente = Application.Common.ExpedienteKey.Normalizar(vm.Expediente)!;
-
-        if (await devengadoRepo.ExistsExactoAsync(tipoDev, vm.NroDev, vm.FechaDevengado, vm.Importe, ct))
-            throw new ArgumentException(
-                $"Ya existe una fila idéntica del devengado {tipoDev} {vm.NroDev} (misma fecha e importe).");
 
         var entity = new Devengado
         {

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Radzen;
 using SAF.Data.Entities;
 using SAF.Services.Abstractions;
 using SAF.Application.Pagos;
@@ -56,10 +57,28 @@ public partial class Pagos
         item.StatusOpNombre = _statusOpOpciones.FirstOrDefault(x => x.Id == item.StatusOpOpcionId)?.Nombre;
     }
 
-    // Solo el alta: en la edición los campos que vienen de IVC son de solo lectura, y las
-    // filas históricas del ledger pueden no cumplir las reglas del alta manual.
+    // En la edición solo se validan los campos propios: los que vienen de IVC son de solo
+    // lectura y las filas históricas del ledger pueden no cumplir las reglas del alta.
     protected override IReadOnlyList<string> Validar(PagoViewModel item, bool esAlta) =>
-        esAlta ? PagoValidator.ValidarAlta(item) : Array.Empty<string>();
+        esAlta ? PagoValidator.ValidarAlta(item) : PagoValidator.ValidarEdicion(item);
+
+    /// <summary>
+    /// Una fila repetida es legítima (un devengado puede tener líneas idénticas) pero casi
+    /// siempre es una carga duplicada: se pregunta en vez de rechazarla.
+    /// </summary>
+    protected override async Task<bool> ConfirmarGuardadoAsync(PagoViewModel item, bool esAlta)
+    {
+        if (!esAlta || !await PagosService.ExisteDevengadoIdenticoAsync(item)) return true;
+
+        var confirmado = await DialogService.Confirm(
+            $"Ya existe una fila del devengado {item.TipoDev} {item.NroDev} con la misma fecha " +
+            $"e importe ({item.Importe:N2}). Un devengado puede tener líneas repetidas, " +
+            "pero revisá que no sea una carga duplicada.",
+            "Fila repetida",
+            new ConfirmOptions { OkButtonText = "Cargar igual", CancelButtonText = "Revisar" });
+
+        return confirmado == true;
+    }
 
     protected override Task CrearAsync(PagoViewModel item) => PagosService.CreateDevengadoAsync(item);
 
