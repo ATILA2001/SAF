@@ -171,46 +171,71 @@
     // Detalle de las líneas que resume la fila, armado con componentes de Radzen.
     // Duration null: el tooltip se cierra al salir del badge (MouseLeave).
     private void MostrarLineas(ElementReference badge, SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel item)
-        => TooltipService.Open(badge, _ =>
+    {
+        // Anchos fijos para que las columnas queden alineadas a la izquierda entre filas
+        // (sin Size, la grilla de Radzen las estira y reparte todo el ancho).
+        var columnas = Math.Max(1, item.DetalleLineas.Columnas.Count);
+        var ancho = Math.Max(1, Math.Min(6, 10 / columnas));
+
+        TooltipService.Open(badge, _ =>
+            @* Sin RadzenText: sus clases de tipografía fijan el color del tema (oscuro) y
+               pisan el del tooltip. Con marcado simple el texto hereda el blanco. *@
             @<RadzenStack Gap="0.5rem">
-                <RadzenText TextStyle="TextStyle.Subtitle2">
-                    @item.CantidadLineas líneas en Pagos · devengado @item.TipoDev @item.NroDev
-                </RadzenText>
-                <RadzenTable AllowAlternatingRows="false">
-                    <RadzenTableHeader>
-                        <RadzenTableHeaderRow>
-                            <RadzenTableHeaderCell>Fecha</RadzenTableHeaderCell>
-                            <RadzenTableHeaderCell>Expediente</RadzenTableHeaderCell>
-                            <RadzenTableHeaderCell>Importe</RadzenTableHeaderCell>
-                            <RadzenTableHeaderCell></RadzenTableHeaderCell>
-                        </RadzenTableHeaderRow>
-                    </RadzenTableHeader>
-                    <RadzenTableBody>
-                        @foreach (var linea in item.Lineas)
+                <strong>@item.CantidadLineas líneas en Pagos · devengado @item.TipoDev @item.NroDev</strong>
+
+                @if (item.DetalleLineas.SinDiferencias)
+                {
+                    <span>Las líneas traen los mismos datos; el tablero suma los importes.</span>
+                }
+                else
+                {
+                    <RadzenRow Gap="1rem">
+                        @foreach (var columna in item.DetalleLineas.Columnas)
                         {
-                            <RadzenTableRow>
-                                <RadzenTableCell>@linea.FechaImputacion?.ToString("dd/MM/yyyy")</RadzenTableCell>
-                                <RadzenTableCell>@linea.Expediente</RadzenTableCell>
-                                <RadzenTableCell>@linea.Importe?.ToString("N2")</RadzenTableCell>
-                                <RadzenTableCell>
-                                    @if (linea.EsRepresentante)
-                                    {
-                                        <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="principal" />
-                                    }
-                                </RadzenTableCell>
-                            </RadzenTableRow>
+                            <RadzenColumn Size="@ancho" class="rz-text-nowrap"><strong>@columna</strong></RadzenColumn>
                         }
-                        <RadzenTableRow>
-                            <RadzenTableCell>Total</RadzenTableCell>
-                            <RadzenTableCell></RadzenTableCell>
-                            <RadzenTableCell>@item.ImporteTotal?.ToString("N2")</RadzenTableCell>
-                            <RadzenTableCell></RadzenTableCell>
-                        </RadzenTableRow>
-                    </RadzenTableBody>
-                </RadzenTable>
-                <RadzenText TextStyle="TextStyle.Caption">
-                    De la línea principal salen el expediente, la empresa y los datos cargados.
-                </RadzenText>
+                    </RadzenRow>
+
+                    @foreach (var linea in item.DetalleLineas.Filas)
+                    {
+                        <RadzenRow Gap="1rem" AlignItems="AlignItems.Center">
+                            @foreach (var valor in linea.Valores.SkipLast(1))
+                            {
+                                <RadzenColumn Size="@ancho" class="rz-text-nowrap"><span>@valor</span></RadzenColumn>
+                            }
+                            @* La marca va dentro de la última columna, contra su borde
+                               derecho: así termina donde termina la columna. *@
+                            <RadzenColumn Size="@ancho" class="rz-text-nowrap">
+                                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem"
+                                             AlignItems="AlignItems.Center"
+                                             JustifyContent="JustifyContent.SpaceBetween">
+                                    <span>@linea.Valores.Last()</span>
+                                    @if (linea.EsPrincipal)
+                                    {
+                                        @* Primary: sobre el fondo claro, el badge claro no se distinguía. *@
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Primary" Text="principal"
+                                                     Style="--rz-badge-font-size: 0.65rem; --rz-badge-padding: 0.05rem 0.35rem;" />
+                                    }
+                                </RadzenStack>
+                            </RadzenColumn>
+                        </RadzenRow>
+                    }
+                }
+
+                <small>
+                    Solo se listan los datos que difieren. De la línea principal salen el
+                    expediente, la empresa y los datos cargados; el importe es la suma.
+                </small>
             </RadzenStack>
-        , new TooltipOptions { Position = TooltipPosition.Left, Duration = null });
+        , new TooltipOptions
+        {
+            Position = TooltipPosition.Left,
+            Duration = null,
+            // Mismo fondo que el ítem de menú seleccionado (--rz-primary-lighter). Ese
+            // token es translúcido: sobre el sidebar apoya en su superficie, pero el
+            // tooltip flota sobre la grilla, así que se compone sobre la superficie base.
+            Style = "background: linear-gradient(var(--rz-primary-lighter), var(--rz-primary-lighter)), " +
+                    "var(--rz-base-background-color); color: var(--rz-text-color);",
+        });
+    }
 }

@@ -71,8 +71,8 @@ public class StatusContabilidadService(
                 Expediente = d.Expediente,
                 Empresa = d.Empresa,
                 ImporteTotal = importeTotal,
-                CantidadLineas = kvp.Value.Lineas.Count,
-                Lineas = kvp.Value.Lineas,
+                CantidadLineas = kvp.Value.Ordenadas.Count,
+                DetalleLineas = CompararLineas(kvp.Value.Ordenadas, pagosDict),
                 StatusDgayfNombre = pago?.StatusDgayfOpcion?.Nombre,
                 FirmadaPorMiguel = pago?.StatusOpOpcion?.Nombre,
                 FechaPedidoFactura1 = d.FechaImputacion,
@@ -105,10 +105,9 @@ public class StatusContabilidadService(
     /// <summary>
     /// Resume las líneas de un devengado: importe sumado, y como representante la de mayor
     /// importe (el neto) con desempate por Id. Sin ese orden explícito el tablero podía
-    /// mostrar un expediente distinto entre dos cargas. Se conserva el detalle de las
-    /// líneas para que la grilla pueda mostrar de dónde sale el total.
+    /// mostrar un expediente distinto entre dos cargas.
     /// </summary>
-    private static (Data.Entities.Devengado Fila, decimal ImporteTotal, List<LineaDevengadoViewModel> Lineas)
+    private static (Data.Entities.Devengado Fila, decimal ImporteTotal, List<Data.Entities.Devengado> Ordenadas)
         Agrupar(IEnumerable<Data.Entities.Devengado> filas)
     {
         var ordenadas = filas
@@ -116,19 +115,55 @@ public class StatusContabilidadService(
             .ThenBy(d => d.Id)
             .ToList();
 
-        var lineas = ordenadas
-            .Select((d, i) => new LineaDevengadoViewModel
+        return (ordenadas[0], ordenadas.Sum(d => d.ImportePp ?? 0m), ordenadas);
+    }
+
+    // Columnas del tablero que se alimentan de Pagos, en el orden en que se ven.
+    private const string ColExpediente = "Expediente";
+    private const string ColEmpresa = "Empresa";
+    private const string ColImporte = "Importe";
+    private const string ColStatusDgayf = "Status DGAyF";
+    private const string ColFirmada = "Firmada por Miguel?";
+    private const string ColFechaFactura1 = "Fecha Ped. Factura 1";
+
+    private static readonly string[] ColumnasComparables =
+        [ColExpediente, ColEmpresa, ColImporte, ColStatusDgayf, ColFirmada, ColFechaFactura1];
+
+    /// <summary>
+    /// Compara las líneas del devengado y devuelve solo las columnas en las que difieren:
+    /// Tipo y Nro son la clave del grupo (nunca cambian) y repetir lo idéntico es ruido.
+    /// </summary>
+    private static DetalleLineasViewModel CompararLineas(
+        List<Data.Entities.Devengado> ordenadas,
+        Dictionary<int, Data.Entities.DevengadoExtra> pagosPorLinea)
+    {
+        var valores = ordenadas.Select(d =>
+        {
+            pagosPorLinea.TryGetValue(d.Id, out var pago);
+            return new Dictionary<string, string>
             {
-                Id = d.Id,
-                FechaImputacion = d.FechaImputacion,
-                Expediente = d.Expediente,
-                Empresa = d.Empresa,
-                Importe = d.ImportePp,
-                EsRepresentante = i == 0,
-            })
+                [ColExpediente] = d.Expediente ?? string.Empty,
+                [ColEmpresa] = d.Empresa ?? string.Empty,
+                [ColImporte] = d.ImportePp?.ToString("N2") ?? string.Empty,
+                [ColStatusDgayf] = pago?.StatusDgayfOpcion?.Nombre ?? string.Empty,
+                [ColFirmada] = pago?.StatusOpOpcion?.Nombre ?? string.Empty,
+                [ColFechaFactura1] = d.FechaImputacion?.ToString("dd/MM/yyyy") ?? string.Empty,
+            };
+        }).ToList();
+
+        var columnas = ColumnasComparables
+            .Where(c => valores.Select(v => v[c]).Distinct().Count() > 1)
             .ToList();
 
-        return (ordenadas[0], ordenadas.Sum(d => d.ImportePp ?? 0m), lineas);
+        return new DetalleLineasViewModel
+        {
+            Columnas = columnas,
+            Filas = valores.Select((v, i) => new FilaLineaViewModel
+            {
+                EsPrincipal = i == 0,
+                Valores = columnas.Select(c => string.IsNullOrWhiteSpace(v[c]) ? "—" : v[c]).ToList(),
+            }).ToList(),
+        };
     }
 
     public async Task<StatusContabilidadViewModel?> GetByKeyAsync(string tipoDev, int nroDev, CancellationToken ct = default)
