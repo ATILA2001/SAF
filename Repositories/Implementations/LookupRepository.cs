@@ -6,23 +6,47 @@ using SAF.Repositories.Abstractions;
 
 namespace SAF.Repositories.Implementations;
 
-public class LookupRepository(AppDbContext db) : ILookupRepository
+public class LookupRepository(IDbContextFactory<AppDbContext> dbFactory) : ILookupRepository
 {
     public async Task<IReadOnlyList<StatusDgayfOpcion>> GetStatusDgayfOpcionesAsync(CancellationToken ct = default)
-        => await db.StatusDgayfOpciones.Where(x => x.Activo).OrderBy(x => x.Orden).ToListAsync(ct);
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.StatusDgayfOpciones.AsNoTracking()
+            .Where(x => x.Activo).OrderBy(x => x.Orden).ToListAsync(ct);
+    }
 
     public async Task<IReadOnlyList<StatusOpOpcion>> GetStatusOpOpcionesAsync(CancellationToken ct = default)
-        => await db.StatusOpOpciones.Where(x => x.Activo).OrderBy(x => x.Orden).ToListAsync(ct);
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.StatusOpOpciones.AsNoTracking()
+            .Where(x => x.Activo).OrderBy(x => x.Orden).ToListAsync(ct);
+    }
 
     public async Task<IReadOnlyList<StatusContableOpcion>> GetStatusContableOpcionesAsync(CancellationToken ct = default)
-        => await db.StatusContableOpciones.Where(x => x.Activo).OrderBy(x => x.Orden).ToListAsync(ct);
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.StatusContableOpciones.AsNoTracking()
+            .Where(x => x.Activo).OrderBy(x => x.Orden).ToListAsync(ct);
+    }
 
     public async Task<IReadOnlyList<TramitadorCuentasPagarOpcion>> GetTramitadoresCuentasPagarAsync(CancellationToken ct = default)
-        => await db.TramitadoresCuentasPagar.Where(x => x.Activo).OrderBy(x => x.Orden).ToListAsync(ct);
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.TramitadoresCuentasPagar.AsNoTracking()
+            .Where(x => x.Activo).OrderBy(x => x.Orden).ToListAsync(ct);
+    }
 
     public async Task<IReadOnlyList<TramitadorLiquidacionesOpcion>> GetTramitadoresLiquidacionesAsync(CancellationToken ct = default)
-        => await db.TramitadoresLiquidaciones.Where(x => x.Activo).OrderBy(x => x.Orden).ToListAsync(ct);
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.TramitadoresLiquidaciones.AsNoTracking()
+            .Where(x => x.Activo).OrderBy(x => x.Orden).ToListAsync(ct);
+    }
 
     public async Task<IReadOnlyList<SeguroOpcion>> GetSeguroOpcionesAsync(CancellationToken ct = default)
-        => await db.SeguroOpciones.Where(x => x.Activo).OrderBy(x => x.Orden).ToListAsync(ct);
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.SeguroOpciones.AsNoTracking()
+            .Where(x => x.Activo).OrderBy(x => x.Orden).ToListAsync(ct);
+    }
 }

@@ -6,34 +6,45 @@ using SAF.Repositories.Abstractions;
 
 namespace SAF.Repositories.Implementations;
 
-public class SeguroRepository(AppDbContext db) : ISeguroRepository
+public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISeguroRepository
 {
     public async Task<IReadOnlyList<ExpedienteSeguro>> GetAllAsync(CancellationToken ct = default)
-        => await db.ExpedientesSeguro.AsNoTracking()
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.ExpedientesSeguro.AsNoTracking()
             .Include(e => e.SeguroOpcion)
             .OrderBy(e => e.Expediente)
             .ThenBy(e => e.Op)
             .ToListAsync(ct);
+    }
 
-    public Task<ExpedienteSeguro?> GetByIdAsync(int id, CancellationToken ct = default)
-        => db.ExpedientesSeguro
+    public async Task<ExpedienteSeguro?> GetByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.ExpedientesSeguro.AsNoTracking()
             .Include(e => e.SeguroOpcion)
             .FirstOrDefaultAsync(e => e.Id == id, ct);
+    }
 
     public async Task AddAsync(ExpedienteSeguro entity, CancellationToken ct = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
         db.ExpedientesSeguro.Add(entity);
         await db.SaveChangesAsync(ct);
     }
 
     public async Task UpdateAsync(ExpedienteSeguro entity, CancellationToken ct = default)
     {
-        db.ExpedientesSeguro.Update(entity);
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        // Solo la fila: la opción de seguro navegada viene de una lectura previa y no
+        // debe reinsertarse ni modificarse al guardar.
+        db.Entry(entity).State = EntityState.Modified;
         await db.SaveChangesAsync(ct);
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
         var e = await db.ExpedientesSeguro.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (e is null) return;
         db.ExpedientesSeguro.Remove(e);
@@ -53,6 +64,8 @@ public class SeguroRepository(AppDbContext db) : ISeguroRepository
             .ToList();
         if (distinct.Count == 0)
             return empty;
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
 
         var rows = await db.ExpedientesSeguro.AsNoTracking()
             .Where(s => s.SeguroOpcionId != null

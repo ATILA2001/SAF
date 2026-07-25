@@ -25,9 +25,15 @@ public partial class Pagos
 
     protected override async Task CargarAuxiliaresAsync()
     {
-        _statusDgayfOpciones = await LookupService.GetStatusDgayfOpcionesAsync();
-        _statusOpOpciones = await LookupService.GetStatusOpOpcionesAsync();
-        _ultimaActualizacion = await PagosService.GetUltimaFechaImputacionAsync();
+        // En paralelo: cada repositorio crea su propio DbContext (IDbContextFactory).
+        var dgayf = LookupService.GetStatusDgayfOpcionesAsync();
+        var op = LookupService.GetStatusOpOpcionesAsync();
+        var ultimaFecha = PagosService.GetUltimaFechaImputacionAsync();
+        await Task.WhenAll(dgayf, op, ultimaFecha);
+
+        _statusDgayfOpciones = dgayf.Result;
+        _statusOpOpciones = op.Result;
+        _ultimaActualizacion = ultimaFecha.Result;
     }
 
     protected override async Task<List<PagoViewModel>> ObtenerDatosAsync() =>

@@ -36,7 +36,11 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 if (string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException("Connection string 'DefaultConnection' not found or empty.");
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+// Factory, no contexto scoped: en Blazor Server el scope dura todo el circuito del
+// usuario, así que un contexto inyectado se comparte entre operaciones solapadas y
+// EF Core lanza "A second operation was started on this context instance".
+// Cada repositorio crea y descarta el suyo por operación.
+builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseSqlServer(connectionString, sqlOptions =>
         sqlOptions.EnableRetryOnFailure()));
 
@@ -45,7 +49,7 @@ var ivcConnectionString = builder.Configuration.GetConnectionString("IvcConnecti
 if (string.IsNullOrWhiteSpace(ivcConnectionString))
     throw new InvalidOperationException("Connection string 'IvcConnection' not found or empty.");
 
-builder.Services.AddDbContext<IvcDbContext>(options =>
+builder.Services.AddDbContextFactory<IvcDbContext>(options =>
     options.UseSqlServer(ivcConnectionString, sqlOptions =>
         sqlOptions.EnableRetryOnFailure()));
 
@@ -229,11 +233,13 @@ _ = Task.Run(async () =>
 {
     try
     {
-        using var scope = app.Services.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<AppDbContext>()
-            .Devengados.AsNoTracking().AnyAsync();
-        await scope.ServiceProvider.GetRequiredService<IvcDbContext>()
-            .PasesSade.AsNoTracking().AnyAsync();
+        await using var saf = await app.Services
+            .GetRequiredService<IDbContextFactory<AppDbContext>>().CreateDbContextAsync();
+        await saf.Devengados.AsNoTracking().AnyAsync();
+
+        await using var ivc = await app.Services
+            .GetRequiredService<IDbContextFactory<IvcDbContext>>().CreateDbContextAsync();
+        await ivc.PasesSade.AsNoTracking().AnyAsync();
     }
     catch (Exception ex)
     {

@@ -5,7 +5,7 @@ using SAF.Repositories.Abstractions;
 
 namespace SAF.Repositories.Implementations;
 
-public class SigafOpRepository(IvcDbContext ivc) : ISigafOpRepository
+public class SigafOpRepository(IDbContextFactory<IvcDbContext> ivcFactory) : ISigafOpRepository
 {
     public async Task<IReadOnlyDictionary<string, DateTime>> GetFechaPagoByExpedientesAsync(
         IReadOnlyCollection<string> expedientes, CancellationToken ct = default)
@@ -20,6 +20,8 @@ public class SigafOpRepository(IvcDbContext ivc) : ISigafOpRepository
             .ToList();
         if (distinct.Count == 0)
             return empty;
+
+        await using var ivc = await ivcFactory.CreateDbContextAsync(ct);
 
         // MAXIFS de la planilla: mayor FECHA_PAGO por expediente (cualquier fila).
         var rows = await ivc.SigafOpPagos.AsNoTracking()

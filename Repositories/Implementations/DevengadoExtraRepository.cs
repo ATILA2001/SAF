@@ -6,24 +6,32 @@ using SAF.Repositories.Abstractions;
 
 namespace SAF.Repositories.Implementations;
 
-public class DevengadoExtraRepository(AppDbContext db) : IDevengadoExtraRepository
+public class DevengadoExtraRepository(IDbContextFactory<AppDbContext> dbFactory) : IDevengadoExtraRepository
 {
     public async Task<DevengadoExtra?> GetByDevengadoIdAsync(int devengadoId, CancellationToken ct = default)
-        => await db.DevengadosExtra
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.DevengadosExtra.AsNoTracking()
             .Include(e => e.StatusDgayfOpcion)
             .Include(e => e.StatusOpOpcion)
             .FirstOrDefaultAsync(e => e.DevengadoId == devengadoId, ct);
+    }
 
     public async Task<IReadOnlyList<DevengadoExtra>> GetAllAsync(CancellationToken ct = default)
-        => await db.DevengadosExtra
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.DevengadosExtra.AsNoTracking()
             .Include(e => e.StatusDgayfOpcion)
             .Include(e => e.StatusOpOpcion)
             .OrderBy(e => e.TipoDev)
             .ThenBy(e => e.NroDev)
             .ToListAsync(ct);
+    }
 
     public async Task UpsertAsync(DevengadoExtra entity, CancellationToken ct = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+
         var existing = await db.DevengadosExtra
             .FirstOrDefaultAsync(e => e.DevengadoId == entity.DevengadoId, ct);
 

@@ -77,8 +77,8 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
 
         try
         {
-            // Secuencial: comparten el AppDbContext scoped (EF Core no admite
-            // operaciones concurrentes sobre la misma instancia de DbContext).
+            // Los auxiliares (lookups) alimentan los dropdowns de la grilla: se cargan
+            // antes de los datos para que la primera pintada ya tenga las opciones.
             await CargarAuxiliaresAsync();
             _items = await ObtenerDatosAsync();
         }

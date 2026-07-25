@@ -12,13 +12,18 @@ namespace SAF.Services.Implementations;
 /// Aplica el filtro de la vista Pagos: TIPO_DEV NOT IN ('C55','CPS') AND IMPORTE_PP > 0.
 /// Nunca borra (conserva histórico). Replica la lógica del "segundo Excel".
 /// </summary>
-public class DevengadoSyncService(IvcDbContext ivc, AppDbContext db) : IDevengadoSyncService
+public class DevengadoSyncService(
+    IDbContextFactory<IvcDbContext> ivcFactory,
+    IDbContextFactory<AppDbContext> dbFactory) : IDevengadoSyncService
 {
     // Mismo filtro que la vista Pagos y el alta manual (fuente única).
     private static readonly string[] TiposExcluidos = ReglasDevengado.TiposExcluidos;
 
     public async Task<SyncResult> SyncAsync(CancellationToken ct = default)
     {
+        await using var ivc = await ivcFactory.CreateDbContextAsync(ct);
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+
         // Filtro de la vista Pagos.
         var query = ivc.Devengados.AsNoTracking()
             .Where(d => !TiposExcluidos.Contains(d.TipoDev) && d.ImportePp > 0);

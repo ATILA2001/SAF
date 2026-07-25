@@ -6,7 +6,7 @@ using SAF.Repositories.Abstractions;
 
 namespace SAF.Repositories.Implementations;
 
-public class SadeRepository(IvcDbContext ivc) : ISadeRepository
+public class SadeRepository(IDbContextFactory<IvcDbContext> ivcFactory) : ISadeRepository
 {
     public async Task<IReadOnlyDictionary<string, PaseSade>> GetByExpedientesAsync(
         IReadOnlyCollection<string> expedientes, CancellationToken ct = default)
@@ -21,6 +21,8 @@ public class SadeRepository(IvcDbContext ivc) : ISadeRepository
             .ToList();
         if (distinct.Count == 0)
             return empty;
+
+        await using var ivc = await ivcFactory.CreateDbContextAsync(ct);
 
         var rows = await ivc.PasesSade.AsNoTracking()
             .Where(p => distinct.Contains(p.Expediente))

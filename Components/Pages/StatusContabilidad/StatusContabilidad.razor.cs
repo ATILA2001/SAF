@@ -24,9 +24,15 @@ public partial class StatusContabilidad
 
     protected override async Task CargarAuxiliaresAsync()
     {
-        _statusContableOpciones    = await LookupService.GetStatusContableOpcionesAsync();
-        _tramitadoresCuentasPagar  = await LookupService.GetTramitadoresCuentasPagarAsync();
-        _tramitadoresLiquidaciones = await LookupService.GetTramitadoresLiquidacionesAsync();
+        // En paralelo: cada repositorio crea su propio DbContext (IDbContextFactory).
+        var contables    = LookupService.GetStatusContableOpcionesAsync();
+        var cuentasPagar = LookupService.GetTramitadoresCuentasPagarAsync();
+        var liquidaciones = LookupService.GetTramitadoresLiquidacionesAsync();
+        await Task.WhenAll(contables, cuentasPagar, liquidaciones);
+
+        _statusContableOpciones    = contables.Result;
+        _tramitadoresCuentasPagar  = cuentasPagar.Result;
+        _tramitadoresLiquidaciones = liquidaciones.Result;
     }
 
     protected override async Task<List<StatusContabilidadViewModel>> ObtenerDatosAsync() =>

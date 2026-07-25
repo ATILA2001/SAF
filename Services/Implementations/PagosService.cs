@@ -34,8 +34,8 @@ public class PagosService(
 
         // Lookups por expediente, filtrados: las tablas IVC cubren MUCHOS más expedientes
         // que la grilla (PASES_SADE ~53k vs ~1,6k del ledger), así que el filtro reduce
-        // fuerte lo que viaja. IVC y SAF son DbContexts distintos → sus pipelines de
-        // consultas corren en paralelo (cada uno secuencial sobre su propio contexto).
+        // fuerte lo que viaja. Los cuatro lookups corren en paralelo: cada repositorio
+        // crea su propio DbContext (IDbContextFactory), así que no comparten estado.
         var expedientes = devengados
             .Where(d => !string.IsNullOrWhiteSpace(d.Expediente))
             .Select(d => d.Expediente!)

@@ -27,8 +27,8 @@ public class StatusContabilidadService(
 
         // BUZÓN SADE / ÚLTIMO MOVIMIENTO: VLOOKUP a la hoja SADE en el Excel → derivadas
         // de IVC.PASES_SADE filtrando por los expedientes de la grilla (la tabla IVC tiene
-        // ~53k expedientes; la grilla ~1,6k). IVC y SAF son DbContexts distintos → esta
-        // consulta corre en paralelo con las de las tablas propias.
+        // ~53k expedientes; la grilla ~1,6k). Corre en paralelo con las de las tablas
+        // propias: cada repositorio crea su propio DbContext (IDbContextFactory).
         var expedientes = grouped.Values
             .Where(v => !string.IsNullOrWhiteSpace(v.Fila.Expediente))
             .Select(v => v.Fila.Expediente!)
