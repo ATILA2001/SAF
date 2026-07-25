@@ -28,10 +28,14 @@ public class SadeRepository(IDbContextFactory<IvcDbContext> ivcFactory) : ISadeR
             .Where(p => distinct.Contains(p.Expediente))
             .ToListAsync(ct);
 
-        // PASES_SADE es única por expediente; el indexador tolera duplicados (último gana).
-        var dict = new Dictionary<string, PaseSade>(StringComparer.OrdinalIgnoreCase);
-        foreach (var r in rows)
-            dict[r.Expediente] = r;
-        return dict;
+        // Hoy PASES_SADE es única por expediente (53.337 filas = 53.337 expedientes), pero
+        // el criterio queda explícito: si alguna vez trae varias, gana el pase más
+        // reciente, que es lo que la columna representa.
+        return rows
+            .GroupBy(r => r.Expediente, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(r => r.FechaUltimoPase).First(),
+                StringComparer.OrdinalIgnoreCase);
     }
 }

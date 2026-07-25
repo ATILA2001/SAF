@@ -17,13 +17,16 @@ public class StatusContabilidadService(
     {
         var devengados = await devengadoRepo.GetAllAsync(ct);
 
-        // Una fila por (TipoDev, NroDev): datos de la primera fila + IMPORTE = suma de
-        // todas las filas del devengado (en Pagos se ven separadas; acá agrupadas).
+        // Una fila por (TipoDev, NroDev): datos de la fila representante + IMPORTE = suma
+        // de todas las filas del devengado (en Pagos se ven separadas; acá agrupadas).
+        // Representante = la de mayor importe, que es la línea del neto (las retenciones
+        // son montos menores); desempate por Id para que no dependa del orden que
+        // devuelva SQL. De ella salen expediente, empresa, fecha y los datos cargados.
         var grouped = devengados
             .GroupBy(d => (d.TipoDev, d.NroDev))
             .ToDictionary(
                 g => g.Key,
-                g => (Fila: g.First(), ImporteTotal: g.Sum(x => x.ImportePp ?? 0m)));
+                g => (Fila: FilaRepresentante(g), ImporteTotal: g.Sum(x => x.ImportePp ?? 0m)));
 
         // BUZÓN SADE / ÚLTIMO MOVIMIENTO: VLOOKUP a la hoja SADE en el Excel → derivadas
         // de IVC.PASES_SADE filtrando por los expedientes de la grilla (la tabla IVC tiene
@@ -96,6 +99,16 @@ public class StatusContabilidadService(
         }
         return result;
     }
+
+    /// <summary>
+    /// Fila que representa al devengado agrupado: la de mayor importe (el neto) y, ante
+    /// importes iguales, la de menor Id. Sin este orden explícito el tablero podía mostrar
+    /// un expediente distinto entre dos cargas.
+    /// </summary>
+    private static Data.Entities.Devengado FilaRepresentante(IEnumerable<Data.Entities.Devengado> filas)
+        => filas.OrderByDescending(d => d.ImportePp ?? decimal.MinValue)
+                .ThenBy(d => d.Id)
+                .First();
 
     public async Task<StatusContabilidadViewModel?> GetByKeyAsync(string tipoDev, int nroDev, CancellationToken ct = default)
     {
