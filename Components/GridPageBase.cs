@@ -223,7 +223,11 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     {
         try
         {
-            var bytes = ExportService.ExportToXlsx(_items, ExportNombreHoja);
+            // Lo que el usuario está viendo: View ya trae aplicados filtros y orden de
+            // la grilla (y a diferencia de PagedView, no se limita a la página actual).
+            var filas = _grid?.View?.ToList() ?? _items;
+
+            var bytes = ExportService.ExportToXlsx(filas, ExportNombreHoja);
             var base64 = Convert.ToBase64String(bytes);
             await JS.InvokeVoidAsync("downloadFileFromBase64", base64, ExportNombreArchivo,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
