@@ -14,7 +14,8 @@ namespace SAF.Services.Implementations;
 /// </summary>
 public class DevengadoSyncService(
     IDbContextFactory<IvcDbContext> ivcFactory,
-    IDbContextFactory<AppDbContext> dbFactory) : IDevengadoSyncService
+    IDbContextFactory<AppDbContext> dbFactory,
+    ILogger<DevengadoSyncService> logger) : IDevengadoSyncService
 {
     // Mismo filtro que la vista Pagos y el alta manual (fuente única).
     private static readonly string[] TiposExcluidos = ReglasDevengado.TiposExcluidos;
@@ -31,7 +32,23 @@ public class DevengadoSyncService(
         await Candado.WaitAsync(ct);
         try
         {
-            return await SincronizarAsync(ct);
+            var resultado = await SincronizarAsync(ct);
+
+            // Único rastro server-side de la sincronización: sin esto, "sincronicé y no
+            // trajo nada" no se puede diagnosticar después.
+            if (resultado.Status == SyncStatus.SinDatosEnIvc)
+                logger.LogWarning("Sync devengados: la bajada de IVC no tiene filas para importar.");
+            else
+                logger.LogInformation(
+                    "Sync devengados: {Status}, {Insertados} fila(s), fecha {Fecha:dd/MM/yyyy}.",
+                    resultado.Status, resultado.Insertados, resultado.UltimaFecha);
+
+            return resultado;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Sync devengados: falló la sincronización.");
+            throw;
         }
         finally
         {

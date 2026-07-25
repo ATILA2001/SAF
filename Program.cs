@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Radzen;
 using SAF.Components;
 using SAF.Data;
@@ -62,6 +63,12 @@ builder.Services.AddDbContext<DataProtectionDbContext>(options =>
     options.UseSqlServer(authWebConnectionString));
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+
+// Estado de las bases externas. IVC se reporta como "degraded" y no como caída: sin
+// ella las vistas propias siguen funcionando, solo se pierden las columnas derivadas.
+builder.Services.AddHealthChecks()
+    .AddCheck<DbContextHealthCheck<AppDbContext>>("saf")
+    .AddCheck<DbContextHealthCheck<IvcDbContext>>("ivc", HealthStatus.Degraded);
 
 // ── Shared-cookie DataProtection ─────────────────────────────────────────────────────────────
 var dataProtectionAppName = builder.Configuration["SharedCookie:ApplicationName"];
@@ -208,6 +215,9 @@ app.Use(async (ctx, next) =>
 });
 
 app.UseAntiforgery();
+
+// Anónimo: el fallback policy exige usuario autenticado y un monitor no tiene sesión.
+app.MapHealthChecks("/healthz").AllowAnonymous();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

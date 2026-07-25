@@ -18,6 +18,7 @@ namespace SAF.Components;
 public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : class, new()
 {
     [Inject] protected INotificationHelper Notification { get; set; } = null!;
+    [Inject] private ILogger<GridPageBase<TItem>> Logger { get; set; } = null!;
     [Inject] private IExportService ExportService { get; set; } = null!;
     [Inject] private DialogService DialogService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
@@ -84,7 +85,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
         }
         catch (Exception ex)
         {
-            Notification.ShowError(ex.Message, $"Error al cargar {TituloEntidad}");
+            Informar(ex, "La carga", $"Error al cargar {TituloEntidad}");
         }
         finally
         {
@@ -101,6 +102,20 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     {
         if (_originales.Remove(item, out var original)) Copiar(original, item);
         _grid.CancelEditRow(item);
+    }
+
+    /// <summary>
+    /// Registra el detalle técnico y le muestra al usuario algo accionable. Las
+    /// ArgumentException son validaciones escritas para él; el resto (SQL, EF) no le
+    /// sirve y expondría nombres de tablas y constraints.
+    /// </summary>
+    private void Informar(Exception ex, string accion, string titulo)
+    {
+        Logger.LogError(ex, "{Accion} falló en {Pagina}.", accion, PageUrl);
+
+        Notification.ShowError(
+            ex is ArgumentException ? ex.Message : "Ocurrió un error inesperado. Si persiste, avisá a Sistemas.",
+            titulo);
     }
 
     private static TItem Copiar(TItem origen, TItem destino)
@@ -142,7 +157,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
         }
         catch (Exception ex)
         {
-            Notification.ShowError(ex.Message, "Error al crear");
+            Informar(ex, "El alta", "Error al crear");
         }
     }
 
@@ -165,7 +180,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
         }
         catch (Exception ex)
         {
-            Notification.ShowError(ex.Message, "Error al guardar");
+            Informar(ex, "El guardado", "Error al guardar");
         }
     }
 
@@ -191,7 +206,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
         }
         catch (Exception ex)
         {
-            Notification.ShowError(ex.Message, "Error al eliminar");
+            Informar(ex, "La baja", "Error al eliminar");
         }
     }
 
@@ -234,7 +249,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
         }
         catch (Exception ex)
         {
-            Notification.ShowError(ex.Message, "Error al exportar");
+            Informar(ex, "El export", "Error al exportar");
         }
     }
 }

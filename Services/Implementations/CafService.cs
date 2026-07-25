@@ -8,7 +8,7 @@ using SAF.Application.Caf.Dtos;
 
 namespace SAF.Services.Implementations;
 
-public class CafService(ICafRepository repo) : ICafService
+public class CafService(ICafRepository repo, ILogger<CafService> logger) : ICafService
 {
     public async Task<IReadOnlyList<CafViewModel>> GetAllAsync(CancellationToken ct = default)
     {
@@ -30,7 +30,12 @@ public class CafService(ICafRepository repo) : ICafService
     {
         Validar(vm);
         var entity = await repo.GetByIdAsync(vm.Id, ct);
-        if (entity is null) return;
+        if (entity is null)
+        {
+            // Otro usuario la borró mientras esta se editaba: el guardado no hace nada.
+            logger.LogWarning("Expediente CAF {Id} ya no existe; no se guardaron los cambios.", vm.Id);
+            return;
+        }
 
         MapToEntity(vm, entity);
         entity.FechaModificacion = DateTime.UtcNow;

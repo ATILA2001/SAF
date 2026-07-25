@@ -8,7 +8,7 @@ using SAF.Application.Seguros.Dtos;
 
 namespace SAF.Services.Implementations;
 
-public class SeguroService(ISeguroRepository repo) : ISeguroService
+public class SeguroService(ISeguroRepository repo, ILogger<SeguroService> logger) : ISeguroService
 {
     public async Task<IReadOnlyList<SeguroViewModel>> GetAllAsync(CancellationToken ct = default)
     {
@@ -30,7 +30,12 @@ public class SeguroService(ISeguroRepository repo) : ISeguroService
     {
         Validar(vm);
         var entity = await repo.GetByIdAsync(vm.Id, ct);
-        if (entity is null) return;
+        if (entity is null)
+        {
+            // Otro usuario la borró mientras esta se editaba: el guardado no hace nada.
+            logger.LogWarning("Seguro {Id} ya no existe; no se guardaron los cambios.", vm.Id);
+            return;
+        }
 
         MapToEntity(vm, entity);
         entity.FechaModificacion = DateTime.UtcNow;
