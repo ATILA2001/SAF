@@ -55,8 +55,9 @@
                             {
                                 <RadzenBadge BadgeStyle="BadgeStyle.Light"
                                              Text="@($"{item.CantidadLineas} líneas")"
-                                             title="@DetalleLineas(item)"
-                                             Style="cursor: help;" />
+                                             Style="cursor: help;"
+                                             MouseEnter="@(el => MostrarLineas(el, item))"
+                                             MouseLeave="@(_ => TooltipService.Close())" />
                             }
                         </RadzenStack>
                     </Template>
@@ -165,3 +166,51 @@
         </RadzenDataGrid>
     }
 </RadzenStack>
+
+@code {
+    // Detalle de las líneas que resume la fila, armado con componentes de Radzen.
+    // Duration null: el tooltip se cierra al salir del badge (MouseLeave).
+    private void MostrarLineas(ElementReference badge, SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel item)
+        => TooltipService.Open(badge, _ =>
+            @<RadzenStack Gap="0.5rem">
+                <RadzenText TextStyle="TextStyle.Subtitle2">
+                    @item.CantidadLineas líneas en Pagos · devengado @item.TipoDev @item.NroDev
+                </RadzenText>
+                <RadzenTable AllowAlternatingRows="false">
+                    <RadzenTableHeader>
+                        <RadzenTableHeaderRow>
+                            <RadzenTableHeaderCell>Fecha</RadzenTableHeaderCell>
+                            <RadzenTableHeaderCell>Expediente</RadzenTableHeaderCell>
+                            <RadzenTableHeaderCell>Importe</RadzenTableHeaderCell>
+                            <RadzenTableHeaderCell></RadzenTableHeaderCell>
+                        </RadzenTableHeaderRow>
+                    </RadzenTableHeader>
+                    <RadzenTableBody>
+                        @foreach (var linea in item.Lineas)
+                        {
+                            <RadzenTableRow>
+                                <RadzenTableCell>@linea.FechaImputacion?.ToString("dd/MM/yyyy")</RadzenTableCell>
+                                <RadzenTableCell>@linea.Expediente</RadzenTableCell>
+                                <RadzenTableCell>@linea.Importe?.ToString("N2")</RadzenTableCell>
+                                <RadzenTableCell>
+                                    @if (linea.EsRepresentante)
+                                    {
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="principal" />
+                                    }
+                                </RadzenTableCell>
+                            </RadzenTableRow>
+                        }
+                        <RadzenTableRow>
+                            <RadzenTableCell>Total</RadzenTableCell>
+                            <RadzenTableCell></RadzenTableCell>
+                            <RadzenTableCell>@item.ImporteTotal?.ToString("N2")</RadzenTableCell>
+                            <RadzenTableCell></RadzenTableCell>
+                        </RadzenTableRow>
+                    </RadzenTableBody>
+                </RadzenTable>
+                <RadzenText TextStyle="TextStyle.Caption">
+                    De la línea principal salen el expediente, la empresa y los datos cargados.
+                </RadzenText>
+            </RadzenStack>
+        , new TooltipOptions { Position = TooltipPosition.Left, Duration = null });
+}

@@ -34,6 +34,10 @@ public class StatusContabilidadViewModel
     [ExportIgnore]
     public int CantidadLineas { get; set; } = 1;
 
+    /// <summary>Detalle de esas líneas, para mostrar de dónde sale el importe sumado.</summary>
+    [ExportIgnore]
+    public IReadOnlyList<LineaDevengadoViewModel> Lineas { get; set; } = Array.Empty<LineaDevengadoViewModel>();
+
     [Display(Name = "STATUS DGAyF")]
     public string? StatusDgayfNombre { get; set; }   // col F
 

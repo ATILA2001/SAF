@@ -26,7 +26,7 @@ public class StatusContabilidadService(
             .GroupBy(d => (d.TipoDev, d.NroDev))
             .ToDictionary(
                 g => g.Key,
-                g => (Fila: FilaRepresentante(g), ImporteTotal: g.Sum(x => x.ImportePp ?? 0m), Lineas: g.Count()));
+                g => Agrupar(g));
 
         // BUZÓN SADE / ÚLTIMO MOVIMIENTO: VLOOKUP a la hoja SADE en el Excel → derivadas
         // de IVC.PASES_SADE filtrando por los expedientes de la grilla (la tabla IVC tiene
@@ -71,7 +71,8 @@ public class StatusContabilidadService(
                 Expediente = d.Expediente,
                 Empresa = d.Empresa,
                 ImporteTotal = importeTotal,
-                CantidadLineas = kvp.Value.Lineas,
+                CantidadLineas = kvp.Value.Lineas.Count,
+                Lineas = kvp.Value.Lineas,
                 StatusDgayfNombre = pago?.StatusDgayfOpcion?.Nombre,
                 FirmadaPorMiguel = pago?.StatusOpOpcion?.Nombre,
                 FechaPedidoFactura1 = d.FechaImputacion,
@@ -102,14 +103,33 @@ public class StatusContabilidadService(
     }
 
     /// <summary>
-    /// Fila que representa al devengado agrupado: la de mayor importe (el neto) y, ante
-    /// importes iguales, la de menor Id. Sin este orden explícito el tablero podía mostrar
-    /// un expediente distinto entre dos cargas.
+    /// Resume las líneas de un devengado: importe sumado, y como representante la de mayor
+    /// importe (el neto) con desempate por Id. Sin ese orden explícito el tablero podía
+    /// mostrar un expediente distinto entre dos cargas. Se conserva el detalle de las
+    /// líneas para que la grilla pueda mostrar de dónde sale el total.
     /// </summary>
-    private static Data.Entities.Devengado FilaRepresentante(IEnumerable<Data.Entities.Devengado> filas)
-        => filas.OrderByDescending(d => d.ImportePp ?? decimal.MinValue)
-                .ThenBy(d => d.Id)
-                .First();
+    private static (Data.Entities.Devengado Fila, decimal ImporteTotal, List<LineaDevengadoViewModel> Lineas)
+        Agrupar(IEnumerable<Data.Entities.Devengado> filas)
+    {
+        var ordenadas = filas
+            .OrderByDescending(d => d.ImportePp ?? decimal.MinValue)
+            .ThenBy(d => d.Id)
+            .ToList();
+
+        var lineas = ordenadas
+            .Select((d, i) => new LineaDevengadoViewModel
+            {
+                Id = d.Id,
+                FechaImputacion = d.FechaImputacion,
+                Expediente = d.Expediente,
+                Empresa = d.Empresa,
+                Importe = d.ImportePp,
+                EsRepresentante = i == 0,
+            })
+            .ToList();
+
+        return (ordenadas[0], ordenadas.Sum(d => d.ImportePp ?? 0m), lineas);
+    }
 
     public async Task<StatusContabilidadViewModel?> GetByKeyAsync(string tipoDev, int nroDev, CancellationToken ct = default)
     {

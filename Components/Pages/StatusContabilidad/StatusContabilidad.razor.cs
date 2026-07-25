@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Radzen;
 using SAF.Data.Entities;
 using SAF.Services.Abstractions;
 using SAF.Application.StatusContabilidad;
@@ -10,6 +11,7 @@ public partial class StatusContabilidad
 {
     [Inject] private IStatusContabilidadService StatusContabilidadService { get; set; } = null!;
     [Inject] private ILookupService LookupService { get; set; } = null!;
+    [Inject] private TooltipService TooltipService { get; set; } = null!;
 
     // Marcas de la col. "Fecha de Ingreso Factura (correcta)" del Excel cuando no hay fecha.
     private static readonly string[] _sinFacturaMotivos = ["N/C", "CCOO", "PAV", "Anulado"];
@@ -45,14 +47,6 @@ public partial class StatusContabilidad
         item.TramitadorCuentasPagarNombre = _tramitadoresCuentasPagar.FirstOrDefault(x => x.Id == item.TramitadorCuentasPagarOpcionId)?.Nombre;
         item.TramitadorLiquidacionesNombre = _tramitadoresLiquidaciones.FirstOrDefault(x => x.Id == item.TramitadorLiquidacionesOpcionId)?.Nombre;
     }
-
-    /// <summary>
-    /// Explica el badge: el tablero resume varias líneas del ledger en una sola fila.
-    /// </summary>
-    private static string DetalleLineas(StatusContabilidadViewModel item) =>
-        $"El devengado {item.TipoDev} {item.NroDev} tiene {item.CantidadLineas} líneas en Pagos " +
-        $"(neto y retenciones). El importe es la suma de todas; el expediente, la empresa y " +
-        $"los datos cargados salen de la línea de mayor importe.";
 
     protected override IReadOnlyList<string> Validar(StatusContabilidadViewModel item, bool esAlta) =>
         StatusContabilidadValidator.Validar(item);
