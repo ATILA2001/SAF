@@ -21,9 +21,10 @@ public class DevengadoSyncService(
     private static readonly string[] TiposExcluidos = ReglasDevengado.TiposExcluidos;
 
     // Una sincronización a la vez. El diff es leer-existentes → insertar-faltantes y
-    // Devengados no puede llevar índice único (hay filas legítimamente repetidas: el
-    // neto y sus retenciones comparten tipo, nro, fecha e importe), así que dos
-    // corridas simultáneas duplicarían la bajada del día sin ningún error visible.
+    // Devengados no lleva índice único (un devengado tiene varias líneas —neto y
+    // retenciones— que comparten tipo, nro y fecha, y en casos aislados también el
+    // importe), así que dos corridas simultáneas duplicarían la bajada del día
+    // sin ningún error visible.
     // Alcanza con una instancia de la app; con varias haría falta sp_getapplock.
     private static readonly SemaphoreSlim Candado = new(1, 1);
 
@@ -90,12 +91,24 @@ public class DevengadoSyncService(
             .Select(d => new { d.TipoDev, d.NroDev, d.FechaImputacion, d.ImportePp })
             .ToListAsync(ct);
 
-        var existentesSet = existentes
-            .Select(e => (e.TipoDev, e.NroDev, e.FechaImputacion, e.ImportePp))
-            .ToHashSet();
+        // Por multiplicidad, no por conjunto: un devengado puede tener varias líneas y en
+        // raras ocasiones dos comparten los cuatro campos (1 caso en 35k filas del
+        // histórico de IVC). Con un HashSet, si SAF ya tuviera una de esas líneas, la otra
+        // no entraría nunca y el importe del expediente quedaría corto en silencio.
+        var faltantesPorClave = existentes
+            .GroupBy(e => (e.TipoDev, e.NroDev, e.FechaImputacion, e.ImportePp))
+            .ToDictionary(g => g.Key, g => g.Count());
 
         var nuevos = candidatos
-            .Where(c => !existentesSet.Contains((c.TipoDev, c.NroDev, c.FechaImputacion, c.ImportePp)))
+            .Where(c =>
+            {
+                var clave = (c.TipoDev, c.NroDev, c.FechaImputacion, c.ImportePp);
+                if (!faltantesPorClave.TryGetValue(clave, out var yaImportadas) || yaImportadas == 0)
+                    return true;
+
+                faltantesPorClave[clave] = yaImportadas - 1;   // consume una y sigue
+                return false;
+            })
             .Select(c => new Devengado
             {
                 TipoDev = c.TipoDev,

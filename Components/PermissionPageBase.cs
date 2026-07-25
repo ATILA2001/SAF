@@ -19,6 +19,8 @@ public abstract class PermissionPageBase : ComponentBase
     [Inject]
     private IPermissionService PermissionService { get; set; } = null!;
 
+    /// <summary>Permiso de lectura de la página. El redirect del layout es defensa en profundidad.</summary>
+    protected bool CanAccess { get; private set; }
     protected bool CanCreate { get; private set; }
     protected bool CanEdit { get; private set; }
     protected bool CanDelete { get; private set; }
@@ -30,10 +32,11 @@ public abstract class PermissionPageBase : ComponentBase
 
         if (AdminClaims.IsAdmin(user))
         {
-            CanCreate = CanEdit = CanDelete = true;
+            CanAccess = CanCreate = CanEdit = CanDelete = true;
             return;
         }
 
+        CanAccess = PermissionService.CanAccess(user, pageUrl);
         CanCreate = PermissionService.CanPerform(user, pageUrl, "create");
         CanEdit   = PermissionService.CanPerform(user, pageUrl, "edit");
         CanDelete = PermissionService.CanPerform(user, pageUrl, "delete");

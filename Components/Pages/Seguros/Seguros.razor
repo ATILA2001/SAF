@@ -91,7 +91,7 @@
                                         Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                @if (CanEdit || CanDelete)
+                @if (CanEdit || CanDelete || CanCreate)
                 {
                     <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Title="Acciones" Width="140px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
                         <Template Context="item">

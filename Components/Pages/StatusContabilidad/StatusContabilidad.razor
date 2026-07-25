@@ -142,7 +142,7 @@
                             <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
                                           Click="@(() => GuardarFila(item))" />
                             <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                          Click="@(() => _grid.CancelEditRow(item))" />
+                                          Click="@(() => CancelEdit(item))" />
                         </EditTemplate>
                     </RadzenDataGridColumn>
                 }

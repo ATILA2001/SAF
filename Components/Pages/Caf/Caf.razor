@@ -111,7 +111,7 @@
                         <RadzenDatePicker @bind-Value="item.Revisado" ShowTime="true" DateFormat="dd/MM/yyyy HH:mm" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                @if (CanEdit || CanDelete)
+                @if (CanEdit || CanDelete || CanCreate)
                 {
                     <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Title="Acciones" Width="140px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
                         <Template Context="item">

@@ -23,7 +23,9 @@ public sealed class DbContextHealthCheck<TContext>(IDbContextFactory<TContext> f
         }
         catch (Exception ex)
         {
-            return new HealthCheckResult(context.Registration.FailureStatus, ex.Message, ex);
+            // El endpoint es anónimo: la descripción no debe filtrar servidor ni base.
+            // El detalle va al log del check, no a la respuesta.
+            return new HealthCheckResult(context.Registration.FailureStatus, "Sin conexión.", ex);
         }
     }
 }

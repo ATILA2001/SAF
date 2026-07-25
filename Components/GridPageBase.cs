@@ -76,6 +76,14 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     {
         await LoadPermissionsAsync(PageUrl);
 
+        // Sin permiso de lectura no se consulta la base: el redirect del MainLayout corre
+        // después de que la página inicializa, así que no alcanza como única barrera.
+        if (!CanAccess)
+        {
+            _loading = false;
+            return;
+        }
+
         try
         {
             // Los auxiliares (lookups) alimentan los dropdowns de la grilla: se cargan
@@ -96,7 +104,19 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     protected async Task AddRow() => await _grid.InsertRow(NuevaFila());
 
     /// <summary>Al abrir la edición se guarda el estado previo, para poder cancelar.</summary>
-    protected void OnRowEdit(TItem item) => _originales[item] = Copiar(item, new TItem());
+    protected void OnRowEdit(TItem item)
+    {
+        // Con EditMode.Single, abrir otra fila cierra la anterior sin pasar por Cancelar:
+        // hay que deshacer lo que quedó a medias y no dejar la copia colgada.
+        foreach (var (fila, original) in _originales.ToList())
+            if (!ReferenceEquals(fila, item))
+            {
+                Copiar(original, fila);
+                _originales.Remove(fila);
+            }
+
+        _originales[item] = Copiar(item, new TItem());
+    }
 
     protected void CancelEdit(TItem item)
     {
@@ -109,7 +129,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     /// ArgumentException son validaciones escritas para él; el resto (SQL, EF) no le
     /// sirve y expondría nombres de tablas y constraints.
     /// </summary>
-    private void Informar(Exception ex, string accion, string titulo)
+    protected void Informar(Exception ex, string accion, string titulo)
     {
         Logger.LogError(ex, "{Accion} falló en {Pagina}.", accion, PageUrl);
 
@@ -236,10 +256,19 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
 
     protected async Task ExportarExcel()
     {
+        if (!CanAccess)
+        {
+            Notification.ShowError($"No tenés permiso para exportar {TituloEntidad}.", "Permiso denegado");
+            return;
+        }
+
         try
         {
-            // Lo que el usuario está viendo: View ya trae aplicados filtros y orden de
-            // la grilla (y a diferencia de PagedView, no se limita a la página actual).
+            // View trae los filtros y el orden de la grilla, pero Radzen lo deja apuntando
+            // solo a la página actual después de insertar o cancelar una fila
+            // (InsertRowAtIndex / CancelEditRow reasignan _view = PagedView). Recargar lo
+            // recalcula desde los datos; sin esto el Excel saldría con una sola página.
+            if (_grid is not null) await _grid.Reload();
             var filas = _grid?.View?.ToList() ?? _items;
 
             var bytes = ExportService.ExportToXlsx(filas, ExportNombreHoja);

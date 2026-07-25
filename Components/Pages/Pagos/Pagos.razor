@@ -167,7 +167,7 @@
                         @(item.CafSiNo == true ? "Sí" : item.CafSiNo == false ? "No" : "")
                     </Template>
                 </RadzenDataGridColumn>
-                @if (CanEdit || CanDelete)
+                @if (CanEdit || CanDelete || CanCreate)
                 {
                     <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Title="Acciones" Width="140px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
                         <Template Context="item">
@@ -186,7 +186,7 @@
                             <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
                                           Click="@(() => GuardarFila(item))" />
                             <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                          Click="@(() => _grid.CancelEditRow(item))" />
+                                          Click="@(() => CancelEdit(item))" />
                         </EditTemplate>
                     </RadzenDataGridColumn>
                 }

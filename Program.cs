@@ -66,9 +66,13 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 // Estado de las bases externas. IVC se reporta como "degraded" y no como caída: sin
 // ella las vistas propias siguen funcionando, solo se pierden las columnas derivadas.
+// Timeout propio: sin él, la estrategia de reintentos de EF hace que el monitor reciba
+// un cuelgue en vez de un estado cuando la base no responde.
 builder.Services.AddHealthChecks()
-    .AddCheck<DbContextHealthCheck<AppDbContext>>("saf")
-    .AddCheck<DbContextHealthCheck<IvcDbContext>>("ivc", HealthStatus.Degraded);
+    .AddCheck<DbContextHealthCheck<AppDbContext>>(
+        "saf", failureStatus: null, tags: null, timeout: TimeSpan.FromSeconds(5))
+    .AddCheck<DbContextHealthCheck<IvcDbContext>>(
+        "ivc", HealthStatus.Degraded, tags: null, timeout: TimeSpan.FromSeconds(5));
 
 // ── Shared-cookie DataProtection ─────────────────────────────────────────────────────────────
 var dataProtectionAppName = builder.Configuration["SharedCookie:ApplicationName"];

@@ -105,7 +105,7 @@ public partial class Pagos
         }
         catch (Exception ex)
         {
-            Notification.ShowError(ex.Message, "Error al sincronizar");
+            Informar(ex, "La sincronización", "Error al sincronizar");
         }
         finally
         {
