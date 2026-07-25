@@ -45,7 +45,22 @@
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="NroDev" Title="Nro Dev" Width="90px" />
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="Expediente" Title="Expediente" Width="150px" />
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="Empresa" Title="Empresa" Width="200px" />
-                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="ImporteTotal" Title="Importe" Width="120px" FormatString="{0:N2}" />
+                @* El tablero agrupa las líneas del devengado; en Pagos se ven separadas.
+                   El badge avisa cuántas resume esta fila y de cuál salen los datos. *@
+                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="ImporteTotal" Title="Importe" Width="150px" FormatString="{0:N2}">
+                    <Template Context="item">
+                        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+                            <span>@item.ImporteTotal?.ToString("N2")</span>
+                            @if (item.CantidadLineas > 1)
+                            {
+                                <RadzenBadge BadgeStyle="BadgeStyle.Light"
+                                             Text="@($"{item.CantidadLineas} líneas")"
+                                             title="@DetalleLineas(item)"
+                                             Style="cursor: help;" />
+                            }
+                        </RadzenStack>
+                    </Template>
+                </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="StatusDgayfNombre" Title="Status DGAyF" Width="150px" />
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="FirmadaPorMiguel" Title="Firmada por Miguel?" Width="160px" />
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="FechaPedidoFactura1" Title="Fecha Ped. Factura 1" Width="165px" FormatString="{0:dd/MM/yyyy}" />

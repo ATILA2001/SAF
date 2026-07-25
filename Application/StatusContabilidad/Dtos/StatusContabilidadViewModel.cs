@@ -27,6 +27,13 @@ public class StatusContabilidadViewModel
     [Display(Name = "IMPORTE")]
     public decimal? ImporteTotal { get; set; }      // suma por grupo TipoDev+NroDev
 
+    /// <summary>
+    /// Cuántas líneas del ledger resume esta fila (neto + retenciones). El tablero agrupa
+    /// y en Pagos se ven separadas: se avisa en la grilla cuando hay más de una.
+    /// </summary>
+    [ExportIgnore]
+    public int CantidadLineas { get; set; } = 1;
+
     [Display(Name = "STATUS DGAyF")]
     public string? StatusDgayfNombre { get; set; }   // col F
 

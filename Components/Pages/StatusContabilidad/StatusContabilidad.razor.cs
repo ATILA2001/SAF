@@ -46,6 +46,14 @@ public partial class StatusContabilidad
         item.TramitadorLiquidacionesNombre = _tramitadoresLiquidaciones.FirstOrDefault(x => x.Id == item.TramitadorLiquidacionesOpcionId)?.Nombre;
     }
 
+    /// <summary>
+    /// Explica el badge: el tablero resume varias líneas del ledger en una sola fila.
+    /// </summary>
+    private static string DetalleLineas(StatusContabilidadViewModel item) =>
+        $"El devengado {item.TipoDev} {item.NroDev} tiene {item.CantidadLineas} líneas en Pagos " +
+        $"(neto y retenciones). El importe es la suma de todas; el expediente, la empresa y " +
+        $"los datos cargados salen de la línea de mayor importe.";
+
     protected override IReadOnlyList<string> Validar(StatusContabilidadViewModel item, bool esAlta) =>
         StatusContabilidadValidator.Validar(item);
 

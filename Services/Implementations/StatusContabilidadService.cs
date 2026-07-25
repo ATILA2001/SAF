@@ -26,7 +26,7 @@ public class StatusContabilidadService(
             .GroupBy(d => (d.TipoDev, d.NroDev))
             .ToDictionary(
                 g => g.Key,
-                g => (Fila: FilaRepresentante(g), ImporteTotal: g.Sum(x => x.ImportePp ?? 0m)));
+                g => (Fila: FilaRepresentante(g), ImporteTotal: g.Sum(x => x.ImportePp ?? 0m), Lineas: g.Count()));
 
         // BUZÓN SADE / ÚLTIMO MOVIMIENTO: VLOOKUP a la hoja SADE en el Excel → derivadas
         // de IVC.PASES_SADE filtrando por los expedientes de la grilla (la tabla IVC tiene
@@ -71,6 +71,7 @@ public class StatusContabilidadService(
                 Expediente = d.Expediente,
                 Empresa = d.Empresa,
                 ImporteTotal = importeTotal,
+                CantidadLineas = kvp.Value.Lineas,
                 StatusDgayfNombre = pago?.StatusDgayfOpcion?.Nombre,
                 FirmadaPorMiguel = pago?.StatusOpOpcion?.Nombre,
                 FechaPedidoFactura1 = d.FechaImputacion,
