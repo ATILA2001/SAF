@@ -4,12 +4,14 @@
 <PageTitle>Pagos</PageTitle>
 
 <RadzenStack>
+    @* La barra de Pagos lleva un botón más que las otras vistas (Sincronizar): sin
+       repartir el ancho, los botones quedan apretados y el texto se parte. *@
     <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-        <RadzenColumn>
+        <RadzenColumn Size="3">
             <h2>Pagos</h2>
         </RadzenColumn>
-        <RadzenColumn>
-            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End">
+        <RadzenColumn Size="9">
+            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Wrap="FlexWrap.Wrap">
                 <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin:0;">
                     Última actualización: @(_ultimaActualizacion?.ToString("dd/MM/yyyy") ?? "—")
                 </RadzenText>
