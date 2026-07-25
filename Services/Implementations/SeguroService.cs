@@ -61,6 +61,9 @@ public class SeguroService(ISeguroRepository repo, ILogger<SeguroService> logger
         e.ImporteNeto = vm.ImporteNeto;
         e.Estado = vm.Estado;
         e.SeguroOpcionId = vm.SeguroOpcionId;
+        // La versión que tenía la fila cuando el usuario la cargó: el UPDATE la exige
+        // en el WHERE, así que si otro la guardó mientras tanto, no afecta ninguna fila.
+        e.RowVersion = vm.RowVersion;
         return e;
     }
 
@@ -74,5 +77,6 @@ public class SeguroService(ISeguroRepository repo, ILogger<SeguroService> logger
         Estado = e.Estado,
         SeguroOpcionId = e.SeguroOpcionId,
         SeguroNombre = e.SeguroOpcion?.Nombre,
+        RowVersion = e.RowVersion,
     };
 }

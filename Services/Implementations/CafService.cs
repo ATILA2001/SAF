@@ -67,6 +67,9 @@ public class CafService(ICafRepository repo, ILogger<CafService> logger) : ICafS
         e.CcPagadora = vm.CcPagadora;
         e.Pase = vm.Pase;
         e.Revisado = vm.Revisado;
+        // La versión que tenía la fila cuando el usuario la cargó: el UPDATE la exige
+        // en el WHERE, así que si otro la guardó mientras tanto, no afecta ninguna fila.
+        e.RowVersion = vm.RowVersion;
         return e;
     }
 
@@ -85,5 +88,6 @@ public class CafService(ICafRepository repo, ILogger<CafService> logger) : ICafS
         CcPagadora = e.CcPagadora,
         Pase = e.Pase,
         Revisado = e.Revisado,
+        RowVersion = e.RowVersion,
     };
 }

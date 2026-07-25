@@ -1,5 +1,6 @@
 #nullable enable
 using Microsoft.EntityFrameworkCore;
+using SAF.Application.Common;
 using SAF.Data;
 using SAF.Data.Entities;
 using SAF.Repositories.Abstractions;
@@ -35,7 +36,17 @@ public class CafRepository(IDbContextFactory<AppDbContext> dbFactory) : ICafRepo
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         db.ExpedientesCaf.Update(entity);
-        await db.SaveChangesAsync(ct);
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // El WHERE incluye la RowVersion que traía la fila al editarse: cero filas
+            // afectadas significa que otro usuario la modificó o la borró.
+            throw new ConflictoDeConcurrenciaException();
+        }
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)

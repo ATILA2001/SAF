@@ -91,6 +91,7 @@ public class StatusContabilidadService(
                 ObservacionesLiquidaciones = extra?.ObservacionesLiquidaciones,
                 FaltaPoliza = extra?.FaltaPoliza ?? false,
                 UltimoMovimientoSade = pase?.FechaUltimoPase,
+                RowVersion = extra?.RowVersion,
             });
         }
         return result;
@@ -141,6 +142,7 @@ public class StatusContabilidadService(
             ObservacionesLiquidaciones = extra?.ObservacionesLiquidaciones,
             FaltaPoliza = extra?.FaltaPoliza ?? false,
             UltimoMovimientoSade = pase?.FechaUltimoPase,
+            RowVersion = extra?.RowVersion,
         };
     }
 
@@ -161,6 +163,9 @@ public class StatusContabilidadService(
             ObservacionesLiquidaciones = vm.ObservacionesLiquidaciones,
             FaltaPoliza = vm.FaltaPoliza,
             // BuzonSade / UltimoMovimientoSade / DiasEnElArea: derivadas de PASES_SADE, no se persisten.
+            // Versión que tenía el registro al cargarse: la exige el upsert para detectar
+            // que otro usuario lo modificó mientras esta fila estaba en edición.
+            RowVersion = vm.RowVersion,
         };
         await contaRepo.UpsertAsync(entity, ct);
     }

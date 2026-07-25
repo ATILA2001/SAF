@@ -95,6 +95,7 @@ public class PagosService(
                 PedidoFactura3 = sc?.ReiterarPedidoFactura3,
                 FechaFacturaCorrecta = sc?.FechaIngresoFactura,
                 CafSiNo = extra?.CafSiNo,
+                RowVersion = extra?.RowVersion,
             });
         }
         return result;
@@ -179,6 +180,9 @@ public class PagosService(
             // Derivadas (no se persisten): StatusContable, SegurosTeso, PedidoFactura2/3,
             // FechaFacturaCorrecta, FechaDePagoNoCaf/Caf, FechaPagoTotal, FechaSade y BuzonSade.
             CafSiNo = vm.CafSiNo,
+            // Versión que tenía el registro al cargarse: el upsert la exige para detectar
+            // que otro usuario lo modificó mientras esta fila estaba en edición.
+            RowVersion = vm.RowVersion,
         };
         await extraRepo.UpsertAsync(entity, ct);
     }

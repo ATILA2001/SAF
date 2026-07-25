@@ -34,4 +34,7 @@ public class ExpedienteCaf
 
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
     public DateTime FechaModificacion { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Control de concurrencia optimista: SQL Server la actualiza en cada UPDATE.</summary>
+    public byte[]? RowVersion { get; set; }
 }

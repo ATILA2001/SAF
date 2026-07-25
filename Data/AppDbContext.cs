@@ -57,6 +57,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.HasIndex(e => new { e.TipoDev, e.NroDev });
             entity.Property(e => e.Observaciones).HasMaxLength(500);
             entity.Property(e => e.Ccoo).HasMaxLength(200);
+            entity.Property(e => e.RowVersion).IsRowVersion();
         });
 
         modelBuilder.Entity<StatusContabilidadExtra>(entity =>
@@ -65,6 +66,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(e => e.ObservacionesCuentasPagar).HasMaxLength(500);
             entity.Property(e => e.ObservacionesLiquidaciones).HasMaxLength(500);
             entity.Property(e => e.SinFacturaMotivo).HasMaxLength(20);
+            entity.Property(e => e.RowVersion).IsRowVersion();
         });
 
         modelBuilder.Entity<ExpedienteCaf>(entity =>
@@ -79,6 +81,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(e => e.Pase).HasMaxLength(100);
             entity.Property(e => e.ImporteNeto).HasPrecision(18, 2);
             entity.Property(e => e.Iibb).HasPrecision(18, 2);
+            entity.Property(e => e.RowVersion).IsRowVersion();
         });
 
         modelBuilder.Entity<ExpedienteSeguro>(entity =>
@@ -89,6 +92,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(e => e.Beneficiario).HasMaxLength(255);
             entity.Property(e => e.Estado).HasMaxLength(100);
             entity.Property(e => e.ImporteNeto).HasPrecision(18, 2);
+            entity.Property(e => e.RowVersion).IsRowVersion();
         });
 
         // Seed de datos para lookups

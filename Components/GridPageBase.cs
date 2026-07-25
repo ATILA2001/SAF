@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using Radzen;
 using Radzen.Blazor;
+using SAF.Application.Common;
 using SAF.Services.Abstractions;
 using SAF.Shared;
 using System.Reflection;
@@ -196,6 +197,14 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
         try
         {
             await ActualizarAsync(item);
+            await ReloadAsync();
+        }
+        catch (ConflictoDeConcurrenciaException ex)
+        {
+            // Se recarga para que el usuario vea lo que quedó realmente guardado antes
+            // de decidir si vuelve a aplicar su cambio.
+            Logger.LogWarning("Conflicto de concurrencia al guardar en {Pagina}.", PageUrl);
+            Notification.ShowWarning(ex.Message, "Fila desactualizada");
             await ReloadAsync();
         }
         catch (Exception ex)

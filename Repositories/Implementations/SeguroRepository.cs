@@ -1,5 +1,6 @@
 #nullable enable
 using Microsoft.EntityFrameworkCore;
+using SAF.Application.Common;
 using SAF.Data;
 using SAF.Data.Entities;
 using SAF.Repositories.Abstractions;
@@ -39,7 +40,17 @@ public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISegu
         // Solo la fila: la opción de seguro navegada viene de una lectura previa y no
         // debe reinsertarse ni modificarse al guardar.
         db.Entry(entity).State = EntityState.Modified;
-        await db.SaveChangesAsync(ct);
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // El WHERE incluye la RowVersion que traía la fila al editarse: cero filas
+            // afectadas significa que otro usuario la modificó o la borró.
+            throw new ConflictoDeConcurrenciaException();
+        }
     }
 
     public async Task DeleteAsync(int id, CancellationToken ct = default)

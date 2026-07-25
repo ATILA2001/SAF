@@ -1,5 +1,6 @@
 #nullable enable
 using Microsoft.EntityFrameworkCore;
+using SAF.Application.Common;
 using SAF.Data;
 using SAF.Data.Entities;
 using SAF.Repositories.Abstractions;
@@ -42,6 +43,10 @@ public class StatusContabilidadExtraRepository(IDbContextFactory<AppDbContext> d
             // ya existe, así que el mismo método la actualiza en vez de insertarla.
             await GuardarAsync(entity, ct);
         }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflictoDeConcurrenciaException();
+        }
     }
 
     private async Task GuardarAsync(StatusContabilidadExtra entity, CancellationToken ct)
@@ -59,6 +64,11 @@ public class StatusContabilidadExtraRepository(IDbContextFactory<AppDbContext> d
         }
         else
         {
+            // Se compara contra la versión que el usuario tenía cargada, no contra la
+            // recién leída: si otro guardó en el medio, el UPDATE no afecta filas.
+            if (entity.RowVersion is not null)
+                db.Entry(existing).Property(e => e.RowVersion).OriginalValue = entity.RowVersion;
+
             existing.FechaPedidoFactura2 = entity.FechaPedidoFactura2;
             existing.ReiterarPedidoFactura3 = entity.ReiterarPedidoFactura3;
             existing.FechaIngresoFactura = entity.FechaIngresoFactura;

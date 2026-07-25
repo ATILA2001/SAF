@@ -100,4 +100,9 @@ public class PagoViewModel
     // En standby (fuente PRESUPUESTO 2026 no implementada); fuera del export.
     [ExportIgnore]
     public bool? CafSiNo { get; set; }
+
+    // Versión de la fila al momento de cargarla: viaja a la grilla y vuelve al guardar,
+    // para detectar que otro usuario la modificó mientras se editaba.
+    [ExportIgnore]
+    public byte[]? RowVersion { get; set; }
 }

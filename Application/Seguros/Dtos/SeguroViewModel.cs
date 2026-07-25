@@ -41,4 +41,9 @@ public class SeguroViewModel
 
     [Display(Name = "SEGURO")]
     public string? SeguroNombre { get; set; }
+
+    // Versión de la fila al momento de cargarla: viaja a la grilla y vuelve al guardar,
+    // para detectar que otro usuario la modificó mientras se editaba.
+    [ExportIgnore]
+    public byte[]? RowVersion { get; set; }
 }
