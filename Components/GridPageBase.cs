@@ -5,6 +5,7 @@ using Radzen;
 using Radzen.Blazor;
 using SAF.Services.Abstractions;
 using SAF.Shared;
+using System.Reflection;
 
 namespace SAF.Components;
 
@@ -24,6 +25,15 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     protected RadzenDataGrid<TItem> _grid = null!;
     protected List<TItem> _items = new();
     protected bool _loading = true;
+
+    // Los editores de la grilla escriben directo sobre la fila, así que cancelar no
+    // alcanza para deshacer: se guarda una copia al abrir la edición y se restaura.
+    private readonly Dictionary<TItem, TItem> _originales = new();
+
+    private static readonly PropertyInfo[] PropiedadesCopiables =
+        typeof(TItem).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                     .Where(p => p.CanRead && p.CanWrite)
+                     .ToArray();
 
     /// <summary>Ruta de la página, para resolver permisos (ej: "/caf").</summary>
     protected abstract string PageUrl { get; }
@@ -84,7 +94,22 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
 
     protected async Task AddRow() => await _grid.InsertRow(NuevaFila());
 
-    protected void CancelEdit(TItem item) => _grid.CancelEditRow(item);
+    /// <summary>Al abrir la edición se guarda el estado previo, para poder cancelar.</summary>
+    protected void OnRowEdit(TItem item) => _originales[item] = Copiar(item, new TItem());
+
+    protected void CancelEdit(TItem item)
+    {
+        if (_originales.Remove(item, out var original)) Copiar(original, item);
+        _grid.CancelEditRow(item);
+    }
+
+    private static TItem Copiar(TItem origen, TItem destino)
+    {
+        foreach (var propiedad in PropiedadesCopiables)
+            propiedad.SetValue(destino, propiedad.GetValue(origen));
+
+        return destino;
+    }
 
     /// <summary>
     /// Guarda la fila en edición. Valida ANTES de delegar en la grilla: si Radzen confirma
@@ -189,6 +214,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     /// </summary>
     protected async Task ReloadAsync()
     {
+        _originales.Clear();
         _items = await ObtenerDatosAsync();
         await _grid.Reload();
     }

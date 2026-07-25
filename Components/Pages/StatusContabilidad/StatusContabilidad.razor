@@ -38,6 +38,7 @@
                         AllowPaging="true"
                         PagerHorizontalAlign="HorizontalAlign.Center"
                         EditMode="DataGridEditMode.Single"
+                        RowEdit="@OnRowEdit"
                         RowUpdate="@OnRowUpdate">
             <Columns>
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="TipoDev" Title="Tipo Dev" Width="90px" />
