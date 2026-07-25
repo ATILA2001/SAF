@@ -12,9 +12,18 @@
     {
         var authWebBase = (Configuration["AuthWeb:BaseUrl"] ?? string.Empty).TrimEnd('/');
         var clientId = Configuration["AuthWeb:ClientId"] ?? "saf";
-        var returnUrl = Uri.EscapeDataString(ReturnUrl ?? Navigation.BaseUri);
+
+        // El middleware de la cookie arma un ReturnUrl relativo (ej: "/pagos"), pero
+        // IsReturnUrlAllowed de Auth.Web compara por mismo origen y necesita una URI
+        // absoluta: sin esto descarta el destino y el login vuelve al inicio.
+        var returnUrl = string.IsNullOrWhiteSpace(ReturnUrl)
+            ? Navigation.BaseUri
+            : Navigation.ToAbsoluteUri(ReturnUrl).ToString();
+
         Navigation.NavigateTo(
-            $"{authWebBase}/Account/Login?clientId={Uri.EscapeDataString(clientId)}&returnUrl={returnUrl}",
+            $"{authWebBase}/Account/Login" +
+            $"?clientId={Uri.EscapeDataString(clientId)}" +
+            $"&returnUrl={Uri.EscapeDataString(returnUrl)}",
             forceLoad: true);
     }
 }
