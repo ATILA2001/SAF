@@ -59,8 +59,11 @@ var authWebConnectionString = builder.Configuration.GetConnectionString("AuthWeb
 if (string.IsNullOrWhiteSpace(authWebConnectionString))
     throw new InvalidOperationException("Connection string 'AuthWebConnection' not found or empty.");
 
+// Con reintentos como los otros contextos: si un corte transitorio impide leer el key
+// ring, ninguna cookie se puede desproteger y todos los usuarios rebotan al login.
 builder.Services.AddDbContext<DataProtectionDbContext>(options =>
-    options.UseSqlServer(authWebConnectionString));
+    options.UseSqlServer(authWebConnectionString, sqlOptions =>
+        sqlOptions.EnableRetryOnFailure()));
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
