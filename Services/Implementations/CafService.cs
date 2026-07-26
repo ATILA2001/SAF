@@ -32,9 +32,11 @@ public class CafService(ICafRepository repo, ILogger<CafService> logger) : ICafS
         var entity = await repo.GetByIdAsync(vm.Id, ct);
         if (entity is null)
         {
-            // Otro usuario la borró mientras esta se editaba: el guardado no hace nada.
+            // Otro usuario la borró mientras esta se editaba: avisar como conflicto;
+            // un retorno silencioso deja creer que se guardó.
             logger.LogWarning("Expediente CAF {Id} ya no existe; no se guardaron los cambios.", vm.Id);
-            return;
+            throw new ConflictoDeConcurrenciaException(
+                "Otro usuario eliminó esta fila mientras la editabas. Se recargaron los datos.");
         }
 
         MapToEntity(vm, entity);

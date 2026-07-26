@@ -158,8 +158,17 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
         if (!FilaValida(item, esAlta)) return;
 
         // Se pregunta acá, antes de que la grilla cierre la fila: si el usuario cancela,
-        // conserva lo que cargó.
-        if (!await ConfirmarGuardadoAsync(item, esAlta)) return;
+        // conserva lo que cargó. Una falla (la confirmación puede consultar la base)
+        // tiene que dejar la fila en edición, no voltear el circuito.
+        try
+        {
+            if (!await ConfirmarGuardadoAsync(item, esAlta)) return;
+        }
+        catch (Exception ex)
+        {
+            Informar(ex, "El guardado", "Error al guardar");
+            return;
+        }
 
         await _grid.UpdateRow(item);
     }
