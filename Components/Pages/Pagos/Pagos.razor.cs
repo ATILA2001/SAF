@@ -41,6 +41,17 @@ public partial class Pagos
     protected override async Task<List<PagoViewModel>> ObtenerDatosAsync() =>
         (await PagosService.GetAllAsync()).ToList();
 
+    protected override bool CargaProgresiva => true;
+
+    protected override async Task<List<PagoViewModel>> ObtenerLoteAsync(int skip, int take, CancellationToken ct) =>
+        (await PagosService.GetPageAsync(skip, take, ct)).ToList();
+
+    // Las columnas IVC (SADE, Fecha Pago No CAF/Total) llegan con la grilla ya pintada.
+    protected override bool CompletaEnSegundoPlano => true;
+
+    protected override Task CompletarAsync(List<PagoViewModel> items, CancellationToken ct) =>
+        PagosService.CompletarIvcAsync(items, ct);
+
     protected override PagoViewModel NuevaFila() => new() { FechaDevengado = DateTime.Today };
 
     protected override string DescripcionFila(PagoViewModel item) =>

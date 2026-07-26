@@ -16,6 +16,12 @@ public class SeguroService(ISeguroRepository repo, ILogger<SeguroService> logger
         return rows.Select(ToVm).ToList();
     }
 
+    public async Task<IReadOnlyList<SeguroViewModel>> GetPageAsync(int skip, int take, CancellationToken ct = default)
+    {
+        var rows = await repo.GetPageAsync(skip, take, ct);
+        return rows.Select(ToVm).ToList();
+    }
+
     public async Task<SeguroViewModel> CreateAsync(SeguroViewModel vm, CancellationToken ct = default)
     {
         Validar(vm);

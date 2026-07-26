@@ -28,6 +28,9 @@ public interface IDevengadoRepository
     Task AddAsync(Devengado entity, CancellationToken ct = default);
 
     /// <summary>Elimina una fila del ledger; sus datos editables (DevengadoExtra) caen en cascada.</summary>
+    /// <summary>Página del ledger con orden determinístico, para la carga progresiva.</summary>
+    Task<IReadOnlyList<Devengado>> GetPageAsync(int skip, int take, CancellationToken ct = default);
+
     /// <summary>Borra la fila del ledger; la versión del extra detecta cambios de otro usuario.</summary>
     Task DeleteAsync(int id, byte[]? extraRowVersion, CancellationToken ct = default);
 

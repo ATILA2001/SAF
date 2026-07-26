@@ -28,19 +28,10 @@ public class StatusContabilidadService(
                 g => g.Key,
                 g => Agrupar(g));
 
-        // BUZÓN SADE / ÚLTIMO MOVIMIENTO: VLOOKUP a la hoja SADE en el Excel → derivadas
-        // de IVC.PASES_SADE filtrando por los expedientes de la grilla (la tabla IVC tiene
-        // ~53k expedientes; la grilla ~1,6k). Corre en paralelo con las de las tablas
-        // propias: cada repositorio crea su propio DbContext (IDbContextFactory).
-        var expedientes = grouped.Values
-            .Where(v => !string.IsNullOrWhiteSpace(v.Fila.Expediente))
-            .Select(v => v.Fila.Expediente!)
-            .ToList();
-        var sadeTask = sadeRepo.GetByExpedientesAsync(expedientes, ct);
-        var propiasTask = LoadPropiasAsync();
-        await Task.WhenAll(sadeTask, propiasTask);
-        var sade = sadeTask.Result;
-        var (pagosDict, extrasDict) = propiasTask.Result;
+        // BUZÓN SADE / ÚLTIMO MOVIMIENTO (derivadas de IVC.PASES_SADE) quedan vacías en
+        // esta fase y las rellena CompletarIvcAsync con la grilla ya visible: la primera
+        // conexión a IVC puede tardar segundos y no debe frenar la primera pintada.
+        var (pagosDict, extrasDict) = await LoadPropiasAsync();
 
         // Extras de Pagos: uno por fila del ledger; el tablero usa el de la primera fila del grupo.
         async Task<(Dictionary<int, Data.Entities.DevengadoExtra>,
@@ -61,9 +52,6 @@ public class StatusContabilidadService(
             pagosDict.TryGetValue(d.Id, out var pago);
             extrasDict.TryGetValue(key, out var extra);
 
-            Data.Entities.PaseSade? pase = d.Expediente is not null
-                && sade.TryGetValue(d.Expediente, out var ps) ? ps : null;
-
             result.Add(new StatusContabilidadViewModel
             {
                 TipoDev = d.TipoDev,
@@ -81,7 +69,7 @@ public class StatusContabilidadService(
                 Ccoo = pago?.Ccoo,
                 FechaCcoo = pago?.FechaCcoo,
                 FechaNotificacion = pago?.FechaNotificacion,
-                BuzonSade = pase?.BuzonDestino,
+                // BuzonSade y UltimoMovimientoSade los rellena CompletarIvcAsync.
                 FechaPedidoFactura2 = extra?.FechaPedidoFactura2,
                 ReiterarPedidoFactura3 = extra?.ReiterarPedidoFactura3,
                 FechaIngresoFactura = extra?.FechaIngresoFactura,
@@ -95,11 +83,29 @@ public class StatusContabilidadService(
                 TramitadorLiquidacionesNombre = extra?.TramitadorLiquidacionesOpcion?.Nombre,
                 ObservacionesLiquidaciones = extra?.ObservacionesLiquidaciones,
                 FaltaPoliza = extra?.FaltaPoliza ?? false,
-                UltimoMovimientoSade = pase?.FechaUltimoPase,
                 RowVersion = extra?.RowVersion,
             });
         }
         return result;
+    }
+
+    public async Task CompletarIvcAsync(IReadOnlyList<StatusContabilidadViewModel> items, CancellationToken ct = default)
+    {
+        var expedientes = items
+            .Where(v => !string.IsNullOrWhiteSpace(v.Expediente))
+            .Select(v => v.Expediente!)
+            .ToList();
+        if (expedientes.Count == 0) return;
+
+        var sade = await sadeRepo.GetByExpedientesAsync(expedientes, ct);
+
+        foreach (var v in items)
+        {
+            Data.Entities.PaseSade? pase = v.Expediente is not null
+                && sade.TryGetValue(v.Expediente, out var ps) ? ps : null;
+            v.BuzonSade = pase?.BuzonDestino;
+            v.UltimoMovimientoSade = pase?.FechaUltimoPase; // DiasEnElArea deriva de acá
+        }
     }
 
     /// <summary>

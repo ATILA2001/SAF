@@ -20,9 +20,21 @@ public class PagosService(
     private const string StatusAvanzarCaf = "avanzar CAF";
 
     public async Task<IReadOnlyList<PagoViewModel>> GetAllAsync(CancellationToken ct = default)
-    {
-        var devengados = await devengadoRepo.GetAllAsync(ct);
+        => await MapearAsync(await devengadoRepo.GetAllAsync(ct), ct);
 
+    public async Task<IReadOnlyList<PagoViewModel>> GetPageAsync(int skip, int take, CancellationToken ct = default)
+        => await MapearAsync(await devengadoRepo.GetPageAsync(skip, take, ct), ct);
+
+    /// <summary>
+    /// FASE PROPIA: deriva todas las columnas que salen de las tablas de SAF. Las que
+    /// dependen de IVC (Fecha/Buzón SADE, Fecha Pago No CAF y Fecha Pago Total) quedan
+    /// vacías y las rellena CompletarIvcAsync con la grilla ya visible: la primera
+    /// conexión a IVC puede tardar segundos y no debe frenar la primera pintada.
+    /// Extras y tablero se traen completos porque solo tienen filas con datos manuales.
+    /// </summary>
+    private async Task<IReadOnlyList<PagoViewModel>> MapearAsync(
+        IReadOnlyList<Devengado> devengados, CancellationToken ct)
+    {
         // Un registro editable por FILA del ledger (DevengadoId), no por (TipoDev, NroDev).
         var extras = await extraRepo.GetAllAsync(ct);
         var extrasDict = extras.ToDictionary(e => e.DevengadoId);
@@ -32,29 +44,18 @@ public class PagosService(
         var statusContabs = await statusContabRepo.GetAllAsync(ct);
         var statusContabDict = statusContabs.ToDictionary(e => (e.TipoDev, e.NroDev));
 
-        // Lookups por expediente, filtrados: las tablas IVC cubren MUCHOS más expedientes
-        // que la grilla (PASES_SADE ~53k vs ~1,6k del ledger), así que el filtro reduce
-        // fuerte lo que viaja. Los cuatro lookups corren en paralelo: cada repositorio
-        // crea su propio DbContext (IDbContextFactory), así que no comparten estado.
         var expedientes = devengados
             .Where(d => !string.IsNullOrWhiteSpace(d.Expediente))
             .Select(d => d.Expediente!)
             .ToList();
 
-        var ivcTask = LoadIvcAsync();     // FECHA/BUZÓN SADE + FECHA PAGO NO CAF
-        var propiasTask = LoadPropiasAsync(); // FECHA PAGO CAF + SEGUROS TESO
-        await Task.WhenAll(ivcTask, propiasTask);
-        var (sade, sigafPagos) = ivcTask.Result;
-        var (cafPagos, segurosTeso) = propiasTask.Result;
-
-        async Task<(IReadOnlyDictionary<string, PaseSade>, IReadOnlyDictionary<string, DateTime>)> LoadIvcAsync()
-            => (await sadeRepo.GetByExpedientesAsync(expedientes, ct),
-                await sigafRepo.GetFechaPagoByExpedientesAsync(expedientes, ct));
-
-        async Task<(IReadOnlyDictionary<string, Application.Caf.Dtos.ResumenCafViewModel>,
-                    IReadOnlyDictionary<string, string>)> LoadPropiasAsync()
-            => (await cafRepo.GetResumenCafByExpedientesAsync(expedientes, ct),
-                await seguroRepo.GetSeguroByExpedientesAsync(expedientes, ct));
+        // FECHA PAGO CAF + SEGUROS TESO: tablas propias, en paralelo (cada repositorio
+        // crea su propio DbContext vía IDbContextFactory).
+        var cafTask = cafRepo.GetResumenCafByExpedientesAsync(expedientes, ct);
+        var segurosTask = seguroRepo.GetSeguroByExpedientesAsync(expedientes, ct);
+        await Task.WhenAll(cafTask, segurosTask);
+        var cafPagos = cafTask.Result;
+        var segurosTeso = segurosTask.Result;
 
         var result = new List<PagoViewModel>(devengados.Count);
         foreach (var d in devengados)
@@ -62,8 +63,6 @@ public class PagosService(
             extrasDict.TryGetValue(d.Id, out var extra);
             statusContabDict.TryGetValue((d.TipoDev, d.NroDev), out var sc);
             var statusDgayf = extra?.StatusDgayfOpcion?.Nombre;
-            PaseSade? pase = d.Expediente is not null && sade.TryGetValue(d.Expediente, out var ps) ? ps : null;
-            DateTime? fechaPagoNoCaf = d.Expediente is not null && sigafPagos.TryGetValue(d.Expediente, out var fp) ? fp : null;
             // La fecha representa "el expediente está pagado", así que solo se informa
             // cuando TODAS sus OPs están pagadas. Con el MAX de las pagadas, 123 de los
             // 238 expedientes con varias OPs de la planilla real (52%) figuraban pagados
@@ -73,7 +72,6 @@ public class PagosService(
                 EsAvanzarCaf(statusDgayf) && d.Expediente is not null
                 && cafPagos.TryGetValue(d.Expediente, out var rc) ? rc : null;
             DateTime? fechaDePagoCaf = resumenCaf?.TodasPagadas == true ? resumenCaf.UltimoPago : null;
-            DateTime? fechaPagoTotal = CalcularFechaPagoTotal(statusDgayf, fechaPagoNoCaf, fechaDePagoCaf);
             result.Add(new PagoViewModel
             {
                 Id = d.Id,
@@ -94,14 +92,12 @@ public class PagosService(
                 FechaNotificacion = extra?.FechaNotificacion,
                 StatusContable = DerivarStatusContable(extra?.StatusOpOpcion?.Nombre, sc?.StatusContableOpcion?.Nombre),
                 SegurosTeso = d.Expediente is not null && segurosTeso.TryGetValue(d.Expediente, out var seg) ? seg : null,
-                FechaDePagoNoCaf = fechaPagoNoCaf,
                 FechaDePagoCaf = fechaDePagoCaf,
                 CafOps = resumenCaf?.Ops ?? 0,
                 CafOpsPagadas = resumenCaf?.OpsPagadas ?? 0,
                 CafLineas = resumenCaf?.Lineas ?? Array.Empty<Application.Caf.Dtos.LineaCafViewModel>(),
-                FechaPagoTotal = fechaPagoTotal,
-                FechaSade = pase?.FechaUltimoPase,
-                BuzonSade = pase?.BuzonDestino,
+                // FechaDePagoNoCaf, FechaPagoTotal, FechaSade y BuzonSade las rellena
+                // CompletarIvcAsync cuando responde IVC (la grilla ya está pintada).
                 PedidoFactura2 = sc?.FechaPedidoFactura2,
                 PedidoFactura3 = sc?.ReiterarPedidoFactura3,
                 FechaFacturaCorrecta = sc?.FechaIngresoFactura,
@@ -110,6 +106,40 @@ public class PagosService(
             });
         }
         return result;
+    }
+
+    public async Task CompletarIvcAsync(IReadOnlyList<PagoViewModel> items, CancellationToken ct = default)
+    {
+        var expedientes = items
+            .Where(p => !string.IsNullOrWhiteSpace(p.Expediente))
+            .Select(p => p.Expediente!)
+            .ToList();
+
+        IReadOnlyDictionary<string, PaseSade> sade =
+            new Dictionary<string, PaseSade>(StringComparer.OrdinalIgnoreCase);
+        IReadOnlyDictionary<string, DateTime> sigafPagos =
+            new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+
+        if (expedientes.Count > 0)
+        {
+            // En paralelo: cada repositorio crea su propio DbContext (IDbContextFactory).
+            var sadeTask = sadeRepo.GetByExpedientesAsync(expedientes, ct);
+            var sigafTask = sigafRepo.GetFechaPagoByExpedientesAsync(expedientes, ct);
+            await Task.WhenAll(sadeTask, sigafTask);
+            sade = sadeTask.Result;
+            sigafPagos = sigafTask.Result;
+        }
+
+        foreach (var p in items)
+        {
+            PaseSade? pase = p.Expediente is not null && sade.TryGetValue(p.Expediente, out var ps) ? ps : null;
+            p.FechaSade = pase?.FechaUltimoPase;
+            p.BuzonSade = pase?.BuzonDestino;
+            p.FechaDePagoNoCaf = p.Expediente is not null && sigafPagos.TryGetValue(p.Expediente, out var fp)
+                ? fp : null;
+            // Misma fórmula que siempre; FechaDePagoCaf ya viene de la fase propia.
+            p.FechaPagoTotal = CalcularFechaPagoTotal(p.StatusDgayfNombre, p.FechaDePagoNoCaf, p.FechaDePagoCaf);
+        }
     }
 
     public async Task UpsertAsync(PagoViewModel vm, CancellationToken ct = default)

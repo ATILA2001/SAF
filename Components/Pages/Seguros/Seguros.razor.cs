@@ -24,6 +24,11 @@ public partial class Seguros
     protected override async Task<List<SeguroViewModel>> ObtenerDatosAsync() =>
         (await SeguroService.GetAllAsync()).ToList();
 
+    protected override bool CargaProgresiva => true;
+
+    protected override async Task<List<SeguroViewModel>> ObtenerLoteAsync(int skip, int take, CancellationToken ct) =>
+        (await SeguroService.GetPageAsync(skip, take, ct)).ToList();
+
     protected override string DescripcionFila(SeguroViewModel item) =>
         $"Seguro del expediente {item.Expediente}";
 

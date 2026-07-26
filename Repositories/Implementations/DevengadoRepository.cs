@@ -18,6 +18,21 @@ public class DevengadoRepository(IDbContextFactory<AppDbContext> dbFactory) : ID
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<Devengado>> GetPageAsync(int skip, int take, CancellationToken ct = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+
+        // Mismo orden que GetAllAsync más desempate por Id: Skip/Take exige un orden
+        // estrictamente determinístico o los lotes pueden repetir o saltear filas.
+        return await db.Devengados.AsNoTracking()
+            .OrderBy(d => d.TipoDev)
+            .ThenBy(d => d.NroDev)
+            .ThenBy(d => d.Id)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(ct);
+    }
+
     public async Task<Devengado?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);

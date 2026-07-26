@@ -18,13 +18,19 @@
                                   Click="@AddRow"
                                   Disabled="@_loading" />
                 }
+                @if (_cargandoResto)
+                {
+                    <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate"
+                                               Size="ProgressBarCircularSize.ExtraSmall"
+                                               title="Cargando el resto de las filas..." />
+                }
                 <RadzenButton Text="Exportar Excel"
                               Icon="download"
                               ButtonStyle="ButtonStyle.Secondary"
                               Click="@ExportarExcel"
                               IsBusy="@_exportando"
                               BusyText="Exportando..."
-                              Disabled="@(_items.Count == 0 || _exportando)" />
+                              Disabled="@(_items.Count == 0 || _exportando || _cargandoResto)" />
             </RadzenStack>
         </RadzenColumn>
     </RadzenRow>
@@ -35,6 +41,8 @@
     }
     else
     {
+        @* Virtualización en lugar de paginado: scroll continuo (como la planilla)
+           renderizando solo las filas visibles. Requiere el alto fijo del Style. *@
         <RadzenDataGrid @ref="_grid"
                         Data="@_items"
                         TItem="SAF.Application.Seguros.Dtos.SeguroViewModel"
@@ -44,9 +52,9 @@
                         FilterMode="FilterMode.CheckBoxList"
                         ClearFilterText="Limpiar"
                         ApplyFilterText="Aplicar"
-                        PageSize="50"
-                        AllowPaging="true"
-                        PagerHorizontalAlign="HorizontalAlign.Center"
+                        AllowPaging="false"
+                        AllowVirtualization="true"
+                        Style="height: calc(100vh - 15rem)"
                         EditMode="DataGridEditMode.Single"
                         RowEdit="@OnRowEdit"
                         RowUpdate="@OnRowUpdate"

@@ -8,5 +8,8 @@ public interface ISeguroService
     Task<IReadOnlyList<SeguroViewModel>> GetAllAsync(CancellationToken ct = default);
     Task<SeguroViewModel> CreateAsync(SeguroViewModel vm, CancellationToken ct = default);
     Task UpdateAsync(SeguroViewModel vm, CancellationToken ct = default);
+    /// <summary>Página de la vista con orden determinístico, para la carga progresiva.</summary>
+    Task<IReadOnlyList<SeguroViewModel>> GetPageAsync(int skip, int take, CancellationToken ct = default);
+
     Task DeleteAsync(int id, byte[]? rowVersion, CancellationToken ct = default);
 }

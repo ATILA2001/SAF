@@ -5,7 +5,18 @@ namespace SAF.Services.Abstractions;
 
 public interface IPagosService
 {
+    /// <summary>Fase propia: todas las columnas salvo las derivadas de IVC.</summary>
     Task<IReadOnlyList<PagoViewModel>> GetAllAsync(CancellationToken ct = default);
+
+    /// <summary>Página de la fase propia con orden determinístico, para la carga progresiva.</summary>
+    Task<IReadOnlyList<PagoViewModel>> GetPageAsync(int skip, int take, CancellationToken ct = default);
+
+    /// <summary>
+    /// Rellena sobre los ítems ya pintados las columnas que dependen de IVC (Fecha y
+    /// Buzón SADE, Fecha Pago No CAF y Fecha Pago Total). Se difiere porque la primera
+    /// conexión a IVC puede tardar segundos y no debe frenar la primera pintada.
+    /// </summary>
+    Task CompletarIvcAsync(IReadOnlyList<PagoViewModel> items, CancellationToken ct = default);
 
     Task UpsertAsync(PagoViewModel vm, CancellationToken ct = default);
 

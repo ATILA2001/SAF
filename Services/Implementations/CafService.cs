@@ -16,6 +16,12 @@ public class CafService(ICafRepository repo, ILogger<CafService> logger) : ICafS
         return rows.Select(ToVm).ToList();
     }
 
+    public async Task<IReadOnlyList<CafViewModel>> GetPageAsync(int skip, int take, CancellationToken ct = default)
+    {
+        var rows = await repo.GetPageAsync(skip, take, ct);
+        return rows.Select(ToVm).ToList();
+    }
+
     public async Task<CafViewModel> CreateAsync(CafViewModel vm, CancellationToken ct = default)
     {
         Validar(vm);

@@ -19,6 +19,22 @@ public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISegu
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<ExpedienteSeguro>> GetPageAsync(int skip, int take, CancellationToken ct = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+
+        // Mismo orden que GetAllAsync más desempate por Id: Skip/Take exige un orden
+        // estrictamente determinístico o los lotes pueden repetir o saltear filas.
+        return await db.ExpedientesSeguro.AsNoTracking()
+            .Include(e => e.SeguroOpcion)
+            .OrderBy(e => e.Expediente)
+            .ThenBy(e => e.Op)
+            .ThenBy(e => e.Id)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(ct);
+    }
+
     public async Task<ExpedienteSeguro?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);

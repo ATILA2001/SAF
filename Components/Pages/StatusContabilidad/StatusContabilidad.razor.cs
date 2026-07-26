@@ -41,6 +41,12 @@ public partial class StatusContabilidad
     protected override async Task<List<StatusContabilidadViewModel>> ObtenerDatosAsync() =>
         (await StatusContabilidadService.GetAllAsync()).ToList();
 
+    // Buzón SADE, Último Movimiento y Días en el Área (IVC) llegan con la grilla pintada.
+    protected override bool CompletaEnSegundoPlano => true;
+
+    protected override Task CompletarAsync(List<StatusContabilidadViewModel> items, CancellationToken ct) =>
+        StatusContabilidadService.CompletarIvcAsync(items, ct);
+
     protected override void PrepararParaGuardar(StatusContabilidadViewModel item)
     {
         item.StatusContableNombre = _statusContableOpciones.FirstOrDefault(x => x.Id == item.StatusContableOpcionId)?.Nombre;

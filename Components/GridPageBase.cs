@@ -16,7 +16,7 @@ namespace SAF.Components;
 /// revalidación server-side de permisos, confirmación de borrado y export.
 /// Las páginas solo declaran qué entidad manejan y cómo se obtiene/persiste.
 /// </summary>
-public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : class, new()
+public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable where TItem : class, new()
 {
     [Inject] protected INotificationHelper Notification { get; set; } = null!;
     [Inject] private ILogger<GridPageBase<TItem>> Logger { get; set; } = null!;
@@ -28,6 +28,12 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     protected List<TItem> _items = new();
     protected bool _loading = true;
     protected bool _exportando;
+
+    // Carga progresiva: el primer lote pinta la grilla enseguida y el resto llega en
+    // segundo plano. Mientras _cargandoResto está activo, el export queda deshabilitado
+    // (exportaría una lista incompleta).
+    protected bool _cargandoResto;
+    private CancellationTokenSource? _ctsLotes;
 
     // Los editores de la grilla escriben directo sobre la fila, así que cancelar no
     // alcanza para deshacer: se guarda una copia al abrir la edición y se restaura.
@@ -48,6 +54,37 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     protected abstract string ExportNombreArchivo { get; }
 
     protected abstract Task<List<TItem>> ObtenerDatosAsync();
+
+    /// <summary>
+    /// Activa la carga progresiva (primer lote inmediato + resto en segundo plano).
+    /// Requiere implementar ObtenerLoteAsync. El default mantiene la carga completa con
+    /// ObtenerDatosAsync (p. ej. el tablero, que agrupa en memoria y no pagina por filas).
+    /// </summary>
+    protected virtual bool CargaProgresiva => false;
+
+    /// <summary>Página del origen de datos con orden determinístico.</summary>
+    protected virtual Task<List<TItem>> ObtenerLoteAsync(int skip, int take, CancellationToken ct)
+        => throw new NotSupportedException($"{GetType().Name} activó CargaProgresiva sin implementar ObtenerLoteAsync.");
+
+    /// <summary>
+    /// Activa la fase de completado: la grilla pinta primero con los datos rápidos
+    /// (tablas propias) y esta fase rellena después los que vienen de fuentes lentas
+    /// (IVC). Requiere implementar CompletarAsync.
+    /// </summary>
+    protected virtual bool CompletaEnSegundoPlano => false;
+
+    /// <summary>
+    /// Rellena sobre los ítems ya pintados los datos de fuentes lentas. Corre en
+    /// segundo plano con la grilla visible; al terminar se refresca.
+    /// </summary>
+    protected virtual Task CompletarAsync(List<TItem> items, CancellationToken ct)
+        => throw new NotSupportedException($"{GetType().Name} activó CompletaEnSegundoPlano sin implementar CompletarAsync.");
+
+    /// <summary>Tamaño del primer lote: chico, para que la primera pintada sea inmediata.</summary>
+    protected virtual int TamanoPrimerLote => 100;
+
+    /// <summary>Tamaño de los lotes de fondo.</summary>
+    protected virtual int TamanoLote => 500;
 
     /// <summary>Lookups y datos de encabezado. Corre antes de la carga de la grilla.</summary>
     protected virtual Task CargarAuxiliaresAsync() => Task.CompletedTask;
@@ -91,7 +128,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
             // Los auxiliares (lookups) alimentan los dropdowns de la grilla: se cargan
             // antes de los datos para que la primera pintada ya tenga las opciones.
             await CargarAuxiliaresAsync();
-            _items = await ObtenerDatosAsync();
+            await CargarDatosAsync();
         }
         catch (Exception ex)
         {
@@ -101,6 +138,102 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
         {
             _loading = false;
         }
+    }
+
+    /// <summary>
+    /// Carga _items: completa (ObtenerDatosAsync) o progresiva si la página implementa
+    /// ObtenerLoteAsync. Cancela cualquier carga de fondo anterior antes de empezar.
+    /// </summary>
+    private async Task CargarDatosAsync()
+    {
+        _ctsLotes?.Cancel();
+        _ctsLotes?.Dispose();
+        _ctsLotes = null;
+        _cargandoResto = false;
+
+        bool faltanLotes;
+        if (CargaProgresiva)
+        {
+            _items = await ObtenerLoteAsync(0, TamanoPrimerLote, CancellationToken.None);
+            faltanLotes = _items.Count >= TamanoPrimerLote;
+        }
+        else
+        {
+            _items = await ObtenerDatosAsync();
+            faltanLotes = false;
+        }
+
+        if (!faltanLotes && !CompletaEnSegundoPlano) return;
+
+        _ctsLotes = new CancellationTokenSource();
+        _cargandoResto = true;
+        _ = SegundoPlanoAsync(_items, faltanLotes, _ctsLotes.Token);
+    }
+
+    /// <summary>
+    /// Trabajo de fondo con la grilla ya visible: trae los lotes restantes y después
+    /// rellena los datos de fuentes lentas (una sola pasada, con todas las filas).
+    /// </summary>
+    private async Task SegundoPlanoAsync(List<TItem> destino, bool faltanLotes, CancellationToken ct)
+    {
+        try
+        {
+            var skip = destino.Count;
+            while (faltanLotes && !ct.IsCancellationRequested)
+            {
+                var lote = await ObtenerLoteAsync(skip, TamanoLote, ct);
+
+                // Si hubo una recarga en el medio, _items es otra lista: este runner
+                // quedó viejo y no debe mezclar sus filas con las nuevas.
+                if (ct.IsCancellationRequested || !ReferenceEquals(destino, _items)) return;
+
+                if (lote.Count > 0)
+                {
+                    destino.AddRange(lote);
+                    skip += lote.Count;
+                    await InvokeAsync(async () =>
+                    {
+                        await _grid.Reload();
+                        StateHasChanged();
+                    });
+                }
+
+                if (lote.Count < TamanoLote) break;
+            }
+
+            if (CompletaEnSegundoPlano && !ct.IsCancellationRequested && ReferenceEquals(destino, _items))
+            {
+                await CompletarAsync(destino, ct);
+
+                if (!ct.IsCancellationRequested && ReferenceEquals(destino, _items))
+                    await InvokeAsync(async () =>
+                    {
+                        await _grid.Reload();
+                        StateHasChanged();
+                    });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Navegación o recarga: no hay nada que informar.
+        }
+        catch (Exception ex)
+        {
+            await InvokeAsync(() => Informar(ex, "La carga de fondo", $"Error al cargar {TituloEntidad}"));
+        }
+        finally
+        {
+            _cargandoResto = false;
+            if (!ct.IsCancellationRequested)
+                await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        _ctsLotes?.Cancel();
+        _ctsLotes?.Dispose();
+        _ctsLotes = null;
     }
 
     protected async Task AddRow() => await _grid.InsertRow(NuevaFila());
@@ -288,7 +421,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     protected async Task ReloadAsync()
     {
         _originales.Clear();
-        _items = await ObtenerDatosAsync();
+        await CargarDatosAsync();
         await _grid.Reload();
     }
 
@@ -297,6 +430,14 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
         if (!CanAccess)
         {
             Notification.ShowError($"No tenés permiso para exportar {TituloEntidad}.", "Permiso denegado");
+            return;
+        }
+
+        // El botón ya se deshabilita durante la carga de fondo; esta es la barrera
+        // server-side para no exportar una lista incompleta.
+        if (_cargandoResto)
+        {
+            Notification.ShowWarning("Esperá a que termine de cargar la grilla para exportar.", "Carga en curso");
             return;
         }
 

@@ -17,6 +17,11 @@ public partial class Caf
     protected override async Task<List<CafViewModel>> ObtenerDatosAsync() =>
         (await CafService.GetAllAsync()).ToList();
 
+    protected override bool CargaProgresiva => true;
+
+    protected override async Task<List<CafViewModel>> ObtenerLoteAsync(int skip, int take, CancellationToken ct) =>
+        (await CafService.GetPageAsync(skip, take, ct)).ToList();
+
     protected override CafViewModel NuevaFila() => new() { Anio = DateTime.Now.Year };
 
     protected override string DescripcionFila(CafViewModel item) =>
