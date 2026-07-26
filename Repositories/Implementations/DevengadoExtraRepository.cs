@@ -37,9 +37,10 @@ public class DevengadoExtraRepository(IDbContextFactory<AppDbContext> dbFactory)
         }
         catch (DbUpdateException ex) when (ErroresSql.EsClaveDuplicada(ex))
         {
-            // Otro usuario insertó la fila entre el chequeo y el guardado: al reintentar
-            // ya existe, así que el mismo método la actualiza en vez de insertarla.
-            await GuardarAsync(entity, ct);
+            // Otro usuario insertó la fila entre el chequeo y el guardado: el usuario
+            // editó sobre datos que ya no existen, así que actualizar acá pisaría lo
+            // recién guardado sin aviso. Es un conflicto, no un caso de reintento.
+            throw new ConflictoDeConcurrenciaException();
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -62,10 +63,14 @@ public class DevengadoExtraRepository(IDbContextFactory<AppDbContext> dbFactory)
         }
         else
         {
+            // Sin versión significa que al cargar la grilla el extra no existía y otro
+            // usuario lo creó en el medio: actualizar pisaría sus datos sin aviso.
+            if (entity.RowVersion is null)
+                throw new ConflictoDeConcurrenciaException();
+
             // Se compara contra la versión que el usuario tenía cargada, no contra la
             // recién leída: si otro guardó en el medio, el UPDATE no afecta filas.
-            if (entity.RowVersion is not null)
-                db.Entry(existing).Property(e => e.RowVersion).OriginalValue = entity.RowVersion;
+            db.Entry(existing).Property(e => e.RowVersion).OriginalValue = entity.RowVersion;
 
             existing.StatusDgayfOpcionId = entity.StatusDgayfOpcionId;
             existing.StatusOpOpcionId = entity.StatusOpOpcionId;
