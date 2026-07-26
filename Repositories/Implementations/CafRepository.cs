@@ -1,5 +1,6 @@
 #nullable enable
 using Microsoft.EntityFrameworkCore;
+using SAF.Application.Caf.Dtos;
 using SAF.Application.Common;
 using SAF.Data;
 using SAF.Data.Entities;
@@ -58,10 +59,10 @@ public class CafRepository(IDbContextFactory<AppDbContext> dbFactory) : ICafRepo
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task<IReadOnlyDictionary<string, DateTime>> GetFechaPagoCafByExpedientesAsync(
+    public async Task<IReadOnlyDictionary<string, ResumenCafViewModel>> GetResumenCafByExpedientesAsync(
         IReadOnlyCollection<string> expedientes, CancellationToken ct = default)
     {
-        var empty = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        var empty = new Dictionary<string, ResumenCafViewModel>(StringComparer.OrdinalIgnoreCase);
         if (expedientes is null || expedientes.Count == 0)
             return empty;
 
@@ -74,17 +75,36 @@ public class CafRepository(IDbContextFactory<AppDbContext> dbFactory) : ICafRepo
 
         await using var db = await dbFactory.CreateDbContextAsync(ct);
 
+        // Se cuentan TODAS las OPs del expediente, no solo las pagadas: las impagas son
+        // justamente el dato que decide si la fecha representa un pago completo.
         var rows = await db.ExpedientesCaf.AsNoTracking()
-            .Where(c => c.FechaPago != null
-                     && distinct.Contains(c.Expediente))
-            .GroupBy(c => c.Expediente)
-            .Select(g => new { Expediente = g.Key, FechaPago = g.Max(x => x.FechaPago) })
+            .Where(c => distinct.Contains(c.Expediente))
+            .Select(c => new { c.Expediente, c.Op, c.ImporteNeto, c.FechaPago })
             .ToListAsync(ct);
 
-        var dict = new Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
-        foreach (var r in rows)
-            if (r.FechaPago is DateTime f)
-                dict[r.Expediente] = f;
-        return dict;
+        return rows
+            .GroupBy(r => r.Expediente, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                g => g.Key,
+                g => new ResumenCafViewModel
+                {
+                    UltimoPago = g.Max(x => x.FechaPago),
+                    Ops = g.Count(),
+                    OpsPagadas = g.Count(x => x.FechaPago != null),
+                    // Pendientes primero: son las que explican por qué no hay fecha.
+                    Lineas = g
+                        .OrderBy(x => x.FechaPago.HasValue)
+                        .ThenBy(x => x.FechaPago)
+                        .ThenBy(x => x.Op)
+                        .Select(x => new LineaCafViewModel
+                        {
+                            Op = x.Op,
+                            ImporteNeto = x.ImporteNeto,
+                            FechaPago = x.FechaPago,
+                        })
+                        .ToList(),
+                },
+                StringComparer.OrdinalIgnoreCase);
     }
+
 }

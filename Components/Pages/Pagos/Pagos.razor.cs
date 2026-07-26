@@ -12,6 +12,7 @@ public partial class Pagos
     [Inject] private IPagosService PagosService { get; set; } = null!;
     [Inject] private ILookupService LookupService { get; set; } = null!;
     [Inject] private IDevengadoSyncService SyncService { get; set; } = null!;
+    [Inject] private TooltipService TooltipService { get; set; } = null!;
 
     private bool _syncing;
     private DateTime? _ultimaActualizacion;

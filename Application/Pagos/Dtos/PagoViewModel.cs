@@ -78,6 +78,23 @@ public class PagoViewModel
     [Display(Name = "FECHA DE PAGO - CAF")]
     public DateTime? FechaDePagoCaf { get; set; }
 
+    // Estado de las OPs del expediente en CAF: si están pagadas solo en parte no hay
+    // fecha (sería informar un pago completo), pero el usuario tiene que ver por qué.
+    [ExportIgnore]
+    public int CafOps { get; set; }
+
+    [ExportIgnore]
+    public int CafOpsPagadas { get; set; }
+
+    /// <summary>Se pagó parte de las OPs del expediente: no hay fecha, pero tampoco es "sin pagar".</summary>
+    [ExportIgnore]
+    public bool CafPagoParcial => CafOpsPagadas > 0 && CafOpsPagadas < CafOps;
+
+    /// <summary>Detalle de esas OPs, para ver cuáles se pagaron y cuáles faltan.</summary>
+    [ExportIgnore]
+    public IReadOnlyList<SAF.Application.Caf.Dtos.LineaCafViewModel> CafLineas { get; set; }
+        = Array.Empty<SAF.Application.Caf.Dtos.LineaCafViewModel>();
+
     [Display(Name = "FECHA PAGO TOTAL")]
     public DateTime? FechaPagoTotal { get; set; }
 

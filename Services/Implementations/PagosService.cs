@@ -51,8 +51,9 @@ public class PagosService(
             => (await sadeRepo.GetByExpedientesAsync(expedientes, ct),
                 await sigafRepo.GetFechaPagoByExpedientesAsync(expedientes, ct));
 
-        async Task<(IReadOnlyDictionary<string, DateTime>, IReadOnlyDictionary<string, string>)> LoadPropiasAsync()
-            => (await cafRepo.GetFechaPagoCafByExpedientesAsync(expedientes, ct),
+        async Task<(IReadOnlyDictionary<string, Application.Caf.Dtos.ResumenCafViewModel>,
+                    IReadOnlyDictionary<string, string>)> LoadPropiasAsync()
+            => (await cafRepo.GetResumenCafByExpedientesAsync(expedientes, ct),
                 await seguroRepo.GetSeguroByExpedientesAsync(expedientes, ct));
 
         var result = new List<PagoViewModel>(devengados.Count);
@@ -63,8 +64,15 @@ public class PagosService(
             var statusDgayf = extra?.StatusDgayfOpcion?.Nombre;
             PaseSade? pase = d.Expediente is not null && sade.TryGetValue(d.Expediente, out var ps) ? ps : null;
             DateTime? fechaPagoNoCaf = d.Expediente is not null && sigafPagos.TryGetValue(d.Expediente, out var fp) ? fp : null;
-            DateTime? fechaDePagoCaf = EsAvanzarCaf(statusDgayf) && d.Expediente is not null
-                && cafPagos.TryGetValue(d.Expediente, out var fc) ? fc : null;
+            // La fecha representa "el expediente está pagado", así que solo se informa
+            // cuando TODAS sus OPs están pagadas. Con el MAX de las pagadas, 123 de los
+            // 238 expedientes con varias OPs de la planilla real (52%) figuraban pagados
+            // teniendo alguna OP pendiente; y el MAX nunca desempataba nada, porque las
+            // OPs saldadas de un expediente comparten fecha.
+            Application.Caf.Dtos.ResumenCafViewModel? resumenCaf =
+                EsAvanzarCaf(statusDgayf) && d.Expediente is not null
+                && cafPagos.TryGetValue(d.Expediente, out var rc) ? rc : null;
+            DateTime? fechaDePagoCaf = resumenCaf?.TodasPagadas == true ? resumenCaf.UltimoPago : null;
             DateTime? fechaPagoTotal = CalcularFechaPagoTotal(statusDgayf, fechaPagoNoCaf, fechaDePagoCaf);
             result.Add(new PagoViewModel
             {
@@ -88,6 +96,9 @@ public class PagosService(
                 SegurosTeso = d.Expediente is not null && segurosTeso.TryGetValue(d.Expediente, out var seg) ? seg : null,
                 FechaDePagoNoCaf = fechaPagoNoCaf,
                 FechaDePagoCaf = fechaDePagoCaf,
+                CafOps = resumenCaf?.Ops ?? 0,
+                CafOpsPagadas = resumenCaf?.OpsPagadas ?? 0,
+                CafLineas = resumenCaf?.Lineas ?? Array.Empty<Application.Caf.Dtos.LineaCafViewModel>(),
                 FechaPagoTotal = fechaPagoTotal,
                 FechaSade = pase?.FechaUltimoPase,
                 BuzonSade = pase?.BuzonDestino,
@@ -126,8 +137,10 @@ public class PagosService(
 
             if (EsAvanzarCaf(statusDgayf))
             {
-                var cafPagos = await cafRepo.GetFechaPagoCafByExpedientesAsync(new[] { d.Expediente }, ct);
-                if (cafPagos.TryGetValue(d.Expediente, out var fc)) fechaDePagoCaf = fc;
+                // Mismo criterio que la grilla: la fecha solo si el expediente está saldado.
+                var cafPagos = await cafRepo.GetResumenCafByExpedientesAsync(new[] { d.Expediente }, ct);
+                if (cafPagos.TryGetValue(d.Expediente, out var rc) && rc.TodasPagadas)
+                    fechaDePagoCaf = rc.UltimoPago;
             }
         }
         DateTime? fechaPagoTotal = CalcularFechaPagoTotal(statusDgayf, fechaPagoNoCaf, fechaDePagoCaf);

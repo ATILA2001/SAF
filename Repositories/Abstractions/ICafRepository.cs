@@ -1,4 +1,5 @@
 #nullable enable
+using SAF.Application.Caf.Dtos;
 using SAF.Data.Entities;
 
 namespace SAF.Repositories.Abstractions;
@@ -18,6 +19,6 @@ public interface ICafRepository
     /// Devuelve la fecha de pago CAF (MAX FECHA_PAGO) de cada expediente solicitado,
     /// cruzando por la clave financiera normalizada (case-insensitive).
     /// </summary>
-    Task<IReadOnlyDictionary<string, DateTime>> GetFechaPagoCafByExpedientesAsync(
+    Task<IReadOnlyDictionary<string, ResumenCafViewModel>> GetResumenCafByExpedientesAsync(
         IReadOnlyCollection<string> expedientes, CancellationToken ct = default);
 }

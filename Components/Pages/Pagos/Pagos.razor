@@ -154,7 +154,34 @@
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="StatusContable" Title="Status Contable" Width="150px" />
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="SegurosTeso" Title="Seguros Teso" Width="150px" />
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="FechaDePagoNoCaf" Title="Fecha Pago No CAF" Width="155px" FormatString="{0:dd/MM/yyyy}" />
-                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="FechaDePagoCaf" Title="Fecha Pago CAF" Width="145px" FormatString="{0:dd/MM/yyyy}" />
+                @* Sin fecha puede significar "no se pagó nada" o "se pagó parte": el badge
+                   distingue los dos casos, que antes se veían igual (o peor: como pagado). *@
+                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="FechaDePagoCaf" Title="Fecha Pago CAF" Width="145px" FormatString="{0:dd/MM/yyyy}">
+                    <Template Context="item">
+                        @if (item.CafPagoParcial)
+                        {
+                            <RadzenBadge BadgeStyle="BadgeStyle.Warning"
+                                         Text="@($"{item.CafOpsPagadas} de {item.CafOps} OP pagadas")"
+                                         Style="cursor: help; --rz-badge-font-size: 0.65rem; --rz-badge-padding: 0.05rem 0.35rem;"
+                                         MouseEnter="@(el => MostrarOpsCaf(el, item))"
+                                         MouseLeave="@(_ => TooltipService.Close())" />
+                        }
+                        else
+                        {
+                            @item.FechaDePagoCaf?.ToString("dd/MM/yyyy")
+
+                            @* Con una sola OP la fecha se explica sola; con varias, el detalle. *@
+                            @if (item.CafOps > 1)
+                            {
+                                <RadzenBadge BadgeStyle="BadgeStyle.Light"
+                                             Text="@($"{item.CafOps} OP")"
+                                             Style="cursor: help; --rz-badge-font-size: 0.65rem; --rz-badge-padding: 0.05rem 0.35rem;"
+                                             MouseEnter="@(el => MostrarOpsCaf(el, item))"
+                                             MouseLeave="@(_ => TooltipService.Close())" />
+                            }
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="FechaPagoTotal" Title="Fecha Pago Total" Width="150px" FormatString="{0:dd/MM/yyyy}" />
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="FechaSade" Title="Fecha SADE" Width="130px" FormatString="{0:dd/MM/yyyy}" />
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="BuzonSade" Title="Buzón SADE" Width="140px" />
@@ -194,3 +221,44 @@
         </RadzenDataGrid>
     }
 </RadzenStack>
+
+@code {
+    // Las OPs del expediente en CAF. Sin RadzenText: sus clases de tipografía fijan el
+    // color del tema y pisan el del tooltip.
+    private void MostrarOpsCaf(ElementReference origen, SAF.Application.Pagos.Dtos.PagoViewModel item)
+        => TooltipService.Open(origen, _ =>
+            @<RadzenStack Gap="0.5rem">
+                <strong>Expediente @item.Expediente · @item.CafOpsPagadas de @item.CafOps OP pagadas</strong>
+
+                <RadzenRow Gap="1rem">
+                    <RadzenColumn Size="4" class="rz-text-nowrap"><strong>OP</strong></RadzenColumn>
+                    <RadzenColumn Size="4" class="rz-text-nowrap"><strong>Importe neto</strong></RadzenColumn>
+                    <RadzenColumn Size="4" class="rz-text-nowrap"><strong>Fecha de pago</strong></RadzenColumn>
+                </RadzenRow>
+
+                @foreach (var linea in item.CafLineas)
+                {
+                    <RadzenRow Gap="1rem" AlignItems="AlignItems.Center">
+                        <RadzenColumn Size="4" class="rz-text-nowrap"><span>@linea.Op</span></RadzenColumn>
+                        <RadzenColumn Size="4" class="rz-text-nowrap"><span>@linea.ImporteNeto?.ToString("N2")</span></RadzenColumn>
+                        <RadzenColumn Size="4" class="rz-text-nowrap">
+                            <span>@(linea.FechaPago?.ToString("dd/MM/yyyy") ?? "-")</span>
+                        </RadzenColumn>
+                    </RadzenRow>
+                }
+
+                <small>
+                    La fecha de pago CAF se informa solo cuando todas las OPs del expediente
+                    están pagadas.
+                </small>
+            </RadzenStack>
+        , new TooltipOptions
+        {
+            Position = TooltipPosition.Left,
+            Duration = null,
+            // Mismo fondo que el ítem de menú seleccionado; se compone sobre la superficie
+            // base porque ese token es translúcido y el tooltip flota sobre la grilla.
+            Style = "background: linear-gradient(var(--rz-primary-lighter), var(--rz-primary-lighter)), "
+                  + "var(--rz-base-background-color); color: var(--rz-text-color);",
+        });
+}
