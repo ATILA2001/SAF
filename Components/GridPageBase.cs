@@ -27,6 +27,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
     protected RadzenDataGrid<TItem> _grid = null!;
     protected List<TItem> _items = new();
     protected bool _loading = true;
+    protected bool _exportando;
 
     // Los editores de la grilla escriben directo sobre la fila, así que cancelar no
     // alcanza para deshacer: se guarda una copia al abrir la edición y se restaura.
@@ -291,6 +292,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
             return;
         }
 
+        _exportando = true;
         try
         {
             // View trae los filtros y el orden de la grilla, pero Radzen lo deja apuntando
@@ -300,14 +302,28 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
             if (_grid is not null) await _grid.Reload();
             var filas = _grid?.View?.ToList() ?? _items;
 
-            var bytes = ExportService.ExportToXlsx(filas, ExportNombreHoja);
-            var base64 = Convert.ToBase64String(bytes);
-            await JS.InvokeVoidAsync("downloadFileFromBase64", base64, ExportNombreArchivo,
+            // La generación es CPU puro y sincrónica: en un hilo del pool no bloquea el
+            // circuito, y al ser el primer await que suspende de verdad, deja que Blazor
+            // pinte el estado "Exportando..." del botón antes de ponerse a trabajar.
+            var bytes = await Task.Run(() => ExportService.ExportToXlsx(filas, ExportNombreHoja));
+
+            // El archivo viaja como stream (Blazor lo trocea en chunks por SignalR):
+            // sin base64 no hay +33% en la red, ni string gigante en el heap, ni un
+            // único mensaje que congele el circuito mientras se transfiere.
+            using var stream = new MemoryStream(bytes);
+            using var streamRef = new DotNetStreamReference(stream);
+            await JS.InvokeVoidAsync("downloadFileFromStream", ExportNombreArchivo, streamRef,
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+            Notification.ShowSuccess($"Se exportaron {filas.Count} filas.", "Exportación completada");
         }
         catch (Exception ex)
         {
             Informar(ex, "El export", "Error al exportar");
+        }
+        finally
+        {
+            _exportando = false;
         }
     }
 }

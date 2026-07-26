@@ -22,7 +22,9 @@
                               Icon="download"
                               ButtonStyle="ButtonStyle.Secondary"
                               Click="@ExportarExcel"
-                              Disabled="@(_items.Count == 0)" />
+                              IsBusy="@_exportando"
+                              BusyText="Exportando..."
+                              Disabled="@(_items.Count == 0 || _exportando)" />
             </RadzenStack>
         </RadzenColumn>
     </RadzenRow>
