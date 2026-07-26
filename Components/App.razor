@@ -35,9 +35,13 @@
     private static readonly IComponentRenderMode InteractiveServerSinPrerender =
         new InteractiveServerRenderMode(prerender: false);
 
-    private IComponentRenderMode? RenderModeForPage => HttpContext.Request.Path.StartsWithSegments("/Account")
-        ? null
-        : InteractiveServerSinPrerender;
+    // /Account y /Error renderizan estáticos: Account no necesita circuito, y la
+    // página de error tiene que dibujarse aunque SignalR o la base estén caídos
+    // (además, solo en SSR hay HttpContext para el código de referencia).
+    private IComponentRenderMode? RenderModeForPage =>
+        HttpContext.Request.Path.StartsWithSegments("/Account") || HttpContext.Request.Path.StartsWithSegments("/Error")
+            ? null
+            : InteractiveServerSinPrerender;
 
     protected override void OnInitialized()
         => _theme = HttpContext.Request.Cookies["RadzenTheme"] is { Length: > 0 } t ? t : "material";
