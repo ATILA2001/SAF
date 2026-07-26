@@ -168,6 +168,10 @@
 </RadzenStack>
 
 @code {
+    // El tooltip es hover-only (salir del badge lo cierra: no se puede scrollear); un
+    // devengado suele tener 2-4 líneas, pero el tope evita salirse de pantalla si no.
+    private const int MaxLineasTooltip = 10;
+
     // Detalle de las líneas que resume la fila, armado con componentes de Radzen.
     // Duration null: el tooltip se cierra al salir del badge (MouseLeave).
     private void MostrarLineas(ElementReference badge, SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel item)
@@ -196,7 +200,7 @@
                         }
                     </RadzenRow>
 
-                    @foreach (var linea in item.DetalleLineas.Filas)
+                    @foreach (var linea in item.DetalleLineas.Filas.Take(MaxLineasTooltip))
                     {
                         <RadzenRow Gap="1rem" AlignItems="AlignItems.Center">
                             @foreach (var valor in linea.Valores.SkipLast(1))
@@ -219,6 +223,11 @@
                                 </RadzenStack>
                             </RadzenColumn>
                         </RadzenRow>
+                    }
+
+                    @if (item.DetalleLineas.Filas.Count > MaxLineasTooltip)
+                    {
+                        <span>… y @(item.DetalleLineas.Filas.Count - MaxLineasTooltip) líneas más.</span>
                     }
                 }
 

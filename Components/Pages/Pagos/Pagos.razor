@@ -223,6 +223,11 @@
 </RadzenStack>
 
 @code {
+    // El tooltip es hover-only (salir del badge lo cierra: no se puede scrollear), así
+    // que con muchas OPs se saldría de la pantalla; se listan las primeras y el resto
+    // se resume. El detalle completo vive en la vista Expedientes CAF.
+    private const int MaxLineasTooltip = 10;
+
     // Las OPs del expediente en CAF. Sin RadzenText: sus clases de tipografía fijan el
     // color del tema y pisan el del tooltip.
     private void MostrarOpsCaf(ElementReference origen, SAF.Application.Pagos.Dtos.PagoViewModel item)
@@ -236,7 +241,7 @@
                     <RadzenColumn Size="4" class="rz-text-nowrap"><strong>Fecha de pago</strong></RadzenColumn>
                 </RadzenRow>
 
-                @foreach (var linea in item.CafLineas)
+                @foreach (var linea in item.CafLineas.Take(MaxLineasTooltip))
                 {
                     <RadzenRow Gap="1rem" AlignItems="AlignItems.Center">
                         <RadzenColumn Size="4" class="rz-text-nowrap"><span>@linea.Op</span></RadzenColumn>
@@ -245,6 +250,11 @@
                             <span>@(linea.FechaPago?.ToString("dd/MM/yyyy") ?? "-")</span>
                         </RadzenColumn>
                     </RadzenRow>
+                }
+
+                @if (item.CafLineas.Count > MaxLineasTooltip)
+                {
+                    <span>… y @(item.CafLineas.Count - MaxLineasTooltip) OP más. El detalle completo está en la vista Expedientes CAF.</span>
                 }
 
                 <small>
