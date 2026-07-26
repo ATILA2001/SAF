@@ -57,6 +57,9 @@ public partial class Pagos
     protected override string DescripcionFila(PagoViewModel item) =>
         $"Devengado {item.TipoDev} {item.NroDev}";
 
+    // Cada fila del ledger tiene historial propio (un devengado puede tener varias líneas).
+    protected override int? IdAuditoria(PagoViewModel item) => item.Id != 0 ? item.Id : null;
+
     protected override string TextoConfirmacionEliminar(PagoViewModel item) =>
         $"Se eliminará la fila del devengado {item.TipoDev} {item.NroDev} " +
         $"(expediente {item.Expediente}, importe {item.Importe:N2}) junto con sus datos " +

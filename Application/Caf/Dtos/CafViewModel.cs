@@ -10,7 +10,7 @@ namespace SAF.Application.Caf.Dtos;
 /// </summary>
 public class CafViewModel
 {
-    [ExportIgnore]
+    [ExportIgnore, AuditIgnore]
     public int Id { get; set; }
 
     [Display(Name = "Año")]

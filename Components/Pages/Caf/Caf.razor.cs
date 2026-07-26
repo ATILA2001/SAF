@@ -34,7 +34,16 @@ public partial class Caf
     protected override IReadOnlyList<string> Validar(CafViewModel item, bool esAlta) =>
         CafValidator.Validar(item);
 
-    protected override Task CrearAsync(CafViewModel item) => CafService.CreateAsync(item);
+    protected override int? IdAuditoria(CafViewModel item) => item.Id != 0 ? item.Id : null;
+
+    protected override async Task CrearAsync(CafViewModel item)
+    {
+        // El Id y la versión del alta vuelven a la fila en pantalla: los usa la
+        // auditoría (historial por Id) y una edición inmediata sin recargar.
+        var creado = await CafService.CreateAsync(item);
+        item.Id = creado.Id;
+        item.RowVersion = creado.RowVersion;
+    }
 
     protected override Task ActualizarAsync(CafViewModel item) => CafService.UpdateAsync(item);
 

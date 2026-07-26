@@ -60,4 +60,8 @@ public partial class StatusContabilidad
     // El tablero es de solo edición: las filas nacen del ledger de devengados, no se crean ni borran acá.
     protected override Task ActualizarAsync(StatusContabilidadViewModel item) =>
         StatusContabilidadService.UpsertAsync(item);
+
+    // El tablero agrupa por devengado: la clave de negocio es el historial (sin Id técnico).
+    protected override string DescripcionFila(StatusContabilidadViewModel item) =>
+        $"Devengado {item.TipoDev} {item.NroDev}";
 }

@@ -25,10 +25,14 @@ public abstract class PermissionPageBase : ComponentBase
     protected bool CanEdit { get; private set; }
     protected bool CanDelete { get; private set; }
 
+    /// <summary>Nombre del usuario logueado (para la auditoría de cambios).</summary>
+    protected string NombreUsuario { get; private set; } = string.Empty;
+
     protected async Task LoadPermissionsAsync(string pageUrl)
     {
         var authState = await AuthenticationStateTask;
         var user = authState.User;
+        NombreUsuario = user.Identity?.Name ?? "(desconocido)";
 
         if (AdminClaims.IsAdmin(user))
         {

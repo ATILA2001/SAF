@@ -64,8 +64,10 @@ public class StatusContabilidadViewModel
     [Display(Name = "FECHA NOTIFICACION")]
     public DateTime? FechaNotificacion { get; set; } // col V
 
-    // De IVC.PASES_SADE (VLOOKUP a la hoja SADE en el Excel, solo lectura)
+    // De IVC.PASES_SADE (VLOOKUP a la hoja SADE en el Excel, solo lectura). No se
+    // audita: la muta CompletarIvcAsync en segundo plano, no el usuario.
     [Display(Name = "Buzón Sade")]
+    [AuditIgnore]
     public string? BuzonSade { get; set; }           // col W
 
     // ─── Datos propios SAF (editables) ───────────────────────────────────────
@@ -83,7 +85,7 @@ public class StatusContabilidadViewModel
     [MaxLength(20)]
     public string? SinFacturaMotivo { get; set; }            // N/C · CCOO · PAV · Anulado
 
-    [ExportIgnore]
+    [ExportIgnore, AuditIgnore]
     public int? StatusContableOpcionId { get; set; }          // col L
 
     [Display(Name = "Status Contable")]
@@ -93,13 +95,13 @@ public class StatusContabilidadViewModel
     [MaxLength(500)]
     public string? ObservacionesCuentasPagar { get; set; }   // col M
 
-    [ExportIgnore]
+    [ExportIgnore, AuditIgnore]
     public int? TramitadorCuentasPagarOpcionId { get; set; }  // col N
 
     [Display(Name = "Usuario Tramitador Cuentas a Pagar")]
     public string? TramitadorCuentasPagarNombre { get; set; }
 
-    [ExportIgnore]
+    [ExportIgnore, AuditIgnore]
     public int? TramitadorLiquidacionesOpcionId { get; set; } // col O
 
     [Display(Name = "Usuario tramitador Liquidaciones")]
@@ -114,6 +116,7 @@ public class StatusContabilidadViewModel
 
     // col X: derivada de IVC.PASES_SADE (fecha del último pase, solo lectura)
     [Display(Name = "Ultimo Movimiento")]
+    [AuditIgnore] // la muta CompletarIvcAsync en segundo plano, no el usuario
     public DateTime? UltimoMovimientoSade { get; set; }
 
     // col Y — Excel: =TODAY()-X. Calculado en memoria.

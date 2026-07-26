@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ExpedienteCaf> ExpedientesCaf { get; set; }
     public DbSet<ExpedienteSeguro> ExpedientesSeguro { get; set; }
     public DbSet<SeguroOpcion> SeguroOpciones { get; set; }
+    public DbSet<CambioAuditoria> CambiosAuditoria { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -93,6 +94,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(e => e.Estado).HasMaxLength(100);
             entity.Property(e => e.ImporteNeto).HasPrecision(18, 2);
             entity.Property(e => e.RowVersion).IsRowVersion();
+        });
+
+        modelBuilder.Entity<CambioAuditoria>(entity =>
+        {
+            // El historial se consulta por fila: Id técnico o clave de negocio (tablero).
+            entity.HasIndex(e => new { e.Vista, e.EntidadId, e.Fecha });
+            entity.HasIndex(e => new { e.Vista, e.ClaveNegocio, e.Fecha });
+            entity.Property(e => e.Usuario).HasMaxLength(150);
+            entity.Property(e => e.Vista).HasMaxLength(50);
+            entity.Property(e => e.ClaveNegocio).HasMaxLength(200);
+            entity.Property(e => e.Accion).HasMaxLength(10);
+            entity.Property(e => e.Campo).HasMaxLength(100);
+            entity.Property(e => e.ValorAnterior).HasMaxLength(500);
+            entity.Property(e => e.ValorNuevo).HasMaxLength(500);
         });
 
         // Seed de datos para lookups

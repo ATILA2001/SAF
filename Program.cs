@@ -146,6 +146,7 @@ builder.Services.AddScoped<ILookupService, LookupService>();
 builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<IDevengadoSyncService, DevengadoSyncService>();
 builder.Services.AddScoped<SAF.Shared.INotificationHelper, SAF.Shared.NotificationHelper>();
+builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 
 // Permission service — reads perms_json claim from Auth.Web cookie
 builder.Services.AddScoped<IPermissionService, PermissionService>();

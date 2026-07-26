@@ -10,7 +10,7 @@ namespace SAF.Application.Seguros.Dtos;
 /// </summary>
 public class SeguroViewModel
 {
-    [ExportIgnore]
+    [ExportIgnore, AuditIgnore]
     public int Id { get; set; }
 
     // Columna única: clave financiera NNNNNNNN/AA. Se normaliza y valida al guardar
@@ -36,7 +36,8 @@ public class SeguroViewModel
     public string? Estado { get; set; }
 
     // Seguro normalizado a lista (ok / CAF/ok / Pendiente); regla "peor caso gana" en Pagos.
-    [ExportIgnore]
+    // El Id no se audita: el cambio se registra por el nombre visible.
+    [ExportIgnore, AuditIgnore]
     public int? SeguroOpcionId { get; set; }
 
     [Display(Name = "SEGURO")]

@@ -39,6 +39,7 @@ public class CafPageRenderTests
         ctx.Services.AddSingleton(caf.Object);
         ctx.Services.AddSingleton(Mock.Of<INotificationHelper>());
         ctx.Services.AddSingleton(Mock.Of<IExportService>());
+        ctx.Services.AddSingleton(Mock.Of<IAuditoriaService>());
         ctx.Services.AddSingleton(sp => new Radzen.DialogService(
             sp.GetRequiredService<NavigationManager>(),
             sp.GetRequiredService<Microsoft.JSInterop.IJSRuntime>()));

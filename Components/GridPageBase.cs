@@ -23,6 +23,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     [Inject] private IExportService ExportService { get; set; } = null!;
     [Inject] protected DialogService DialogService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
+    [Inject] private IAuditoriaService Auditoria { get; set; } = null!;
 
     protected RadzenDataGrid<TItem> _grid = null!;
     protected List<TItem> _items = new();
@@ -110,6 +111,42 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
 
     protected virtual string TextoConfirmacionEliminar(TItem item) =>
         $"Se eliminará {DescripcionFila(item)}. Esta acción no se puede deshacer.";
+
+    /// <summary>Id técnico de la fila para el historial (null: se busca por clave de negocio).</summary>
+    protected virtual int? IdAuditoria(TItem item) => null;
+
+    /// <summary>Clave de negocio estable de la fila para el historial.</summary>
+    protected virtual string ClaveAuditoria(TItem item) => DescripcionFila(item);
+
+    /// <summary>
+    /// Registra el lote de cambios de un guardado exitoso. La auditoría nunca voltea
+    /// el guardado que audita: una falla acá se loguea y la operación sigue.
+    /// </summary>
+    private async Task RegistrarAuditoriaAsync(string accion, TItem item, IReadOnlyList<AuditoriaDiff.Cambio> cambios)
+    {
+        if (cambios.Count == 0) return;
+        try
+        {
+            await Auditoria.RegistrarAsync(new RegistroAuditoria(
+                PageUrl, IdAuditoria(item), ClaveAuditoria(item), accion, NombreUsuario, cambios));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "No se pudo auditar {Accion} en {Pagina}.", accion, PageUrl);
+        }
+    }
+
+    /// <summary>Abre el historial de cambios de la fila.</summary>
+    protected async Task VerHistorial(TItem item) =>
+        await DialogService.OpenAsync<Shared.HistorialAuditoria>(
+            $"Historial — {DescripcionFila(item)}",
+            new Dictionary<string, object?>
+            {
+                [nameof(Shared.HistorialAuditoria.Vista)] = PageUrl,
+                [nameof(Shared.HistorialAuditoria.EntidadId)] = IdAuditoria(item),
+                [nameof(Shared.HistorialAuditoria.ClaveNegocio)] = ClaveAuditoria(item),
+            },
+            new DialogOptions { Width = "720px" });
 
     protected override async Task OnInitializedAsync()
     {
@@ -327,6 +364,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
         try
         {
             await CrearAsync(item);
+            await RegistrarAuditoriaAsync("Alta", item, AuditoriaDiff.Snapshot(item, esBaja: false));
             await ReloadAsync();
             Notification.ShowSuccess($"{DescripcionFila(item)} creado.".TrimStart(), "Alta exitosa");
         }
@@ -348,9 +386,15 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
 
         PrepararParaGuardar(item);
 
+        // La copia previa de la fila (guardada al abrir la edición) es la base del diff
+        // de auditoría; se captura antes de que ReloadAsync limpie el diccionario.
+        _originales.TryGetValue(item, out var original);
+
         try
         {
             await ActualizarAsync(item);
+            if (original is not null)
+                await RegistrarAuditoriaAsync("Edición", item, AuditoriaDiff.Comparar(original, item));
             await ReloadAsync();
         }
         catch (ConflictoDeConcurrenciaException ex)
@@ -384,6 +428,8 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
         try
         {
             await EliminarAsync(item);
+            // El snapshot completo es lo que permite responder "¿qué decía la fila borrada?".
+            await RegistrarAuditoriaAsync("Baja", item, AuditoriaDiff.Snapshot(item, esBaja: true));
             await ReloadAsync();
             Notification.ShowSuccess($"{DescripcionFila(item)} eliminado.".TrimStart(), "Baja exitosa");
         }

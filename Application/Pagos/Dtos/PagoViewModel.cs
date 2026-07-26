@@ -12,7 +12,7 @@ namespace SAF.Application.Pagos.Dtos;
 public class PagoViewModel
 {
     /// <summary>Id de la FILA del ledger de devengados. Cada fila se edita por separado.</summary>
-    [ExportIgnore]
+    [ExportIgnore, AuditIgnore]
     public int Id { get; set; }
 
     // ─── Datos de IVC (solo lectura) ─────────────────────────────────────────
@@ -35,13 +35,14 @@ public class PagoViewModel
     public decimal? Importe { get; set; }
 
     // ─── Datos propios SAF (editables) ───────────────────────────────────────
-    [ExportIgnore]
+    // Los Ids de lookups no se auditan: el cambio se registra por el Nombre visible.
+    [ExportIgnore, AuditIgnore]
     public int? StatusDgayfOpcionId { get; set; }
 
     [Display(Name = "STATUS DGAyF")]
     public string? StatusDgayfNombre { get; set; }
 
-    [ExportIgnore]
+    [ExportIgnore, AuditIgnore]
     public int? StatusOpOpcionId { get; set; }
 
     [Display(Name = "STATUS OP")]
@@ -72,7 +73,10 @@ public class PagoViewModel
     [MaxLength(200)]
     public string? SegurosTeso { get; set; }
 
+    // Las cuatro columnas que muta CompletarIvcAsync en segundo plano no se auditan:
+    // si cambian durante una edición no fue el usuario.
     [Display(Name = "FECHA DE PAGO - NO CAF")]
+    [AuditIgnore]
     public DateTime? FechaDePagoNoCaf { get; set; }
 
     [Display(Name = "FECHA DE PAGO - CAF")]
@@ -99,13 +103,16 @@ public class PagoViewModel
         = Array.Empty<SAF.Application.Caf.Dtos.LineaCafViewModel>();
 
     [Display(Name = "FECHA PAGO TOTAL")]
+    [AuditIgnore]
     public DateTime? FechaPagoTotal { get; set; }
 
     [Display(Name = "FECHA SADE")]
+    [AuditIgnore]
     public DateTime? FechaSade { get; set; }
 
     [Display(Name = "BUZON SADE")]
     [MaxLength(200)]
+    [AuditIgnore]
     public string? BuzonSade { get; set; }
 
     [Display(Name = "PEDIDO FACTURA 2")]

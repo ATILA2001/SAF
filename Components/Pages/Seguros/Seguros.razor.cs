@@ -32,10 +32,19 @@ public partial class Seguros
     protected override string DescripcionFila(SeguroViewModel item) =>
         $"Seguro del expediente {item.Expediente}";
 
+    protected override int? IdAuditoria(SeguroViewModel item) => item.Id != 0 ? item.Id : null;
+
     protected override IReadOnlyList<string> Validar(SeguroViewModel item, bool esAlta) =>
         SeguroValidator.Validar(item);
 
-    protected override Task CrearAsync(SeguroViewModel item) => SeguroService.CreateAsync(item);
+    protected override async Task CrearAsync(SeguroViewModel item)
+    {
+        // El Id y la versión del alta vuelven a la fila en pantalla: los usa la
+        // auditoría (historial por Id) y una edición inmediata sin recargar.
+        var creado = await SeguroService.CreateAsync(item);
+        item.Id = creado.Id;
+        item.RowVersion = creado.RowVersion;
+    }
 
     protected override Task ActualizarAsync(SeguroViewModel item) => SeguroService.UpdateAsync(item);
 
