@@ -21,6 +21,8 @@ public static class PagoValidator
             errores.Add("El tipo de devengado es obligatorio (ej.: PRD, DGG, DRG, DGT).");
         else if (ReglasDevengado.TiposExcluidos.Contains(tipoDev))
             errores.Add($"El tipo {tipoDev} está excluido de la vista Pagos (mismo filtro que la sincronización).");
+        else if (tipoDev.Length > 20)
+            errores.Add("El tipo de devengado no puede superar los 20 caracteres (los reales tienen 3 o 4).");
 
         if (vm.NroDev <= 0)
             errores.Add("El número de devengado es obligatorio y debe ser mayor a cero.");

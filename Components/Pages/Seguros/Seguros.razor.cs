@@ -35,5 +35,5 @@ public partial class Seguros
     protected override Task ActualizarAsync(SeguroViewModel item) => SeguroService.UpdateAsync(item);
 
     protected override Task EliminarAsync(SeguroViewModel item) =>
-        item.Id != 0 ? SeguroService.DeleteAsync(item.Id) : Task.CompletedTask;
+        item.Id != 0 ? SeguroService.DeleteAsync(item.Id, item.RowVersion) : Task.CompletedTask;
 }

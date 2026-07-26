@@ -44,7 +44,8 @@ public class CafService(ICafRepository repo, ILogger<CafService> logger) : ICafS
         await repo.UpdateAsync(entity, ct);
     }
 
-    public Task DeleteAsync(int id, CancellationToken ct = default) => repo.DeleteAsync(id, ct);
+    public Task DeleteAsync(int id, byte[]? rowVersion, CancellationToken ct = default)
+        => repo.DeleteAsync(id, rowVersion, ct);
 
     private static void Validar(CafViewModel vm)
     {

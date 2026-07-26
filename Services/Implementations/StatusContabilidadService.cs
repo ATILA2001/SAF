@@ -166,55 +166,6 @@ public class StatusContabilidadService(
         };
     }
 
-    public async Task<StatusContabilidadViewModel?> GetByKeyAsync(string tipoDev, int nroDev, CancellationToken ct = default)
-    {
-        var d = await devengadoRepo.GetByKeyAsync(tipoDev, nroDev, ct);
-        if (d is null) return null;
-
-        var pago = await pagosRepo.GetByDevengadoIdAsync(d.Id, ct);
-        var extra = await contaRepo.GetByKeyAsync(tipoDev, nroDev, ct);
-
-        Data.Entities.PaseSade? pase = null;
-        if (!string.IsNullOrWhiteSpace(d.Expediente))
-        {
-            var sade = await sadeRepo.GetByExpedientesAsync(new[] { d.Expediente }, ct);
-            sade.TryGetValue(d.Expediente, out pase);
-        }
-
-        return new StatusContabilidadViewModel
-        {
-            TipoDev = d.TipoDev,
-            NroDev = d.NroDev,
-            Expediente = d.Expediente,
-            Empresa = d.Empresa,
-            // Misma semántica que la grilla: suma de todas las filas del devengado.
-            ImporteTotal = await devengadoRepo.GetSumImportePpByKeyAsync(tipoDev, nroDev, ct),
-            StatusDgayfNombre = pago?.StatusDgayfOpcion?.Nombre,
-            FirmadaPorMiguel = pago?.StatusOpOpcion?.Nombre,
-            FechaPedidoFactura1 = d.FechaImputacion,
-            EeSade = BuildEeSade(d.Expediente),
-            Observaciones = pago?.Observaciones,
-            Ccoo = pago?.Ccoo,
-            FechaCcoo = pago?.FechaCcoo,
-            FechaNotificacion = pago?.FechaNotificacion,
-            BuzonSade = pase?.BuzonDestino,
-            FechaPedidoFactura2 = extra?.FechaPedidoFactura2,
-            ReiterarPedidoFactura3 = extra?.ReiterarPedidoFactura3,
-            FechaIngresoFactura = extra?.FechaIngresoFactura,
-            StatusContableOpcionId = extra?.StatusContableOpcionId,
-            StatusContableNombre = extra?.StatusContableOpcion?.Nombre,
-            ObservacionesCuentasPagar = extra?.ObservacionesCuentasPagar,
-            TramitadorCuentasPagarOpcionId = extra?.TramitadorCuentasPagarOpcionId,
-            TramitadorCuentasPagarNombre = extra?.TramitadorCuentasPagarOpcion?.Nombre,
-            TramitadorLiquidacionesOpcionId = extra?.TramitadorLiquidacionesOpcionId,
-            TramitadorLiquidacionesNombre = extra?.TramitadorLiquidacionesOpcion?.Nombre,
-            ObservacionesLiquidaciones = extra?.ObservacionesLiquidaciones,
-            FaltaPoliza = extra?.FaltaPoliza ?? false,
-            UltimoMovimientoSade = pase?.FechaUltimoPase,
-            RowVersion = extra?.RowVersion,
-        };
-    }
-
     public async Task UpsertAsync(StatusContabilidadViewModel vm, CancellationToken ct = default)
     {
         var errores = Application.StatusContabilidad.StatusContabilidadValidator.Validar(vm);

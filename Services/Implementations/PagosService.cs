@@ -112,70 +112,6 @@ public class PagosService(
         return result;
     }
 
-    public async Task<PagoViewModel?> GetByIdAsync(int devengadoId, CancellationToken ct = default)
-    {
-        var d = await devengadoRepo.GetByIdAsync(devengadoId, ct);
-        if (d is null) return null;
-
-        var extra = await extraRepo.GetByDevengadoIdAsync(devengadoId, ct);
-        var sc = await statusContabRepo.GetByKeyAsync(d.TipoDev, d.NroDev, ct);
-        var statusDgayf = extra?.StatusDgayfOpcion?.Nombre;
-        PaseSade? pase = null;
-        DateTime? fechaPagoNoCaf = null;
-        DateTime? fechaDePagoCaf = null;
-        string? segurosTeso = null;
-        if (!string.IsNullOrWhiteSpace(d.Expediente))
-        {
-            var sade = await sadeRepo.GetByExpedientesAsync(new[] { d.Expediente }, ct);
-            sade.TryGetValue(d.Expediente, out pase);
-
-            var seguros = await seguroRepo.GetSeguroByExpedientesAsync(new[] { d.Expediente }, ct);
-            seguros.TryGetValue(d.Expediente, out segurosTeso);
-
-            var sigafPagos = await sigafRepo.GetFechaPagoByExpedientesAsync(new[] { d.Expediente }, ct);
-            if (sigafPagos.TryGetValue(d.Expediente, out var fp)) fechaPagoNoCaf = fp;
-
-            if (EsAvanzarCaf(statusDgayf))
-            {
-                // Mismo criterio que la grilla: la fecha solo si el expediente está saldado.
-                var cafPagos = await cafRepo.GetResumenCafByExpedientesAsync(new[] { d.Expediente }, ct);
-                if (cafPagos.TryGetValue(d.Expediente, out var rc) && rc.TodasPagadas)
-                    fechaDePagoCaf = rc.UltimoPago;
-            }
-        }
-        DateTime? fechaPagoTotal = CalcularFechaPagoTotal(statusDgayf, fechaPagoNoCaf, fechaDePagoCaf);
-        return new PagoViewModel
-        {
-            Id = d.Id,
-            TipoDev = d.TipoDev,
-            NroDev = d.NroDev,
-            FechaDevengado = d.FechaImputacion,
-            Expediente = d.Expediente,
-            Empresa = d.Empresa,
-            Importe = d.ImportePp,
-            StatusDgayfOpcionId = extra?.StatusDgayfOpcionId,
-            StatusDgayfNombre = statusDgayf,
-            StatusOpOpcionId = extra?.StatusOpOpcionId,
-            StatusOpNombre = extra?.StatusOpOpcion?.Nombre,
-            FechaFirmaOp = extra?.FechaFirmaOp,
-            Observaciones = extra?.Observaciones,
-            Ccoo = extra?.Ccoo,
-            FechaCcoo = extra?.FechaCcoo,
-            FechaNotificacion = extra?.FechaNotificacion,
-            StatusContable = DerivarStatusContable(extra?.StatusOpOpcion?.Nombre, sc?.StatusContableOpcion?.Nombre),
-            SegurosTeso = segurosTeso,
-            FechaDePagoNoCaf = fechaPagoNoCaf,
-            FechaDePagoCaf = fechaDePagoCaf,
-            FechaPagoTotal = fechaPagoTotal,
-            FechaSade = pase?.FechaUltimoPase,
-            BuzonSade = pase?.BuzonDestino,
-            PedidoFactura2 = sc?.FechaPedidoFactura2,
-            PedidoFactura3 = sc?.ReiterarPedidoFactura3,
-            FechaFacturaCorrecta = sc?.FechaIngresoFactura,
-            CafSiNo = extra?.CafSiNo,
-        };
-    }
-
     public async Task UpsertAsync(PagoViewModel vm, CancellationToken ct = default)
     {
         var errores = Application.Pagos.PagoValidator.ValidarEdicion(vm);
@@ -241,8 +177,8 @@ public class PagosService(
         return vm;
     }
 
-    public Task DeleteDevengadoAsync(int devengadoId, CancellationToken ct = default)
-        => devengadoRepo.DeleteAsync(devengadoId, ct);
+    public Task DeleteDevengadoAsync(int devengadoId, byte[]? extraRowVersion, CancellationToken ct = default)
+        => devengadoRepo.DeleteAsync(devengadoId, extraRowVersion, ct);
 
     private static bool EsAvanzarCaf(string? statusDgayf)
         => string.Equals(statusDgayf, StatusAvanzarCaf, StringComparison.OrdinalIgnoreCase);

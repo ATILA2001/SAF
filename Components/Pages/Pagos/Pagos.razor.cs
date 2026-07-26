@@ -85,7 +85,8 @@ public partial class Pagos
 
     protected override Task ActualizarAsync(PagoViewModel item) => PagosService.UpsertAsync(item);
 
-    protected override Task EliminarAsync(PagoViewModel item) => PagosService.DeleteDevengadoAsync(item.Id);
+    protected override Task EliminarAsync(PagoViewModel item) =>
+        PagosService.DeleteDevengadoAsync(item.Id, item.RowVersion);
 
     private async Task SincronizarDevengados()
     {

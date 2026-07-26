@@ -86,9 +86,12 @@ public class PagoViewModel
     [ExportIgnore]
     public int CafOpsPagadas { get; set; }
 
-    /// <summary>Se pagó parte de las OPs del expediente: no hay fecha, pero tampoco es "sin pagar".</summary>
+    /// <summary>
+    /// Hay OPs del expediente sin pagar (incluye "ninguna pagada"): no hay fecha, y el
+    /// badge tiene que explicar por qué — una celda vacía se leería como "sin OPs en CAF".
+    /// </summary>
     [ExportIgnore]
-    public bool CafPagoParcial => CafOpsPagadas > 0 && CafOpsPagadas < CafOps;
+    public bool CafPagoIncompleto => CafOps > 0 && CafOpsPagadas < CafOps;
 
     /// <summary>Detalle de esas OPs, para ver cuáles se pagaron y cuáles faltan.</summary>
     [ExportIgnore]

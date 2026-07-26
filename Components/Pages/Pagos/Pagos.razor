@@ -160,7 +160,7 @@
                    distingue los dos casos, que antes se veían igual (o peor: como pagado). *@
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="FechaDePagoCaf" Title="Fecha Pago CAF" Width="145px" FormatString="{0:dd/MM/yyyy}">
                     <Template Context="item">
-                        @if (item.CafPagoParcial)
+                        @if (item.CafPagoIncompleto)
                         {
                             <RadzenBadge BadgeStyle="BadgeStyle.Warning"
                                          Text="@($"{item.CafOpsPagadas} de {item.CafOps} OP pagadas")"

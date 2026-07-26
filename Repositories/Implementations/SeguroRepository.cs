@@ -53,13 +53,27 @@ public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISegu
         }
     }
 
-    public async Task DeleteAsync(int id, CancellationToken ct = default)
+    public async Task DeleteAsync(int id, byte[]? rowVersion, CancellationToken ct = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         var e = await db.ExpedientesSeguro.FirstOrDefaultAsync(x => x.Id == id, ct);
-        if (e is null) return;
+        if (e is null) return; // ya no existe: el resultado buscado
+
+        // La confirmación del diálogo se basó en lo que el usuario tenía en pantalla:
+        // el DELETE exige esa versión en el WHERE, así que si otro modificó la fila en
+        // el medio se avisa en vez de borrar a ciegas.
+        if (rowVersion is not null)
+            db.Entry(e).Property(x => x.RowVersion).OriginalValue = rowVersion;
+
         db.ExpedientesSeguro.Remove(e);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflictoDeConcurrenciaException();
+        }
     }
 
     public async Task<IReadOnlyDictionary<string, string>> GetSeguroByExpedientesAsync(

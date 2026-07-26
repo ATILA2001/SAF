@@ -34,5 +34,5 @@ public partial class Caf
     protected override Task ActualizarAsync(CafViewModel item) => CafService.UpdateAsync(item);
 
     protected override Task EliminarAsync(CafViewModel item) =>
-        item.Id != 0 ? CafService.DeleteAsync(item.Id) : Task.CompletedTask;
+        item.Id != 0 ? CafService.DeleteAsync(item.Id, item.RowVersion) : Task.CompletedTask;
 }

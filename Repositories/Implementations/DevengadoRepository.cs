@@ -1,5 +1,6 @@
 #nullable enable
 using Microsoft.EntityFrameworkCore;
+using SAF.Application.Common;
 using SAF.Data;
 using SAF.Data.Entities;
 using SAF.Repositories.Abstractions;
@@ -60,11 +61,23 @@ public class DevengadoRepository(IDbContextFactory<AppDbContext> dbFactory) : ID
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task DeleteAsync(int id, CancellationToken ct = default)
+    public async Task DeleteAsync(int id, byte[]? extraRowVersion, CancellationToken ct = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         var e = await db.Devengados.FirstOrDefaultAsync(d => d.Id == id, ct);
-        if (e is null) return;
+        if (e is null) return; // ya no existe: el resultado buscado
+
+        // El devengado no tiene rowversion propia, pero el borrado arrastra su extra por
+        // cascada: si el extra cambió (o apareció) desde que el usuario cargó la grilla,
+        // borrarlo se llevaría datos que otro acaba de cargar o modificar.
+        var extra = await db.DevengadosExtra.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.DevengadoId == id, ct);
+        var extraCambio = extraRowVersion is null
+            ? extra is not null
+            : extra?.RowVersion is null || !extra.RowVersion.SequenceEqual(extraRowVersion);
+        if (extraCambio)
+            throw new ConflictoDeConcurrenciaException();
+
         db.Devengados.Remove(e);
         await db.SaveChangesAsync(ct);
     }

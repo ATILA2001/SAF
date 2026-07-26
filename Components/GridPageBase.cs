@@ -254,6 +254,14 @@ public abstract class GridPageBase<TItem> : PermissionPageBase where TItem : cla
             await ReloadAsync();
             Notification.ShowSuccess($"{DescripcionFila(item)} eliminado.".TrimStart(), "Baja exitosa");
         }
+        catch (ConflictoDeConcurrenciaException ex)
+        {
+            // La confirmación se basó en datos que ya cambiaron: se recarga para que el
+            // usuario vea el estado real antes de decidir si igual quiere borrar.
+            Logger.LogWarning("Conflicto de concurrencia al eliminar en {Pagina}.", PageUrl);
+            Notification.ShowWarning(ex.Message, "Fila desactualizada");
+            await ReloadAsync();
+        }
         catch (Exception ex)
         {
             Informar(ex, "La baja", "Error al eliminar");

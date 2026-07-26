@@ -28,7 +28,8 @@ public interface IDevengadoRepository
     Task AddAsync(Devengado entity, CancellationToken ct = default);
 
     /// <summary>Elimina una fila del ledger; sus datos editables (DevengadoExtra) caen en cascada.</summary>
-    Task DeleteAsync(int id, CancellationToken ct = default);
+    /// <summary>Borra la fila del ledger; la versión del extra detecta cambios de otro usuario.</summary>
+    Task DeleteAsync(int id, byte[]? extraRowVersion, CancellationToken ct = default);
 
     /// <summary>True si ya existe una fila idéntica (misma clave, fecha e importe).</summary>
     Task<bool> ExistsExactoAsync(string tipoDev, int nroDev, DateTime? fechaImputacion,

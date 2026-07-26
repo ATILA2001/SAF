@@ -12,7 +12,8 @@ public interface ISeguroRepository
     Task<ExpedienteSeguro?> GetByIdAsync(int id, CancellationToken ct = default);
     Task AddAsync(ExpedienteSeguro entity, CancellationToken ct = default);
     Task UpdateAsync(ExpedienteSeguro entity, CancellationToken ct = default);
-    Task DeleteAsync(int id, CancellationToken ct = default);
+    /// <summary>Borra exigiendo la versión que traía la grilla; conflicto si otro la modificó.</summary>
+    Task DeleteAsync(int id, byte[]? rowVersion, CancellationToken ct = default);
 
     /// <summary>
     /// Devuelve el estado de seguro de cada expediente solicitado, cruzando por la clave
