@@ -34,6 +34,12 @@ public partial class Seguros
 
     protected override int? IdAuditoria(SeguroViewModel item) => item.Id != 0 ? item.Id : null;
 
+    // El dropdown edita SeguroOpcionId ([AuditIgnore]): sin resolver el nombre visible
+    // antes del diff, el cambio de SEGURO —la columna central de esta vista— no
+    // dejaría ningún rastro en el historial.
+    protected override void PrepararParaGuardar(SeguroViewModel item) =>
+        item.SeguroNombre = _seguroOpciones.FirstOrDefault(x => x.Id == item.SeguroOpcionId)?.Nombre;
+
     protected override IReadOnlyList<string> Validar(SeguroViewModel item, bool esAlta) =>
         SeguroValidator.Validar(item);
 

@@ -31,11 +31,11 @@ public class StatusContabilidadViewModel
     /// Cuántas líneas del ledger resume esta fila (neto + retenciones). El tablero agrupa
     /// y en Pagos se ven separadas: se avisa en la grilla cuando hay más de una.
     /// </summary>
-    [ExportIgnore]
+    [ExportIgnore, AuditIgnore]
     public int CantidadLineas { get; set; } = 1;
 
     /// <summary>En qué difieren esas líneas, para mostrar de dónde sale lo que ve el tablero.</summary>
-    [ExportIgnore]
+    [ExportIgnore, AuditIgnore]
     public DetalleLineasViewModel DetalleLineas { get; set; } = new();
 
     [Display(Name = "STATUS DGAyF")]
@@ -65,9 +65,9 @@ public class StatusContabilidadViewModel
     public DateTime? FechaNotificacion { get; set; } // col V
 
     // De IVC.PASES_SADE (VLOOKUP a la hoja SADE en el Excel, solo lectura). No se
-    // audita: la muta CompletarIvcAsync en segundo plano, no el usuario.
+    // audita ni se restaura al cancelar: la muta CompletarIvcAsync, no el usuario.
     [Display(Name = "Buzón Sade")]
-    [AuditIgnore]
+    [AuditIgnore, RestoreIgnore]
     public string? BuzonSade { get; set; }           // col W
 
     // ─── Datos propios SAF (editables) ───────────────────────────────────────
@@ -116,7 +116,7 @@ public class StatusContabilidadViewModel
 
     // col X: derivada de IVC.PASES_SADE (fecha del último pase, solo lectura)
     [Display(Name = "Ultimo Movimiento")]
-    [AuditIgnore] // la muta CompletarIvcAsync en segundo plano, no el usuario
+    [AuditIgnore, RestoreIgnore] // la muta CompletarIvcAsync en segundo plano, no el usuario
     public DateTime? UltimoMovimientoSade { get; set; }
 
     // col Y — Excel: =TODAY()-X. Calculado en memoria.

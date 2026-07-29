@@ -82,19 +82,38 @@ public class DevengadoRepository(IDbContextFactory<AppDbContext> dbFactory) : ID
         var e = await db.Devengados.FirstOrDefaultAsync(d => d.Id == id, ct);
         if (e is null) return; // ya no existe: el resultado buscado
 
-        // El devengado no tiene rowversion propia, pero el borrado arrastra su extra por
-        // cascada: si el extra cambió (o apareció) desde que el usuario cargó la grilla,
+        // El devengado no tiene rowversion propia, pero el borrado arrastra su extra:
+        // si el extra cambió (o apareció) desde que el usuario cargó la grilla,
         // borrarlo se llevaría datos que otro acaba de cargar o modificar.
-        var extra = await db.DevengadosExtra.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.DevengadoId == id, ct);
-        var extraCambio = extraRowVersion is null
-            ? extra is not null
-            : extra?.RowVersion is null || !extra.RowVersion.SequenceEqual(extraRowVersion);
-        if (extraCambio)
-            throw new ConflictoDeConcurrenciaException();
+        var extra = await db.DevengadosExtra.FirstOrDefaultAsync(x => x.DevengadoId == id, ct);
+        if (extraRowVersion is null)
+        {
+            // El usuario tenía la fila sin extra: si apareció uno en el medio, conflicto.
+            // (Ventana check-then-act residual solo en este caso; cerrarla exigiría un
+            // lock explícito y no lo vale.)
+            if (extra is not null)
+                throw new ConflictoDeConcurrenciaException();
+        }
+        else
+        {
+            if (extra is null)
+                throw new ConflictoDeConcurrenciaException();
+
+            // El DELETE del extra exige la versión en el WHERE (atómico, mismo patrón
+            // que CAF/Seguros): si otro lo modificó en el medio, conflicto.
+            db.Entry(extra).Property(x => x.RowVersion).OriginalValue = extraRowVersion;
+            db.DevengadosExtra.Remove(extra);
+        }
 
         db.Devengados.Remove(e);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConflictoDeConcurrenciaException();
+        }
     }
 
     public async Task<bool> ExistsExactoAsync(string tipoDev, int nroDev, DateTime? fechaImputacion,

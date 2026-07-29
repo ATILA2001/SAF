@@ -1,6 +1,7 @@
 #nullable enable
 using System.Collections;
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Reflection;
 
 namespace SAF.Application.Common;
@@ -54,14 +55,20 @@ public static class AuditoriaDiff
     private static string NombreVisible(PropertyInfo prop) =>
         prop.GetCustomAttribute<DisplayAttribute>()?.Name ?? prop.Name;
 
+    // Cultura fija: lo persistido no debe depender de la config del host (y el diff
+    // compara por representación, así que un cambio de cultura generaría falsos diffs).
+    private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-AR");
+
     /// <summary>Mismo formato que muestran las grillas; vacío y null se consideran iguales.</summary>
     private static string? Formatear(object? valor) => valor switch
     {
         null => null,
         string s => s.Length == 0 ? null : s,
-        DateTime f => f.ToString("dd/MM/yyyy"),
+        // Con hora si la trae (Cargado/Revisado de CAF la editan): formatear solo la
+        // fecha haría invisible al diff un cambio de hora del mismo día.
+        DateTime f => f.ToString(f.TimeOfDay == TimeSpan.Zero ? "dd/MM/yyyy" : "dd/MM/yyyy HH:mm", Cultura),
         bool b => b ? "Sí" : "No",
-        decimal m => m.ToString("N2"),
+        decimal m => m.ToString("N2", Cultura),
         _ => valor.ToString(),
     };
 }

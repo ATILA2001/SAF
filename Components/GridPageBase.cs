@@ -34,15 +34,30 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     // segundo plano. Mientras _cargandoResto está activo, el export queda deshabilitado
     // (exportaría una lista incompleta).
     protected bool _cargandoResto;
+
+    // La carga de fondo falló (p. ej. IVC caída): el export queda bloqueado hasta
+    // recargar, porque saldría con columnas derivadas vacías que en la semántica de
+    // la planilla se leen como "sin pagar / sin pase".
+    protected bool _cargaIncompleta;
+
     private CancellationTokenSource? _ctsLotes;
+
+    // Vida de la página: cancela la carga inicial (y, encadenado, la de fondo) si el
+    // usuario navega antes de que termine — sin esto, la continuación relanzaba el
+    // trabajo completo para una grilla que ya no existía.
+    private readonly CancellationTokenSource _ctsPagina = new();
 
     // Los editores de la grilla escriben directo sobre la fila, así que cancelar no
     // alcanza para deshacer: se guarda una copia al abrir la edición y se restaura.
     private readonly Dictionary<TItem, TItem> _originales = new();
 
+    // Se excluyen las columnas que muta el completado en segundo plano: si el restore
+    // de un Cancelar las devolviera al estado pre-completado, quedarían vacías en
+    // pantalla hasta la próxima recarga (el usuario no puede editarlas de todos modos).
     private static readonly PropertyInfo[] PropiedadesCopiables =
         typeof(TItem).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                     .Where(p => p.CanRead && p.CanWrite)
+                     .Where(p => p.CanRead && p.CanWrite
+                         && p.GetCustomAttribute<RestoreIgnoreAttribute>() is null)
                      .ToArray();
 
     /// <summary>Ruta de la página, para resolver permisos (ej: "/caf").</summary>
@@ -137,7 +152,16 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     }
 
     /// <summary>Abre el historial de cambios de la fila.</summary>
-    protected async Task VerHistorial(TItem item) =>
+    protected async Task VerHistorial(TItem item)
+    {
+        // La UI ya lo esconde; esta es la barrera server-side, como en el resto de
+        // los handlers (ver el historial requiere poder leer la vista).
+        if (!CanAccess)
+        {
+            Notification.ShowError($"No tenés permiso para ver {TituloEntidad}.", "Permiso denegado");
+            return;
+        }
+
         await DialogService.OpenAsync<Shared.HistorialAuditoria>(
             $"Historial — {DescripcionFila(item)}",
             new Dictionary<string, object?>
@@ -147,6 +171,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
                 [nameof(Shared.HistorialAuditoria.ClaveNegocio)] = ClaveAuditoria(item),
             },
             new DialogOptions { Width = "720px" });
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -166,6 +191,10 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
             // antes de los datos para que la primera pintada ya tenga las opciones.
             await CargarAuxiliaresAsync();
             await CargarDatosAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            // El usuario navegó antes de que terminara la carga inicial.
         }
         catch (Exception ex)
         {
@@ -187,11 +216,12 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
         _ctsLotes?.Dispose();
         _ctsLotes = null;
         _cargandoResto = false;
+        _cargaIncompleta = false;
 
         bool faltanLotes;
         if (CargaProgresiva)
         {
-            _items = await ObtenerLoteAsync(0, TamanoPrimerLote, CancellationToken.None);
+            _items = await ObtenerLoteAsync(0, TamanoPrimerLote, _ctsPagina.Token);
             faltanLotes = _items.Count >= TamanoPrimerLote;
         }
         else
@@ -200,9 +230,14 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
             faltanLotes = false;
         }
 
+        // Si el usuario navegó mientras esperábamos el primer resultado, no se lanza
+        // trabajo de fondo para una grilla que ya no existe.
+        if (_ctsPagina.IsCancellationRequested) return;
+
         if (!faltanLotes && !CompletaEnSegundoPlano) return;
 
-        _ctsLotes = new CancellationTokenSource();
+        // Encadenado a la vida de la página: navegar cancela también los lotes.
+        _ctsLotes = CancellationTokenSource.CreateLinkedTokenSource(_ctsPagina.Token);
         _cargandoResto = true;
         _ = SegundoPlanoAsync(_items, faltanLotes, _ctsLotes.Token);
     }
@@ -215,6 +250,11 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     {
         try
         {
+            // Dedupe entre lotes: si otra sesión inserta o borra mientras se pagina,
+            // el Skip/Take se corre y una fila puede venir dos veces. La clave es el
+            // Id de auditoría (las páginas progresivas lo exponen).
+            var idsVistos = new HashSet<int>(destino.Select(IdAuditoria).OfType<int>());
+
             var skip = destino.Count;
             while (faltanLotes && !ct.IsCancellationRequested)
             {
@@ -224,17 +264,21 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
                 // quedó viejo y no debe mezclar sus filas con las nuevas.
                 if (ct.IsCancellationRequested || !ReferenceEquals(destino, _items)) return;
 
-                if (lote.Count > 0)
+                var nuevos = lote.Where(x => IdAuditoria(x) is not int id || idsVistos.Add(id)).ToList();
+                if (nuevos.Count > 0)
                 {
-                    destino.AddRange(lote);
-                    skip += lote.Count;
+                    // La mutación de la lista corre dentro del dispatcher a propósito:
+                    // queda serializada con los renders aunque algún servicio futuro
+                    // meta un ConfigureAwait(false) en la cadena.
                     await InvokeAsync(async () =>
                     {
-                        await _grid.Reload();
+                        destino.AddRange(nuevos);
+                        if (_grid is not null) await _grid.Reload();
                         StateHasChanged();
                     });
                 }
 
+                skip += lote.Count;
                 if (lote.Count < TamanoLote) break;
             }
 
@@ -245,7 +289,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
                 if (!ct.IsCancellationRequested && ReferenceEquals(destino, _items))
                     await InvokeAsync(async () =>
                     {
-                        await _grid.Reload();
+                        if (_grid is not null) await _grid.Reload();
                         StateHasChanged();
                     });
             }
@@ -256,18 +300,28 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
         }
         catch (Exception ex)
         {
-            await InvokeAsync(() => Informar(ex, "La carga de fondo", $"Error al cargar {TituloEntidad}"));
+            if (!ct.IsCancellationRequested && ReferenceEquals(destino, _items))
+            {
+                _cargaIncompleta = true;
+                await InvokeAsync(() => Informar(ex, "La carga de fondo", $"Error al cargar {TituloEntidad}"));
+            }
         }
         finally
         {
-            _cargandoResto = false;
-            if (!ct.IsCancellationRequested)
+            // Solo el runner vigente administra el flag: uno cancelado por una recarga
+            // no debe pisar el estado del nuevo (dejaría el export sin barrera).
+            if (!ct.IsCancellationRequested && ReferenceEquals(destino, _items))
+            {
+                _cargandoResto = false;
                 await InvokeAsync(StateHasChanged);
+            }
         }
     }
 
     public void Dispose()
     {
+        _ctsPagina.Cancel();
+        _ctsPagina.Dispose();
         _ctsLotes?.Cancel();
         _ctsLotes?.Dispose();
         _ctsLotes = null;
@@ -360,6 +414,10 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
         }
 
         if (!FilaValida(item, esAlta: true)) return;
+
+        // Igual que en la edición: resuelve los nombres visibles de los lookups, que
+        // el snapshot de auditoría del alta necesita (los servicios leen solo los Ids).
+        PrepararParaGuardar(item);
 
         try
         {
@@ -484,6 +542,14 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
         if (_cargandoResto)
         {
             Notification.ShowWarning("Esperá a que termine de cargar la grilla para exportar.", "Carga en curso");
+            return;
+        }
+
+        if (_cargaIncompleta)
+        {
+            Notification.ShowWarning(
+                "La carga no se completó (falló una consulta): recargá la vista antes de exportar.",
+                "Datos incompletos");
             return;
         }
 

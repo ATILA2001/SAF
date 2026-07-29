@@ -12,9 +12,13 @@
             <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
                 @if (_cargandoResto)
                 {
-                    <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate"
-                                               Size="ProgressBarCircularSize.ExtraSmall"
-                                               title="Completando datos de SADE..." />
+                    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" AlignItems="AlignItems.Center">
+                        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate"
+                                                   Size="ProgressBarCircularSize.ExtraSmall" />
+                        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0;">
+                            Completando datos de SADE…
+                        </RadzenText>
+                    </RadzenStack>
                 }
                 <RadzenButton Text="Exportar Excel"
                               Icon="download"
@@ -22,7 +26,7 @@
                               Click="@ExportarExcel"
                               IsBusy="@_exportando"
                               BusyText="Exportando..."
-                              Disabled="@(_items.Count == 0 || _exportando || _cargandoResto)" />
+                              Disabled="@(_items.Count == 0 || _exportando || _cargandoResto || _cargaIncompleta)" />
             </RadzenStack>
         </RadzenColumn>
     </RadzenRow>

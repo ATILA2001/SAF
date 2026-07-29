@@ -95,6 +95,22 @@ public class AuditoriaDiffTests
         var cambios = AuditoriaDiff.Snapshot(item, esBaja: true);
 
         Assert.IsTrue(cambios.All(c => c.Despues is null && c.Antes is not null));
-        Assert.AreEqual(1234.5m.ToString("N2"), cambios.Single(c => c.Campo == "IMPORTE").Antes);
+        // Cultura fija es-AR: lo persistido no depende de la config del host.
+        Assert.AreEqual("1.234,50", cambios.Single(c => c.Campo == "IMPORTE").Antes);
+    }
+
+    [TestMethod]
+    public void Comparar_DetectaCambiosDeHora_EnFechasConHora()
+    {
+        // Cargado/Revisado de CAF editan fecha Y hora: el mismo día con otra hora
+        // tiene que generar diff (formatear solo la fecha lo hacía invisible).
+        var antes = new SAF.Application.Caf.Dtos.CafViewModel { Cargado = new DateTime(2026, 7, 25, 9, 0, 0) };
+        var despues = new SAF.Application.Caf.Dtos.CafViewModel { Cargado = new DateTime(2026, 7, 25, 15, 30, 0) };
+
+        var cambios = AuditoriaDiff.Comparar(antes, despues);
+
+        Assert.AreEqual(1, cambios.Count);
+        Assert.AreEqual("25/07/2026 09:00", cambios[0].Antes);
+        Assert.AreEqual("25/07/2026 15:30", cambios[0].Despues);
     }
 }

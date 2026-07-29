@@ -73,10 +73,11 @@ public class PagoViewModel
     [MaxLength(200)]
     public string? SegurosTeso { get; set; }
 
-    // Las cuatro columnas que muta CompletarIvcAsync en segundo plano no se auditan:
-    // si cambian durante una edición no fue el usuario.
+    // Las cuatro columnas que muta CompletarIvcAsync en segundo plano no se auditan
+    // (si cambian durante una edición no fue el usuario) ni se restauran al cancelar
+    // (el restore las devolvería vacías al estado pre-completado).
     [Display(Name = "FECHA DE PAGO - NO CAF")]
-    [AuditIgnore]
+    [AuditIgnore, RestoreIgnore]
     public DateTime? FechaDePagoNoCaf { get; set; }
 
     [Display(Name = "FECHA DE PAGO - CAF")]
@@ -84,10 +85,11 @@ public class PagoViewModel
 
     // Estado de las OPs del expediente en CAF: si están pagadas solo en parte no hay
     // fecha (sería informar un pago completo), pero el usuario tiene que ver por qué.
-    [ExportIgnore]
+    // AuditIgnore: son derivadas técnicas, ensuciarían los snapshots de alta/baja.
+    [ExportIgnore, AuditIgnore]
     public int CafOps { get; set; }
 
-    [ExportIgnore]
+    [ExportIgnore, AuditIgnore]
     public int CafOpsPagadas { get; set; }
 
     /// <summary>
@@ -103,16 +105,16 @@ public class PagoViewModel
         = Array.Empty<SAF.Application.Caf.Dtos.LineaCafViewModel>();
 
     [Display(Name = "FECHA PAGO TOTAL")]
-    [AuditIgnore]
+    [AuditIgnore, RestoreIgnore]
     public DateTime? FechaPagoTotal { get; set; }
 
     [Display(Name = "FECHA SADE")]
-    [AuditIgnore]
+    [AuditIgnore, RestoreIgnore]
     public DateTime? FechaSade { get; set; }
 
     [Display(Name = "BUZON SADE")]
     [MaxLength(200)]
-    [AuditIgnore]
+    [AuditIgnore, RestoreIgnore]
     public string? BuzonSade { get; set; }
 
     [Display(Name = "PEDIDO FACTURA 2")]

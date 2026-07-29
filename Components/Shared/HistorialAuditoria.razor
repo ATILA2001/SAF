@@ -5,6 +5,12 @@
 {
     <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
 }
+else if (_fallo)
+{
+    <RadzenText TextStyle="TextStyle.Body1">
+        No se pudo cargar el historial. Cerrá el diálogo y volvé a intentar.
+    </RadzenText>
+}
 else if (_grupos.Count == 0)
 {
     <RadzenText TextStyle="TextStyle.Body1">Sin cambios registrados para esta fila.</RadzenText>
@@ -42,6 +48,7 @@ else
     [Parameter] public string ClaveNegocio { get; set; } = string.Empty;
 
     private bool _cargando = true;
+    private bool _fallo;
     private List<Grupo> _grupos = new();
 
     private sealed record Grupo(DateTime Fecha, string Usuario, string Accion, List<CambioAuditoria> Cambios);
@@ -58,6 +65,11 @@ else
                 .Select(g => new Grupo(g.First().Fecha, g.First().Usuario, g.First().Accion, g.ToList()))
                 .OrderByDescending(g => g.Fecha)
                 .ToList();
+        }
+        catch
+        {
+            // Una falla acá no puede voltear el circuito: el diálogo muestra el error.
+            _fallo = true;
         }
         finally
         {

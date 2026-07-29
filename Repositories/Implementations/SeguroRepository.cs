@@ -77,9 +77,11 @@ public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISegu
 
         // La confirmación del diálogo se basó en lo que el usuario tenía en pantalla:
         // el DELETE exige esa versión en el WHERE, así que si otro modificó la fila en
-        // el medio se avisa en vez de borrar a ciegas.
-        if (rowVersion is not null)
-            db.Entry(e).Property(x => x.RowVersion).OriginalValue = rowVersion;
+        // el medio se avisa en vez de borrar a ciegas. Sin versión no hay contra qué
+        // comparar: mismo criterio fail-closed que los upserts.
+        if (rowVersion is null)
+            throw new ConflictoDeConcurrenciaException();
+        db.Entry(e).Property(x => x.RowVersion).OriginalValue = rowVersion;
 
         db.ExpedientesSeguro.Remove(e);
         try
