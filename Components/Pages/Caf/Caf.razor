@@ -4,40 +4,14 @@
 <PageTitle>CAF</PageTitle>
 
 <RadzenStack>
-    <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-        <RadzenColumn>
-            <h2>Expedientes CAF</h2>
-        </RadzenColumn>
-        <RadzenColumn>
-            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
-                @if (CanCreate)
-                {
-                    <RadzenButton Text="Nuevo"
-                                  Icon="add"
-                                  ButtonStyle="ButtonStyle.Primary"
-                                  Click="@AddRow"
-                                  Disabled="@_loading" />
-                }
-                @if (_cargandoResto)
-                {
-                    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" AlignItems="AlignItems.Center">
-                        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate"
-                                                   Size="ProgressBarCircularSize.ExtraSmall" />
-                        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0;">
-                            Cargando filas: los filtros pueden estar incompletos…
-                        </RadzenText>
-                    </RadzenStack>
-                }
-                <RadzenButton Text="Exportar Excel"
-                              Icon="download"
-                              ButtonStyle="ButtonStyle.Secondary"
-                              Click="@ExportarExcel"
-                              IsBusy="@_exportando"
-                              BusyText="Exportando..."
-                              Disabled="@(_items.Count == 0 || _exportando || _cargandoResto || _cargaIncompleta)" />
-            </RadzenStack>
-        </RadzenColumn>
-    </RadzenRow>
+    <GridToolbar Titulo="Expedientes CAF"
+                 MostrarNuevo="@CanCreate"
+                 NuevoDeshabilitado="@_loading"
+                 OnNuevo="@AddRow"
+                 CargandoResto="@_cargandoResto"
+                 Exportando="@_exportando"
+                 ExportarDeshabilitado="@ExportarDeshabilitado"
+                 OnExportar="@ExportarExcel" />
 
     @if (_loading)
     {
@@ -67,12 +41,7 @@
                 <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Anio" Title="Año" Width="80px" />
                 <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Expediente" Title="Expediente" Width="230px">
                     <EditTemplate Context="item">
-                        <RadzenTextBox @bind-Value="item.Expediente" Style="width:100%"
-                                       class="@GetValidationCssClass(SAF.Application.Common.ExpedienteKey.Normalizar(item.Expediente) is not null)"
-                                       Placeholder="@SAF.Application.Common.ExpedienteKey.FormatosAceptados" />
-                        <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin:0;">
-                            Formato: @SAF.Application.Common.ExpedienteKey.FormatosAceptados
-                        </RadzenText>
+                        <ExpedienteEditor @bind-Value="item.Expediente" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Op" Title="OP" Width="110px">

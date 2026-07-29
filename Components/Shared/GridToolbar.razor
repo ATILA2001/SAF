@@ -1,0 +1,68 @@
+@* Barra superior común de las páginas de grilla: título, botón Nuevo (opcional),
+   aviso de carga de fondo y export. Los controles propios de una vista (p. ej.
+   Sincronizar en Pagos) entran por el fragmento Acciones, antes del botón Nuevo. *@
+
+<RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
+    <RadzenColumn Size="@SizeTitulo">
+        <h2>@Titulo</h2>
+    </RadzenColumn>
+    <RadzenColumn Size="@SizeAcciones">
+        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center"
+                     JustifyContent="JustifyContent.End" Wrap="FlexWrap.Wrap">
+            @Acciones
+            @if (MostrarNuevo)
+            {
+                <RadzenButton Text="Nuevo"
+                              Icon="add"
+                              ButtonStyle="ButtonStyle.Primary"
+                              Click="@OnNuevo"
+                              Disabled="@NuevoDeshabilitado" />
+            }
+            @if (CargandoResto)
+            {
+                @* flex 1 1 0: el aviso ocupa solo el espacio sobrante de la fila (base 0:
+                   nunca fuerza el wrap) y el texto se recorta con elipsis en barras
+                   cargadas (Pagos), en vez de empujar Exportar a una segunda fila.
+                   El texto completo queda en el tooltip. *@
+                <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" AlignItems="AlignItems.Center"
+                             Style="flex: 1 1 0; min-width: 0; overflow: hidden; justify-content: flex-end;"
+                             title="@TextoCargando">
+                    <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate"
+                                               Size="ProgressBarCircularSize.ExtraSmall" />
+                    <RadzenText TextStyle="TextStyle.Caption"
+                                Style="margin: 0; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        @TextoCargando
+                    </RadzenText>
+                </RadzenStack>
+            }
+            <RadzenButton Text="Exportar Excel"
+                          Icon="download"
+                          ButtonStyle="ButtonStyle.Secondary"
+                          Click="@OnExportar"
+                          IsBusy="@Exportando"
+                          BusyText="Exportando..."
+                          Disabled="@ExportarDeshabilitado" />
+        </RadzenStack>
+    </RadzenColumn>
+</RadzenRow>
+
+@code {
+    [Parameter, EditorRequired] public string Titulo { get; set; } = string.Empty;
+
+    // Reparto del ancho cuando la barra lleva muchos controles (ver Pagos).
+    [Parameter] public int? SizeTitulo { get; set; }
+    [Parameter] public int? SizeAcciones { get; set; }
+
+    [Parameter] public bool MostrarNuevo { get; set; }
+    [Parameter] public bool NuevoDeshabilitado { get; set; }
+    [Parameter] public EventCallback OnNuevo { get; set; }
+
+    [Parameter] public bool CargandoResto { get; set; }
+    [Parameter] public string TextoCargando { get; set; } = "Cargando filas: los filtros pueden estar incompletos…";
+
+    [Parameter] public bool Exportando { get; set; }
+    [Parameter] public bool ExportarDeshabilitado { get; set; }
+    [Parameter] public EventCallback OnExportar { get; set; }
+
+    [Parameter] public RenderFragment? Acciones { get; set; }
+}

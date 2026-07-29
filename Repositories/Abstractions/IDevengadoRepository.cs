@@ -9,14 +9,6 @@ namespace SAF.Repositories.Abstractions;
 public interface IDevengadoRepository
 {
     Task<IReadOnlyList<Devengado>> GetAllAsync(CancellationToken ct = default);
-    Task<Devengado?> GetByIdAsync(int id, CancellationToken ct = default);
-    Task<Devengado?> GetByKeyAsync(string tipoDev, int nroDev, CancellationToken ct = default);
-
-    /// <summary>
-    /// Suma de IMPORTE_PP de todas las filas del devengado (un devengado puede tener
-    /// varias filas: neto + retenciones). Es el IMPORTE del tablero Status Contabilidad.
-    /// </summary>
-    Task<decimal> GetSumImportePpByKeyAsync(string tipoDev, int nroDev, CancellationToken ct = default);
 
     /// <summary>
     /// Máxima FECHA_IMPUTACION presente en la tabla acumulativa; refleja hasta qué
@@ -27,7 +19,6 @@ public interface IDevengadoRepository
     /// <summary>Alta manual de una fila del ledger (complementa la sincronización con IVC).</summary>
     Task AddAsync(Devengado entity, CancellationToken ct = default);
 
-    /// <summary>Elimina una fila del ledger; sus datos editables (DevengadoExtra) caen en cascada.</summary>
     /// <summary>Página del ledger con orden determinístico, para la carga progresiva.</summary>
     Task<IReadOnlyList<Devengado>> GetPageAsync(int skip, int take, CancellationToken ct = default);
 

@@ -4,32 +4,12 @@
 <PageTitle>Status Contabilidad</PageTitle>
 
 <RadzenStack>
-    <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-        <RadzenColumn>
-            <h2>Status Contabilidad</h2>
-        </RadzenColumn>
-        <RadzenColumn>
-            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" JustifyContent="JustifyContent.End">
-                @if (_cargandoResto)
-                {
-                    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" AlignItems="AlignItems.Center">
-                        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate"
-                                                   Size="ProgressBarCircularSize.ExtraSmall" />
-                        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0;">
-                            Completando datos de SADE…
-                        </RadzenText>
-                    </RadzenStack>
-                }
-                <RadzenButton Text="Exportar Excel"
-                              Icon="download"
-                              ButtonStyle="ButtonStyle.Secondary"
-                              Click="@ExportarExcel"
-                              IsBusy="@_exportando"
-                              BusyText="Exportando..."
-                              Disabled="@(_items.Count == 0 || _exportando || _cargandoResto || _cargaIncompleta)" />
-            </RadzenStack>
-        </RadzenColumn>
-    </RadzenRow>
+    <GridToolbar Titulo="Status Contabilidad"
+                 CargandoResto="@_cargandoResto"
+                 TextoCargando="Completando datos de SADE…"
+                 Exportando="@_exportando"
+                 ExportarDeshabilitado="@ExportarDeshabilitado"
+                 OnExportar="@ExportarExcel" />
 
     @if (_loading)
     {

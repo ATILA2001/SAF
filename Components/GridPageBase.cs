@@ -40,6 +40,9 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     // la planilla se leen como "sin pagar / sin pase".
     protected bool _cargaIncompleta;
 
+    /// <summary>Condición compartida del botón Exportar (la usa GridToolbar en las 4 vistas).</summary>
+    protected bool ExportarDeshabilitado => _items.Count == 0 || _exportando || _cargandoResto || _cargaIncompleta;
+
     private CancellationTokenSource? _ctsLotes;
 
     // Vida de la página: cancela la carga inicial (y, encadenado, la de fondo) si el

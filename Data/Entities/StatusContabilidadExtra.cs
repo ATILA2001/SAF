@@ -7,7 +7,7 @@ namespace SAF.Data.Entities;
 /// Un registro por devengado único (TipoDev, NroDev).
 /// Columnas I–Q y X del tablero contable.
 /// </summary>
-public class StatusContabilidadExtra
+public class StatusContabilidadExtra : IExtraEditable
 {
     public int Id { get; set; }
 

@@ -6,50 +6,34 @@
 <RadzenStack>
     @* La barra de Pagos lleva un botón más que las otras vistas (Sincronizar): sin
        repartir el ancho, los botones quedan apretados y el texto se parte. *@
-    <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-        <RadzenColumn Size="3">
-            <h2>Pagos</h2>
-        </RadzenColumn>
-        <RadzenColumn Size="9">
-            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End" Wrap="FlexWrap.Wrap">
-                <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin:0;">
-                    Última actualización: @(_ultimaActualizacion?.ToString("dd/MM/yyyy") ?? "—")
-                </RadzenText>
-                @if (CanCreate)
-                {
-                    <RadzenButton Text="Nuevo"
-                                  Icon="add"
-                                  ButtonStyle="ButtonStyle.Primary"
-                                  Click="@AddRow"
-                                  Disabled="@(_loading || _syncing)" />
-                    <RadzenButton Text="Sincronizar"
-                                  Icon="sync"
-                                  ButtonStyle="ButtonStyle.Primary"
-                                  Click="@SincronizarDevengados"
-                                  IsBusy="@_syncing"
-                                  BusyText="Sincronizando..."
-                                  Disabled="@_syncing" />
-                }
-                @if (_cargandoResto)
-                {
-                    <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" AlignItems="AlignItems.Center">
-                        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate"
-                                                   Size="ProgressBarCircularSize.ExtraSmall" />
-                        <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0;">
-                            Cargando filas: los filtros pueden estar incompletos…
-                        </RadzenText>
-                    </RadzenStack>
-                }
-                <RadzenButton Text="Exportar Excel"
-                              Icon="download"
-                              ButtonStyle="ButtonStyle.Secondary"
-                              Click="@ExportarExcel"
-                              IsBusy="@_exportando"
-                              BusyText="Exportando..."
-                              Disabled="@(_items.Count == 0 || _exportando || _cargandoResto || _cargaIncompleta)" />
-            </RadzenStack>
-        </RadzenColumn>
-    </RadzenRow>
+    <GridToolbar Titulo="Pagos"
+                 SizeTitulo="3"
+                 SizeAcciones="9"
+                 CargandoResto="@_cargandoResto"
+                 Exportando="@_exportando"
+                 ExportarDeshabilitado="@ExportarDeshabilitado"
+                 OnExportar="@ExportarExcel">
+        <Acciones>
+            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin:0;">
+                Última actualización: @(_ultimaActualizacion?.ToString("dd/MM/yyyy") ?? "—")
+            </RadzenText>
+            @if (CanCreate)
+            {
+                <RadzenButton Text="Nuevo"
+                              Icon="add"
+                              ButtonStyle="ButtonStyle.Primary"
+                              Click="@AddRow"
+                              Disabled="@(_loading || _syncing)" />
+                <RadzenButton Text="Sincronizar"
+                              Icon="sync"
+                              ButtonStyle="ButtonStyle.Primary"
+                              Click="@SincronizarDevengados"
+                              IsBusy="@_syncing"
+                              BusyText="Sincronizando..."
+                              Disabled="@_syncing" />
+            }
+        </Acciones>
+    </GridToolbar>
 
     @if (_loading)
     {
@@ -97,15 +81,7 @@
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="Expediente" Title="Expediente" Width="150px">
                     <EditTemplate Context="item">
-                        <RadzenTextBox @bind-Value="item.Expediente" Disabled="@(item.Id != 0)"
-                                       class="@GetValidationCssClass(item.Id != 0 || SAF.Application.Common.ExpedienteKey.Normalizar(item.Expediente) is not null)"
-                                       Placeholder="@SAF.Application.Common.ExpedienteKey.FormatosAceptados" Style="width:100%" />
-                        @if (item.Id == 0)
-                        {
-                            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin:0;">
-                                Formato: @SAF.Application.Common.ExpedienteKey.FormatosAceptados
-                            </RadzenText>
-                        }
+                        <ExpedienteEditor @bind-Value="item.Expediente" Deshabilitado="@(item.Id != 0)" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="Empresa" Title="Empresa" Width="200px">

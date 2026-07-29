@@ -1,0 +1,32 @@
+@using SAF.Application.Common
+
+@* Editor de expediente con validación de formato en vivo y leyenda de formatos
+   aceptados. Compartido por el EditTemplate de Caf, Seguros y Pagos. *@
+
+<RadzenTextBox Value="@Value" TValue="string" ValueChanged="@CambiarValor" Style="width:100%"
+               Disabled="@Deshabilitado"
+               class="@GetValidationCssClass(EsValido)"
+               Placeholder="@ExpedienteKey.FormatosAceptados" />
+@if (!Deshabilitado)
+{
+    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin:0;">
+        Formato: @ExpedienteKey.FormatosAceptados
+    </RadzenText>
+}
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    // Filas históricas (Pagos): el expediente no se edita, puede no cumplir el formato
+    // del alta (no se marca inválido) y la leyenda de formato sobra.
+    [Parameter] public bool Deshabilitado { get; set; }
+
+    private bool EsValido => Deshabilitado || ExpedienteKey.Normalizar(Value) is not null;
+
+    private Task CambiarValor(string valor)
+    {
+        Value = valor;
+        return ValueChanged.InvokeAsync(valor);
+    }
+}

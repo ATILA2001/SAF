@@ -1,6 +1,4 @@
 #nullable enable
-using Microsoft.EntityFrameworkCore;
-using SAF.Data;
 using SAF.Data.Entities;
 using SAF.Repositories.Abstractions;
 using SAF.Services.Abstractions;

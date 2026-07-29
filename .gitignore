@@ -35,6 +35,9 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
+# Test results (MSTest deja carpetas Deploy/TRX/coverage)
+[Tt]est[Rr]esults/
+
 # Rider
 .idea/
 *.sln.iml

@@ -33,34 +33,6 @@ public class DevengadoRepository(IDbContextFactory<AppDbContext> dbFactory) : ID
             .ToListAsync(ct);
     }
 
-    public async Task<Devengado?> GetByIdAsync(int id, CancellationToken ct = default)
-    {
-        await using var db = await dbFactory.CreateDbContextAsync(ct);
-        return await db.Devengados.AsNoTracking()
-            .FirstOrDefaultAsync(d => d.Id == id, ct);
-    }
-
-    public async Task<Devengado?> GetByKeyAsync(string tipoDev, int nroDev, CancellationToken ct = default)
-    {
-        await using var db = await dbFactory.CreateDbContextAsync(ct);
-
-        // Un devengado puede tener varias líneas: se devuelve la representante con el
-        // mismo criterio que el tablero (mayor importe = el neto, desempate por Id).
-        return await db.Devengados.AsNoTracking()
-            .Where(d => d.TipoDev == tipoDev && d.NroDev == nroDev)
-            .OrderByDescending(d => d.ImportePp)
-            .ThenBy(d => d.Id)
-            .FirstOrDefaultAsync(ct);
-    }
-
-    public async Task<decimal> GetSumImportePpByKeyAsync(string tipoDev, int nroDev, CancellationToken ct = default)
-    {
-        await using var db = await dbFactory.CreateDbContextAsync(ct);
-        return await db.Devengados.AsNoTracking()
-            .Where(d => d.TipoDev == tipoDev && d.NroDev == nroDev)
-            .SumAsync(d => d.ImportePp ?? 0m, ct);
-    }
-
     public async Task<DateTime?> GetMaxFechaImputacionAsync(CancellationToken ct = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);

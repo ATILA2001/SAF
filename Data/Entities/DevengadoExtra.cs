@@ -7,7 +7,7 @@ namespace SAF.Data.Entities;
 /// Un registro por FILA del ledger de devengados (DevengadoId): un devengado puede
 /// tener varias filas (neto + retenciones) y cada una se edita por separado.
 /// </summary>
-public class DevengadoExtra
+public class DevengadoExtra : IExtraEditable
 {
     public int Id { get; set; }
 
