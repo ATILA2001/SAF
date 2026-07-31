@@ -1,0 +1,47 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Publicar SAF (Release, carpeta)",
+            "type": "process",
+            "command": "dotnet",
+            "args": [
+                "publish",
+                "${workspaceFolder}/SAF.csproj",
+                "-c",
+                "Release",
+                "-o",
+                "${workspaceFolder}/bin/publish"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": "build"
+        },
+        {
+            "label": "Publicar SAF a IIS (Web Deploy)",
+            "type": "process",
+            "command": "dotnet",
+            "args": [
+                "publish",
+                "${workspaceFolder}/SAF.csproj",
+                "-c",
+                "Release",
+                "/p:PublishProfile=IISProfile"
+            ],
+            "options": {
+                "env": {
+                    "Password": "${input:deployPassword}"
+                }
+            },
+            "problemMatcher": "$msCompile",
+            "group": "build"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "deployPassword",
+            "type": "promptString",
+            "description": "Contraseña de BUENOSAIRES\\20428194781 para Web Deploy",
+            "password": true
+        }
+    ]
+}
