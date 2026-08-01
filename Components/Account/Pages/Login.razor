@@ -11,7 +11,9 @@
     protected override void OnInitialized()
     {
         var authWebBase = (Configuration["AuthWeb:BaseUrl"] ?? string.Empty).TrimEnd('/');
-        var clientId = Configuration["AuthWeb:ClientId"] ?? "saf";
+        // Sin ClientId configurado se manda vacío: Auth.Web deduce el cliente por
+        // el returnUrl contra sus AllowedReturnUrls (igual que SAI).
+        var clientId = Configuration["AuthWeb:ClientId"] ?? string.Empty;
 
         // El middleware de la cookie arma un ReturnUrl relativo (ej: "/pagos"), pero
         // IsReturnUrlAllowed de Auth.Web compara por mismo origen y necesita una URI
