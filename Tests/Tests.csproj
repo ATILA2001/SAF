@@ -17,6 +17,12 @@
     <PackageReference Include="bunit.web" Version="1.40.0" />
   </ItemGroup>
 
+  <!-- Sin esto las assemblies de ASP.NET Core se resuelven como paquetes NuGet sueltos
+       (y arrastran System.Security.Cryptography.Xml con NU1903) en vez del framework compartido. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\SAF.csproj" />
   </ItemGroup>
