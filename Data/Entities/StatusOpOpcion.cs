@@ -5,7 +5,7 @@ namespace SAF.Data.Entities;
 /// <summary>
 /// Tabla de opciones para el campo STATUS OP (vista Pagos).
 /// </summary>
-public class StatusOpOpcion
+public class StatusOpOpcion : IOpcionLista
 {
     public int Id { get; set; }
     public string Nombre { get; set; } = string.Empty;

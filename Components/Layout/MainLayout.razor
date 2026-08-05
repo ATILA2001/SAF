@@ -40,6 +40,10 @@
             {
                 <RadzenPanelMenuItem Text="Seguros" Icon="verified_user" Path="/seguros" />
             }
+            @if (CanShowPage("/admin/listas"))
+            {
+                <RadzenPanelMenuItem Text="Listas" Icon="checklist" Path="/admin/listas" />
+            }
         </RadzenPanelMenu>
     </RadzenSidebar>
     <RadzenBody>

@@ -6,7 +6,7 @@ namespace SAF.Data.Entities;
 /// Tabla de opciones para el campo Seguro (vista Seguros). Normaliza el texto libre
 /// del Excel original (ok / oK / CAF/ok) a una lista cerrada.
 /// </summary>
-public class SeguroOpcion
+public class SeguroOpcion : IOpcionLista
 {
     public int Id { get; set; }
     public string Nombre { get; set; } = string.Empty;

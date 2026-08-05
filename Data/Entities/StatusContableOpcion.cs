@@ -5,7 +5,7 @@ namespace SAF.Data.Entities;
 /// <summary>
 /// Tabla de opciones para el campo Status Contable (vista Status Contabilidad).
 /// </summary>
-public class StatusContableOpcion
+public class StatusContableOpcion : IOpcionLista
 {
     public int Id { get; set; }
     public string Nombre { get; set; } = string.Empty;

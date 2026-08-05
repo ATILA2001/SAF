@@ -5,7 +5,7 @@ namespace SAF.Data.Entities;
 /// <summary>
 /// Tramitadores de Cuentas a Pagar (lookup desplegable en vista Status Contabilidad).
 /// </summary>
-public class TramitadorCuentasPagarOpcion
+public class TramitadorCuentasPagarOpcion : IOpcionLista
 {
     public int Id { get; set; }
     public string Nombre { get; set; } = string.Empty;

@@ -139,12 +139,14 @@ public static class SafBuilderExtensions
         builder.Services.AddTransient<ICafRepository, CafRepository>();
         builder.Services.AddTransient<ISeguroRepository, SeguroRepository>();
         builder.Services.AddTransient<ILookupRepository, LookupRepository>();
+        builder.Services.AddTransient<IListaAdminRepository, ListaAdminRepository>();
 
         builder.Services.AddScoped<IPagosService, PagosService>();
         builder.Services.AddScoped<IStatusContabilidadService, StatusContabilidadService>();
         builder.Services.AddScoped<ICafService, CafService>();
         builder.Services.AddScoped<ISeguroService, SeguroService>();
         builder.Services.AddScoped<ILookupService, LookupService>();
+        builder.Services.AddScoped<IListaAdminService, ListaAdminService>();
         builder.Services.AddScoped<IExportService, ExportService>();
         builder.Services.AddScoped<IDevengadoSyncService, DevengadoSyncService>();
         builder.Services.AddScoped<SAF.Shared.INotificationHelper, SAF.Shared.NotificationHelper>();

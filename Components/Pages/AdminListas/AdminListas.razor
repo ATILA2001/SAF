@@ -1,0 +1,104 @@
+@page "/admin/listas"
+@using SAF.Application.AdminListas
+@using SAF.Application.AdminListas.Dtos
+@inherits SAF.Components.GridPageBase<SAF.Application.AdminListas.Dtos.OpcionListaViewModel>
+
+<PageTitle>Administración de listas</PageTitle>
+
+<RadzenStack>
+    <GridToolbar Titulo="Administración de listas"
+                 MostrarNuevo="@CanCreate"
+                 NuevoDeshabilitado="@_loading"
+                 OnNuevo="@AddRow"
+                 Exportando="@_exportando"
+                 ExportarDeshabilitado="@ExportarDeshabilitado"
+                 OnExportar="@ExportarExcel">
+        <Acciones>
+            <RadzenLabel Text="Lista:" />
+            <RadzenDropDown TValue="ListaAdminDefinicion"
+                            Data="@ListasAdmin.Todas"
+                            @bind-Value="_lista"
+                            TextProperty="Titulo"
+                            Change="@OnListaChanged"
+                            Disabled="@_loading"
+                            Style="min-width: 260px" />
+        </Acciones>
+    </GridToolbar>
+
+    @if (_loading)
+    {
+        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else
+    {
+        @* Listas cortas (≤ ~25 filas): grilla completa sin paginado ni virtualización. *@
+        <RadzenDataGrid @ref="_grid"
+                        Data="@_items"
+                        TItem="OpcionListaViewModel"
+                        AllowFiltering="true"
+                        AllowSorting="true"
+                        AllowColumnResize="true"
+                        FilterMode="FilterMode.CheckBoxList"
+                        ClearFilterText="Limpiar"
+                        ApplyFilterText="Aplicar"
+                        AllowPaging="false"
+                        EditMode="DataGridEditMode.Single"
+                        RowEdit="@OnRowEdit"
+                        RowUpdate="@OnRowUpdate"
+                        RowCreate="@OnRowCreate">
+            <Columns>
+                <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Nombre" Title="Nombre">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.Nombre" MaxLength="@OpcionListaValidator.NombreMaxLength" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Orden" Title="Orden" Width="110px">
+                    <EditTemplate Context="item">
+                        <RadzenNumeric TValue="int" @bind-Value="item.Orden" Min="0" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Activo" Title="Activo" Width="110px">
+                    <Template Context="item">@(item.Activo ? "Sí" : "No")</Template>
+                    <EditTemplate Context="item">
+                        <RadzenCheckBox TValue="bool" @bind-Value="item.Activo" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                @if (_lista.TieneEsOk)
+                {
+                    @* Solo Seguros: si la opción cuenta como "seguro en regla" en el cruce a Pagos. *@
+                    <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="EsOk" Title="Cuenta como OK" Width="140px">
+                        <Template Context="item">@(item.EsOk == true ? "Sí" : "No")</Template>
+                        <EditTemplate Context="item">
+                            <RadzenCheckBox TValue="bool?" TriState="false" @bind-Value="item.EsOk" />
+                        </EditTemplate>
+                    </RadzenDataGridColumn>
+                }
+                @if (CanEdit || CanDelete || CanCreate)
+                {
+                    <RadzenDataGridColumn TItem="OpcionListaViewModel" Title="Acciones" Width="140px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
+                        <Template Context="item">
+                            @if (CanEdit)
+                            {
+                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                              Click="@(() => _grid.EditRow(item))" />
+                            }
+                            @if (CanDelete)
+                            {
+                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                                              Click="@(() => DeleteRow(item))" />
+                            }
+                            <RadzenButton Icon="history" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                          Click="@(() => VerHistorial(item))" title="Historial de cambios" />
+                        </Template>
+                        <EditTemplate Context="item">
+                            <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                          Click="@(() => GuardarFila(item))" />
+                            <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                                          Click="@(() => CancelEdit(item))" />
+                        </EditTemplate>
+                    </RadzenDataGridColumn>
+                }
+            </Columns>
+        </RadzenDataGrid>
+    }
+</RadzenStack>
