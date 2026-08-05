@@ -4,9 +4,10 @@ namespace SAF.Application.AdminListas;
 
 /// <summary>
 /// Una lista administrable: clave estable (viaja a la auditoría y al servicio),
-/// título visible y si la tabla tiene el campo extra EsOk (solo Seguros).
+/// título visible, la vista cuyos desplegables alimenta (decide quién puede
+/// administrarla) y si la tabla tiene el campo extra EsOk (solo Seguros).
 /// </summary>
-public sealed record ListaAdminDefinicion(string Key, string Titulo, bool TieneEsOk = false);
+public sealed record ListaAdminDefinicion(string Key, string Titulo, string VistaUrl, bool TieneEsOk = false);
 
 /// <summary>
 /// Catálogo de las listas de opciones que se administran en /admin/listas.
@@ -25,11 +26,11 @@ public static class ListasAdmin
     // Los títulos también son nombre de hoja al exportar: máximo 31 caracteres.
     public static readonly IReadOnlyList<ListaAdminDefinicion> Todas =
     [
-        new(StatusDgayf, "Status DGAyF (Pagos)"),
-        new(StatusOp, "Status OP (Pagos)"),
-        new(StatusContable, "Status Contable"),
-        new(TramitadoresCuentasPagar, "Tramitadores Cuentas a Pagar"),
-        new(TramitadoresLiquidaciones, "Tramitadores Liquidaciones"),
-        new(Seguros, "Seguros", TieneEsOk: true),
+        new(StatusDgayf, "Status DGAyF (Pagos)", "/pagos"),
+        new(StatusOp, "Status OP (Pagos)", "/pagos"),
+        new(StatusContable, "Status Contable", "/status-contabilidad"),
+        new(TramitadoresCuentasPagar, "Tramitadores Cuentas a Pagar", "/status-contabilidad"),
+        new(TramitadoresLiquidaciones, "Tramitadores Liquidaciones", "/status-contabilidad"),
+        new(Seguros, "Seguros", "/seguros", TieneEsOk: true),
     ];
 }

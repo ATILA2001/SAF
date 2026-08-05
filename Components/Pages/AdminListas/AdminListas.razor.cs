@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Authorization;
 using SAF.Application.AdminListas;
 using SAF.Application.AdminListas.Dtos;
+using SAF.Security;
 using SAF.Services.Abstractions;
 
 namespace SAF.Components.Pages.AdminListas;
@@ -8,16 +10,34 @@ namespace SAF.Components.Pages.AdminListas;
 public partial class AdminListas
 {
     [Inject] private IListaAdminService ListaAdminService { get; set; } = null!;
+    [Inject] private IPermissionService PermissionService { get; set; } = null!;
+    [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
 
     private ListaAdminDefinicion _lista = ListasAdmin.Todas[0];
+    private IReadOnlyList<ListaAdminDefinicion> _listasVisibles = [];
 
     protected override string PageUrl => "/admin/listas";
     protected override string TituloEntidad => "opciones de lista";
     protected override string ExportNombreHoja => _lista.Titulo;
     protected override string ExportNombreArchivo => $"Lista_{_lista.Key}.xlsx";
 
+    protected override async Task CargarAuxiliaresAsync()
+    {
+        // La lectura de las vistas la tienen todos: lo que habilita a administrar
+        // la lista de un desplegable es poder EDITAR la vista que lo usa.
+        var user = (await AuthStateProvider.GetAuthenticationStateAsync()).User;
+        _listasVisibles = AdminClaims.IsAdmin(user)
+            ? ListasAdmin.Todas
+            : ListasAdmin.Todas.Where(l => PermissionService.CanPerform(user, l.VistaUrl, "edit")).ToList();
+
+        if (!_listasVisibles.Contains(_lista) && _listasVisibles.Count > 0)
+            _lista = _listasVisibles[0];
+    }
+
     protected override async Task<List<OpcionListaViewModel>> ObtenerDatosAsync() =>
-        (await ListaAdminService.GetAllAsync(_lista.Key)).ToList();
+        _listasVisibles.Count == 0
+            ? []
+            : (await ListaAdminService.GetAllAsync(_lista.Key)).ToList();
 
     protected override OpcionListaViewModel NuevaFila() => new()
     {

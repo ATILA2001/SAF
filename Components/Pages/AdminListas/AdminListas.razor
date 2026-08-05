@@ -16,7 +16,7 @@
         <Acciones>
             <RadzenLabel Text="Lista:" />
             <RadzenDropDown TValue="ListaAdminDefinicion"
-                            Data="@ListasAdmin.Todas"
+                            Data="@_listasVisibles"
                             @bind-Value="_lista"
                             TextProperty="Titulo"
                             Change="@OnListaChanged"
@@ -28,6 +28,10 @@
     @if (_loading)
     {
         <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+    }
+    else if (_listasVisibles.Count == 0)
+    {
+        <RadzenText>No tenés listas para administrar: requiere permiso de edición en alguna de las vistas.</RadzenText>
     }
     else
     {
