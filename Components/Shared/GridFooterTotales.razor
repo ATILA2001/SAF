@@ -1,0 +1,26 @@
+@* Pie de las grillas con importes (Pagos, Status Contabilidad): cantidad de filas
+   y suma del importe de las filas visibles, respetando los filtros aplicados
+   (se calcula sobre grid.View, la vista filtrada y ordenada de la grilla). *@
+
+<RadzenStack Orientation="Orientation.Vertical" Class="rz-p-4 rz-w-100" Style="gap:0.5rem;">
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween">
+        <RadzenLabel Text="@($"Filas filtradas: {Filas:N0}")" />
+        <RadzenLabel Text="@($"Importe total: {Importe:N2}{Sufijo}")" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Parameter, EditorRequired] public int Filas { get; set; }
+    [Parameter, EditorRequired] public decimal Importe { get; set; }
+
+    /// <summary>La carga de fondo sigue trayendo filas: la suma es parcial.</summary>
+    [Parameter] public bool Cargando { get; set; }
+
+    /// <summary>La carga de fondo falló: la suma quedó incompleta hasta recargar.</summary>
+    [Parameter] public bool CargaIncompleta { get; set; }
+
+    private string Sufijo =>
+        CargaIncompleta ? " (carga incompleta: recargá la vista)"
+        : Cargando ? " (cargando…)"
+        : string.Empty;
+}

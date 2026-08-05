@@ -210,6 +210,13 @@
                     </RadzenDataGridColumn>
                 }
             </Columns>
+            <FooterTemplate>
+                @* View y no _items: es lo que queda a la vista con los filtros aplicados. *@
+                <GridFooterTotales Filas="@(_grid?.View?.Count() ?? 0)"
+                                   Importe="@(_grid?.View?.Sum(x => x.Importe ?? 0m) ?? 0m)"
+                                   Cargando="@_cargandoResto"
+                                   CargaIncompleta="@_cargaIncompleta" />
+            </FooterTemplate>
         </RadzenDataGrid>
     }
 </RadzenStack>

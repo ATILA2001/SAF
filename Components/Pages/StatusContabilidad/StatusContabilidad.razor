@@ -159,6 +159,13 @@
                     </RadzenDataGridColumn>
                 }
             </Columns>
+            <FooterTemplate>
+                @* View y no _items: es lo que queda a la vista con los filtros aplicados.
+                   Sin las marcas de carga parcial: acá las filas (y sus importes) llegan
+                   completas de entrada, el segundo plano solo rellena columnas SADE/IVC. *@
+                <GridFooterTotales Filas="@(_grid?.View?.Count() ?? 0)"
+                                   Importe="@(_grid?.View?.Sum(x => x.ImporteTotal ?? 0m) ?? 0m)" />
+            </FooterTemplate>
         </RadzenDataGrid>
     }
 </RadzenStack>
