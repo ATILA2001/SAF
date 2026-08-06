@@ -25,6 +25,10 @@
                         AllowFiltering="true"
                         AllowSorting="true"
                         AllowColumnResize="true"
+                        AllowColumnPicking="true"
+                        ColumnsText="Columnas"
+                        AllColumnsText="Todas"
+                        ColumnsShowingText="columnas mostradas"
                         FilterMode="FilterMode.CheckBoxList"
                         ClearFilterText="Limpiar"
                         ApplyFilterText="Aplicar"
@@ -35,13 +39,15 @@
                         RowEdit="@OnRowEdit"
                         RowUpdate="@OnRowUpdate">
             <Columns>
-                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="TipoDev" Title="Tipo Dev" Width="90px" />
-                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="NroDev" Title="Nro Dev" Width="90px" />
-                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="Expediente" Title="Expediente" Width="150px" />
-                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="Empresa" Title="Empresa" Width="200px" />
+                @* Las columnas hasta Importe quedan fijas al scrollear horizontalmente y
+                   fuera del selector de columnas: identifican la fila, no pueden faltar. *@
+                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="TipoDev" Title="Tipo Dev" Width="90px" Frozen="true" Pickable="false" />
+                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="NroDev" Title="Nro Dev" Width="90px" Frozen="true" Pickable="false" />
+                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="Expediente" Title="Expediente" Width="150px" Frozen="true" Pickable="false" />
+                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="Empresa" Title="Empresa" Width="200px" Frozen="true" Pickable="false" />
                 @* El tablero agrupa las líneas del devengado; en Pagos se ven separadas.
                    El badge avisa cuántas resume esta fila y de cuál salen los datos. *@
-                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="ImporteTotal" Title="Importe" Width="150px" FormatString="{0:N2}">
+                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="ImporteTotal" Title="Importe" Width="150px" FormatString="{0:N2}" Frozen="true" Pickable="false">
                     <Template Context="item">
                         <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
                             <span>@item.ImporteTotal?.ToString("N2")</span>
@@ -143,7 +149,7 @@
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="DiasEnElArea" Title="Días en el Área" Width="130px" />
                 @if (CanEdit)
                 {
-                    <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Title="Acciones" Width="120px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right">
+                    <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Title="Acciones" Width="120px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Pickable="false">
                         <Template Context="item">
                             <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
                                           Click="@(() => _grid.EditRow(item))" />
