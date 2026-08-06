@@ -168,10 +168,15 @@ html, body, #app {
     overflow: auto;
 }
 
-/* La tabla crece según el ancho de sus columnas (habilita scroll horizontal),
-   pero nunca es más angosta que el contenedor. */
+/* La tabla nunca es más angosta que el contenedor; para el scroll horizontal
+   alcanza con table-layout fixed de Radzen: la tabla crece sola a la suma de
+   los anchos declarados. OJO: no usar width max-content acá — infla la tabla
+   al ancho del contenido y las columnas con textos largos (Empresa) quedan más
+   anchas que su Width declarado, corriéndose de los offsets sticky de las
+   columnas fijas (el contenido y el ícono de filtro asomaban sueltos después
+   del bloque fijo). */
 .rz-data-grid .rz-grid-table {
-    width: max-content;
+    width: 100%;
     min-width: 100%;
 }
 
