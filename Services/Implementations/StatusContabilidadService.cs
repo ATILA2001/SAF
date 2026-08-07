@@ -70,6 +70,7 @@ public class StatusContabilidadService(
                 // BuzonSade y UltimoMovimientoSade los rellena CompletarIvcAsync.
                 FechaPedidoFactura2 = extra?.FechaPedidoFactura2,
                 ReiterarPedidoFactura3 = extra?.ReiterarPedidoFactura3,
+                FechaRechazo = extra?.FechaRechazo,
                 FechaIngresoFactura = extra?.FechaIngresoFactura,
                 SinFacturaMotivo = extra?.SinFacturaMotivo,
                 StatusContableOpcionId = extra?.StatusContableOpcionId,
@@ -80,7 +81,6 @@ public class StatusContabilidadService(
                 TramitadorLiquidacionesOpcionId = extra?.TramitadorLiquidacionesOpcionId,
                 TramitadorLiquidacionesNombre = extra?.TramitadorLiquidacionesOpcion?.Nombre,
                 ObservacionesLiquidaciones = extra?.ObservacionesLiquidaciones,
-                FaltaPoliza = extra?.FaltaPoliza ?? false,
                 RowVersion = extra?.RowVersion,
             });
         }
@@ -181,6 +181,7 @@ public class StatusContabilidadService(
             NroDev = vm.NroDev,
             FechaPedidoFactura2 = vm.FechaPedidoFactura2,
             ReiterarPedidoFactura3 = vm.ReiterarPedidoFactura3,
+            FechaRechazo = vm.FechaRechazo,
             FechaIngresoFactura = vm.FechaIngresoFactura,
             SinFacturaMotivo = vm.SinFacturaMotivo,
             StatusContableOpcionId = vm.StatusContableOpcionId,
@@ -188,7 +189,6 @@ public class StatusContabilidadService(
             TramitadorCuentasPagarOpcionId = vm.TramitadorCuentasPagarOpcionId,
             TramitadorLiquidacionesOpcionId = vm.TramitadorLiquidacionesOpcionId,
             ObservacionesLiquidaciones = vm.ObservacionesLiquidaciones,
-            FaltaPoliza = vm.FaltaPoliza,
             // BuzonSade / UltimoMovimientoSade / DiasEnElArea: derivadas de PASES_SADE, no se persisten.
             // Versión que tenía el registro al cargarse: la exige el upsert para detectar
             // que otro usuario lo modificó mientras esta fila estaba en edición.

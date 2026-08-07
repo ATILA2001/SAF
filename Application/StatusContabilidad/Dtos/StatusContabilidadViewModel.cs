@@ -77,6 +77,9 @@ public class StatusContabilidadViewModel
     [Display(Name = "Reiterar Pedido de Factura 3")]
     public DateTime? ReiterarPedidoFactura3 { get; set; }    // col J
 
+    [Display(Name = "Fecha de rechazo")]
+    public DateTime? FechaRechazo { get; set; }
+
     [Display(Name = "Fecha de Ingreso Factura (correcta)")]
     public DateTime? FechaIngresoFactura { get; set; }       // col K
 
@@ -110,9 +113,6 @@ public class StatusContabilidadViewModel
     [Display(Name = "Observaciones Liquidaciones")]
     [MaxLength(500)]
     public string? ObservacionesLiquidaciones { get; set; }  // col P
-
-    [Display(Name = "FALTA POLIZA")]
-    public bool FaltaPoliza { get; set; }                    // col Q
 
     // col X: derivada de IVC.PASES_SADE (fecha del último pase, solo lectura)
     [Display(Name = "Ultimo Movimiento")]

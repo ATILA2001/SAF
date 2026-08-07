@@ -29,6 +29,7 @@ public class StatusContabilidadExtraRepository(IDbContextFactory<AppDbContext> d
     {
         destino.FechaPedidoFactura2 = origen.FechaPedidoFactura2;
         destino.ReiterarPedidoFactura3 = origen.ReiterarPedidoFactura3;
+        destino.FechaRechazo = origen.FechaRechazo;
         destino.FechaIngresoFactura = origen.FechaIngresoFactura;
         destino.SinFacturaMotivo = origen.SinFacturaMotivo;
         destino.StatusContableOpcionId = origen.StatusContableOpcionId;
@@ -36,6 +37,5 @@ public class StatusContabilidadExtraRepository(IDbContextFactory<AppDbContext> d
         destino.TramitadorCuentasPagarOpcionId = origen.TramitadorCuentasPagarOpcionId;
         destino.TramitadorLiquidacionesOpcionId = origen.TramitadorLiquidacionesOpcionId;
         destino.ObservacionesLiquidaciones = origen.ObservacionesLiquidaciones;
-        destino.FaltaPoliza = origen.FaltaPoliza;
     }
 }

@@ -21,6 +21,9 @@ public class StatusContabilidadExtra : IExtraEditable
     // Col J: Reiterar pedido de factura 3
     public DateTime? ReiterarPedidoFactura3 { get; set; }
 
+    // Fecha de rechazo (previa al ingreso correcto de la factura)
+    public DateTime? FechaRechazo { get; set; }
+
     // Col K: Fecha de ingreso factura (correcta)
     public DateTime? FechaIngresoFactura { get; set; }
 
@@ -45,9 +48,6 @@ public class StatusContabilidadExtra : IExtraEditable
 
     // Col P: Observaciones Liquidaciones
     public string? ObservacionesLiquidaciones { get; set; }
-
-    // Col Q: Falta Póliza
-    public bool FaltaPoliza { get; set; } = false;
 
     // Col W (Buzón SADE), X (Último Movimiento) e Y (Días en el área) son derivadas
     // de IVC.PASES_SADE por expediente (VLOOKUP a la hoja SADE en el Excel):
