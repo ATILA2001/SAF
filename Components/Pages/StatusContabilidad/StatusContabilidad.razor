@@ -37,7 +37,8 @@
                         Style="height: calc(100vh - 15rem)"
                         EditMode="DataGridEditMode.Single"
                         RowEdit="@OnRowEdit"
-                        RowUpdate="@OnRowUpdate">
+                        RowUpdate="@OnRowUpdate"
+                        CellRender="@OnCellRender">
             <Columns>
                 @* Las columnas hasta Importe quedan fijas al scrollear horizontalmente y
                    fuera del selector de columnas: identifican la fila, no pueden faltar. *@

@@ -125,6 +125,34 @@ public class StatusContabilidadViewModel
         ? (int)(DateTime.Today - dt.Date).TotalDays
         : null;
 
+    // ─── Avisos de pedidos de factura atrasados ──────────────────────────────
+    // La factura todavía no ingresó: sin fecha correcta y sin marca "Sin factura"
+    // (N/C · CCOO · PAV · Anulado, que significan que no va a ingresar).
+    private bool SinIngresoFactura =>
+        FechaIngresoFactura is null && string.IsNullOrWhiteSpace(SinFacturaMotivo);
+
+    /// <summary>
+    /// Toca hacer el 2º pedido: pasaron más de 7 días corridos desde el pedido 1,
+    /// la factura no ingresó y el pedido 2 sigue sin cargarse.
+    /// </summary>
+    [ExportIgnore, AuditIgnore]
+    public bool PedidoFactura2Atrasado =>
+        SinIngresoFactura
+        && FechaPedidoFactura2 is null
+        && FechaPedidoFactura1 is DateTime f1
+        && (DateTime.Today - f1.Date).TotalDays > 7;
+
+    /// <summary>
+    /// Toca reiterar el pedido (3º): pasaron más de 7 días corridos desde el pedido 2,
+    /// la factura no ingresó y el pedido 3 sigue sin cargarse.
+    /// </summary>
+    [ExportIgnore, AuditIgnore]
+    public bool PedidoFactura3Atrasado =>
+        SinIngresoFactura
+        && ReiterarPedidoFactura3 is null
+        && FechaPedidoFactura2 is DateTime f2
+        && (DateTime.Today - f2.Date).TotalDays > 7;
+
     // Versión de la fila al momento de cargarla: viaja a la grilla y vuelve al guardar,
     // para detectar que otro usuario la modificó mientras se editaba.
     [ExportIgnore]

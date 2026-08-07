@@ -64,4 +64,25 @@ public partial class StatusContabilidad
     // El tablero agrupa por devengado: la clave de negocio es el historial (sin Id técnico).
     protected override string DescripcionFila(StatusContabilidadViewModel item) =>
         $"Devengado {item.TipoDev} {item.NroDev}";
+
+    // Naranja translúcido: legible sobre el fondo de la fila en tema claro y oscuro.
+    private const string EstiloPedidoAtrasado = "background-color: rgba(255, 152, 0, 0.30);";
+
+    // Aviso de pedidos atrasados: pinta la celda del pedido que ya corresponde hacer
+    // (la regla vive en el ViewModel; acá solo el marcado y su explicación).
+    private void OnCellRender(DataGridCellRenderEventArgs<StatusContabilidadViewModel> args)
+    {
+        if (args.Column.Property == nameof(StatusContabilidadViewModel.FechaPedidoFactura2)
+            && args.Data.PedidoFactura2Atrasado)
+        {
+            args.Attributes["style"] = EstiloPedidoAtrasado;
+            args.Attributes["title"] = "Más de 7 días desde el pedido 1 y la factura no ingresó: corresponde el 2º pedido.";
+        }
+        else if (args.Column.Property == nameof(StatusContabilidadViewModel.ReiterarPedidoFactura3)
+            && args.Data.PedidoFactura3Atrasado)
+        {
+            args.Attributes["style"] = EstiloPedidoAtrasado;
+            args.Attributes["title"] = "Más de 7 días desde el pedido 2 y la factura no ingresó: corresponde reiterar el pedido (3º).";
+        }
+    }
 }
