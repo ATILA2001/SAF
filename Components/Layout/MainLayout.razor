@@ -13,6 +13,28 @@
                         <RadzenLabel Text="@context.User.Identity?.Name" />
                     </Authorized>
                 </AuthorizeView>
+                @if (_otherApps.Count > 0)
+                {
+                    <div style="position: relative; display: inline-block;">
+                        <RadzenButton Text="Aplicaciones"
+                                      Icon="grid_view"
+                                      ButtonStyle="ButtonStyle.Secondary"
+                                      Click="@ToggleAppSwitcher" />
+                        @if (_appSwitcherOpen)
+                        {
+                            <div style="position: absolute; right: 0; top: calc(100% + 4px); min-width: 220px; z-index: 1000;
+                                        background: var(--rz-overlay-background-color); border: var(--rz-overlay-border);
+                                        border-radius: var(--rz-border-radius); box-shadow: var(--rz-overlay-shadow); overflow: hidden;">
+                                @foreach (var app in _otherApps)
+                                {
+                                    <a href="@app.Url"
+                                       style="display: block; padding: 10px 16px; text-decoration: none; color: var(--rz-text-color);"
+                                       @onclick="@(() => _appSwitcherOpen = false)">@app.Label</a>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
                 <RadzenAppearanceToggle />
                 <RadzenButton Icon="logout"
                               Text="Salir"

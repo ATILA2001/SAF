@@ -13,14 +13,34 @@ public partial class MainLayout : IDisposable
     [Inject] private IPermissionVersionService PermissionVersionService { get; set; } = null!;
     [Inject] private NavigationManager Navigation { get; set; } = null!;
     [Inject] private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
+    [Inject] private IConfiguration Configuration { get; set; } = null!;
 
     private ClaimsPrincipal? _user;
     private bool sidebarExpanded = true;
+    private List<AppLink> _otherApps = new();
+
+    private sealed record AppLink(string ClientId, string Label, string Url);
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         _user = authState.User;
+
+        var authWebBase = (Configuration["AuthWeb:BaseUrl"] ?? "").TrimEnd('/');
+        // La app actual se identifica por el claim "app" de la cookie de autenticación;
+        // AuthWeb:ClientId puede estar vacío, así que no alcanza como filtro.
+        var currentAppIds = _user.Claims
+            .Where(c => c.Type == "app")
+            .Select(c => c.Value)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var configuredClientId = Configuration["AuthWeb:ClientId"];
+        if (!string.IsNullOrWhiteSpace(configuredClientId))
+            currentAppIds.Add(configuredClientId);
+
+        _otherApps = _user.Claims
+            .Where(c => c.Type == "available_app" && !currentAppIds.Contains(c.Value))
+            .Select(c => new AppLink(c.Value, GetAppDisplayName(c.Value), $"{authWebBase}/connect/switch-app?clientId={Uri.EscapeDataString(c.Value)}"))
+            .ToList();
 
         Navigation.LocationChanged += OnLocationChanged;
 
@@ -75,6 +95,17 @@ public partial class MainLayout : IDisposable
         || path.Equals("/Error", StringComparison.OrdinalIgnoreCase)
         || path.Equals("/", StringComparison.OrdinalIgnoreCase)
         || path.Equals("/home", StringComparison.OrdinalIgnoreCase);
+
+    private static string GetAppDisplayName(string clientId) => clientId switch
+    {
+        "sai" => "Sistema de Administración de Inventario",
+        "PlaniLocal" => "Administración Financiera",
+        _ => clientId
+    };
+
+    private bool _appSwitcherOpen = false;
+
+    private void ToggleAppSwitcher() => _appSwitcherOpen = !_appSwitcherOpen;
 
     public void Dispose()
         => Navigation.LocationChanged -= OnLocationChanged;
