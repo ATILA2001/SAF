@@ -61,13 +61,13 @@
                         RowCreate="@OnRowCreate">
             <Columns>
                 @* Campos IVC: solo editables en el alta manual (Id == 0); en edición quedan bloqueados. *@
-                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="TipoDev" Title="Tipo Dev" Width="90px">
+                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="TipoDev" Title="Tipo Dev" Width="140px">
                     <EditTemplate Context="item">
                         <RadzenTextBox @bind-Value="item.TipoDev" Disabled="@(item.Id != 0)" Placeholder="PRD" Style="width:100%"
                                        class="@GetValidationCssClass(item.Id != 0 || !string.IsNullOrWhiteSpace(item.TipoDev))" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="NroDev" Title="Nro Dev" Width="90px">
+                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="NroDev" Title="Nro Dev" Width="130px">
                     <EditTemplate Context="item">
                         <RadzenNumeric TValue="int" @bind-Value="item.NroDev" Disabled="@(item.Id != 0)" ShowUpDown="false" Style="width:100%"
                                        class="@GetValidationCssClass(item.Id != 0 || item.NroDev > 0)" />

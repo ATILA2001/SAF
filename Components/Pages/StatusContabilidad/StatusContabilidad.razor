@@ -42,8 +42,11 @@
             <Columns>
                 @* Las columnas hasta Importe quedan fijas al scrollear horizontalmente y
                    fuera del selector de columnas: identifican la fila, no pueden faltar. *@
-                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="TipoDev" Title="Tipo Dev" Width="90px" Frozen="true" Pickable="false" />
-                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="NroDev" Title="Nro Dev" Width="90px" Frozen="true" Pickable="false" />
+                @* Anchos con lugar para el título más los íconos de orden y filtro: con 90px
+                   el encabezado quedaba recortado a nada. En columnas fijas se agranda Width
+                   y no MinWidth: los offsets sticky se calculan con el Width declarado. *@
+                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="TipoDev" Title="Tipo Dev" Width="140px" Frozen="true" Pickable="false" />
+                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="NroDev" Title="Nro Dev" Width="130px" Frozen="true" Pickable="false" />
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="Expediente" Title="Expediente" Width="150px" Frozen="true" Pickable="false" />
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="Empresa" Title="Empresa" Width="200px" Frozen="true" Pickable="false" />
                 @* El tablero agrupa las líneas del devengado; en Pagos se ven separadas.

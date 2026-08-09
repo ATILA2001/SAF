@@ -38,7 +38,7 @@
                         RowUpdate="@OnRowUpdate"
                         RowCreate="@OnRowCreate">
             <Columns>
-                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Anio" Title="Año" Width="80px" />
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Anio" Title="Año" Width="110px" />
                 <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Expediente" Title="Expediente" Width="230px">
                     <EditTemplate Context="item">
                         <ExpedienteEditor @bind-Value="item.Expediente" />
@@ -59,12 +59,12 @@
                         <RadzenNumeric @bind-Value="item.ImporteNeto" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Iibb" Title="IIBB (9010/8)" Width="120px" FormatString="{0:N2}">
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Iibb" Title="IIBB (9010/8)" Width="170px" FormatString="{0:N2}">
                     <EditTemplate Context="item">
                         <RadzenNumeric @bind-Value="item.Iibb" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Cuenta" Title="Cuenta" Width="110px">
+                <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Property="Cuenta" Title="Cuenta" Width="130px">
                     <EditTemplate Context="item">
                         <RadzenTextBox @bind-Value="item.Cuenta" Style="width:100%" />
                     </EditTemplate>

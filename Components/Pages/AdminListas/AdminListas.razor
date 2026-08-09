@@ -56,12 +56,12 @@
                         <RadzenTextBox @bind-Value="item.Nombre" MaxLength="@OpcionListaValidator.NombreMaxLength" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Orden" Title="Orden" Width="110px">
+                <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Orden" Title="Orden" Width="125px">
                     <EditTemplate Context="item">
                         <RadzenNumeric TValue="int" @bind-Value="item.Orden" Min="0" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Activo" Title="Activo" Width="110px">
+                <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Activo" Title="Activo" Width="130px">
                     <Template Context="item">@(item.Activo ? "Sí" : "No")</Template>
                     <EditTemplate Context="item">
                         <RadzenCheckBox TValue="bool" @bind-Value="item.Activo" />
