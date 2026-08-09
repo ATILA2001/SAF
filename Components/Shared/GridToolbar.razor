@@ -4,7 +4,8 @@
 
 <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
     <RadzenColumn Size="@SizeTitulo">
-        <h2>@Titulo</h2>
+        @* Márgenes mínimos: el título no debe robarle alto a la grilla. *@
+        <h2 style="margin: 7px 0;">@Titulo</h2>
     </RadzenColumn>
     <RadzenColumn Size="@SizeAcciones">
         <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center"

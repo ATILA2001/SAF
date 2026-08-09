@@ -105,6 +105,12 @@ h1:focus {
     padding: 0.25rem 1rem !important;
 }
 
+/* Encabezados compactos: menos padding vertical para ganar filas visibles
+   sin achicar la letra. */
+.rz-data-grid {
+    --rz-grid-header-cell-padding: 0.25rem 0.5rem;
+}
+
 /* ===========================================================================
    Notificaciones: respetar saltos de línea (\n) en el detalle
    =========================================================================== */
@@ -142,7 +148,8 @@ html, body, #app {
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
-    padding: 1rem;
+    /* Compacto en vertical: cada rem de padding es una fila menos en la grilla. */
+    padding: 0.5rem 1rem;
 }
 
 /* El RadzenStack que envuelve una página con grid ocupa todo el alto restante del
@@ -150,6 +157,7 @@ html, body, #app {
 .rz-body > .rz-stack:has(> .rz-data-grid) {
     flex: 1 1 0;
     min-height: 0;
+    gap: 0.5rem; /* menos aire entre la toolbar y la grilla */
 }
 
 .rz-body .rz-data-grid {
