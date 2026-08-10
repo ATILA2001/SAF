@@ -112,6 +112,8 @@ public partial class StatusContabilidad
     // (la regla vive en el ViewModel; acá solo el marcado y su explicación).
     private void OnCellRender(DataGridCellRenderEventArgs<StatusContabilidadViewModel> args)
     {
+        if (args.Column is null || args.Data is null) return;
+
         if (args.Column.Property == nameof(StatusContabilidadViewModel.FechaPedidoFactura2)
             && args.Data.PedidoFactura2Atrasado)
         {
