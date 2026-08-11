@@ -50,7 +50,7 @@ public class StatusContabilidadService(
             pagosDict.TryGetValue(d.Id, out var pago);
             extrasDict.TryGetValue(key, out var extra);
 
-            result.Add(new StatusContabilidadViewModel
+            var vm = new StatusContabilidadViewModel
             {
                 TipoDev = d.TipoDev,
                 NroDev = d.NroDev,
@@ -82,7 +82,9 @@ public class StatusContabilidadService(
                 TramitadorLiquidacionesNombre = extra?.TramitadorLiquidacionesOpcion?.Nombre,
                 ObservacionesLiquidaciones = extra?.ObservacionesLiquidaciones,
                 RowVersion = extra?.RowVersion,
-            });
+            };
+            vm.CalcularAtraso();
+            result.Add(vm);
         }
         return result;
     }

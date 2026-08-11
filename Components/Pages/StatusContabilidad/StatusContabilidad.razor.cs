@@ -114,14 +114,16 @@ public partial class StatusContabilidad
     {
         if (args.Column is null || args.Data is null) return;
 
+        // Contra el Atraso congelado y no los flags en vivo: el mismo criterio que usa
+        // el filtro de la columna Atraso, así pintado y filtro nunca difieren.
         if (args.Column.Property == nameof(StatusContabilidadViewModel.FechaPedidoFactura2)
-            && args.Data.PedidoFactura2Atrasado)
+            && args.Data.Atraso == "Pedido 2")
         {
             args.Attributes["style"] = EstiloPedidoAtrasado;
             args.Attributes["title"] = "Más de 7 días desde el pedido 1 y la factura no ingresó: corresponde el 2º pedido.";
         }
         else if (args.Column.Property == nameof(StatusContabilidadViewModel.ReiterarPedidoFactura3)
-            && args.Data.PedidoFactura3Atrasado)
+            && args.Data.Atraso == "Pedido 3")
         {
             args.Attributes["style"] = EstiloPedidoAtrasado;
             args.Attributes["title"] = "Más de 7 días desde el pedido 2 y la factura no ingresó: corresponde reiterar el pedido (3º).";

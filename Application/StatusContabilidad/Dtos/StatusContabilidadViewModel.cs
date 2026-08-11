@@ -153,6 +153,21 @@ public class StatusContabilidadViewModel
         && FechaPedidoFactura2 is DateTime f2
         && (DateTime.Today - f2.Date).TotalDays > 7;
 
+    // El aviso como valor de columna: así el filtro nativo de la grilla puede listar
+    // los atrasos (el resaltado de la celda es estilo, no un dato filtrable). Congelado
+    // al cargar y no calculado en vivo: los editores escriben directo sobre la fila, y
+    // si cargar la fecha del pedido apagara el atraso al instante, el filtro sacaría la
+    // fila de la vista en plena edición, sin poder guardarla. Se recalcula al recargar.
+    [ExportIgnore, AuditIgnore]
+    public string? Atraso { get; set; }
+
+    /// <summary>Fija <see cref="Atraso"/> según el estado actual de la fila (excluyentes:
+    /// el 2 exige pedido 2 vacío y el 3 exige pedido 2 cargado).</summary>
+    public void CalcularAtraso() => Atraso =
+        PedidoFactura2Atrasado ? "Pedido 2"
+        : PedidoFactura3Atrasado ? "Pedido 3"
+        : null;
+
     // Versión de la fila al momento de cargarla: viaja a la grilla y vuelve al guardar,
     // para detectar que otro usuario la modificó mientras se editaba.
     [ExportIgnore]

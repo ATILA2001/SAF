@@ -68,6 +68,20 @@
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="StatusDgayfNombre" Title="Status DGAyF" Width="150px" />
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="FirmadaPorMiguel" Title="Firmada por Miguel?" Width="160px" />
+                @* El aviso de atraso como columna: su filtro nativo (checkboxes) lista
+                   Pedido 2 / Pedido 3 / vacío — el resaltado naranja solo señala la celda. *@
+                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="Atraso" Title="Atraso" Width="130px" Sortable="true">
+                    <Template Context="item">
+                        @if (item.Atraso is string atraso)
+                        {
+                            <RadzenStack Orientation="Orientation.Horizontal" Gap="0.3rem" AlignItems="AlignItems.Center"
+                                         title="Más de 7 días sin ingreso de factura: corresponde el siguiente pedido.">
+                                <RadzenIcon Icon="warning" Style="color: var(--rz-warning); font-size: 1.1rem;" />
+                                <span>@atraso</span>
+                            </RadzenStack>
+                        }
+                    </Template>
+                </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="FechaPedidoFactura1" Title="Fecha Ped. Factura 1" Width="165px" FormatString="{0:dd/MM/yyyy}" />
                 @* Columnas de Cuentas a Pagar: en edición, quien no es del área ve el valor
                    como texto (el editor no se renderiza, así el guardado no puede tocarlas). *@
