@@ -332,6 +332,17 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
 
     protected async Task AddRow() => await _grid.InsertRow(NuevaFila());
 
+    /// <summary>Quita los filtros de todas las columnas de la grilla y recarga la vista.</summary>
+    protected async Task LimpiarFiltros()
+    {
+        if (_grid is null) return;
+
+        foreach (var columna in _grid.ColumnsCollection)
+            columna.ClearFilters();
+
+        await _grid.Reload();
+    }
+
     /// <summary>Al abrir la edición se guarda el estado previo, para poder cancelar.</summary>
     protected void OnRowEdit(TItem item)
     {

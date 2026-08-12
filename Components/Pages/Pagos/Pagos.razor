@@ -12,7 +12,8 @@
                  CargandoResto="@_cargandoResto"
                  Exportando="@_exportando"
                  ExportarDeshabilitado="@ExportarDeshabilitado"
-                 OnExportar="@ExportarExcel">
+                 OnExportar="@ExportarExcel"
+                 OnLimpiarFiltros="@LimpiarFiltros">
         <Acciones>
             <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin:0;">
                 Última actualización: @(_ultimaActualizacion?.ToString("dd/MM/yyyy") ?? "—")

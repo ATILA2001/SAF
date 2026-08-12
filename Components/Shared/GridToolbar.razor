@@ -36,6 +36,13 @@
                     </RadzenText>
                 </RadzenStack>
             }
+            @if (OnLimpiarFiltros.HasDelegate)
+            {
+                <RadzenButton Icon="filter_alt_off"
+                              ButtonStyle="ButtonStyle.Base"
+                              Click="@OnLimpiarFiltros"
+                              title="Quitar todos los filtros" />
+            }
             <RadzenButton Text="Exportar Excel"
                           Icon="download"
                           ButtonStyle="ButtonStyle.Secondary"
@@ -64,6 +71,9 @@
     [Parameter] public bool Exportando { get; set; }
     [Parameter] public bool ExportarDeshabilitado { get; set; }
     [Parameter] public EventCallback OnExportar { get; set; }
+
+    // Con delegado presente se muestra el botón de quitar todos los filtros.
+    [Parameter] public EventCallback OnLimpiarFiltros { get; set; }
 
     [Parameter] public RenderFragment? Acciones { get; set; }
 }
