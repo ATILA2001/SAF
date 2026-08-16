@@ -57,12 +57,12 @@
                         <RadzenTextBox @bind-Value="item.Nombre" MaxLength="@OpcionListaValidator.NombreMaxLength" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Orden" Title="Orden" Width="125px">
+                <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Orden" Title="Orden" Width="135px">
                     <EditTemplate Context="item">
                         <RadzenNumeric TValue="int" @bind-Value="item.Orden" Min="0" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Activo" Title="Activo" Width="130px">
+                <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Activo" Title="Activo" Width="150px">
                     <Template Context="item">@(item.Activo ? "Sí" : "No")</Template>
                     <EditTemplate Context="item">
                         <RadzenCheckBox TValue="bool" @bind-Value="item.Activo" />
@@ -71,7 +71,7 @@
                 @if (_lista.TieneEsOk)
                 {
                     @* Solo Seguros: si la opción cuenta como "seguro en regla" en el cruce a Pagos. *@
-                    <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="EsOk" Title="Cuenta como OK" Width="140px">
+                    <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="EsOk" Title="Cuenta como OK" Width="165px">
                         <Template Context="item">@(item.EsOk == true ? "Sí" : "No")</Template>
                         <EditTemplate Context="item">
                             <RadzenCheckBox TValue="bool?" TriState="false" @bind-Value="item.EsOk" />
@@ -80,7 +80,7 @@
                 }
                 @if (CanEdit || CanDelete || CanCreate)
                 {
-                    <RadzenDataGridColumn TItem="OpcionListaViewModel" Title="Acciones" Width="140px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
+                    <RadzenDataGridColumn TItem="OpcionListaViewModel" Title="Acciones" Width="150px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
                         <Template Context="item">
                             @if (CanEdit)
                             {

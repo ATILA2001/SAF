@@ -111,6 +111,26 @@ h1:focus {
     --rz-grid-header-cell-padding: 0.25rem 0.5rem;
 }
 
+/* Títulos de columna en hasta dos renglones: se lee el nombre completo sin
+   ensanchar la columna. Solo crece el alto del thead (una fila compartida por
+   todas las celdas, fijas incluidas); los anchos declarados no se tocan, así
+   los offsets sticky de las columnas fijas siguen válidos. Los selectores
+   repiten ".rz-grid-table thead th" porque el tema define el nowrap con esa
+   especificidad y un selector más corto pierde. */
+.rz-data-grid .rz-grid-table thead th .rz-column-title {
+    white-space: normal;
+}
+
+.rz-data-grid .rz-grid-table thead th .rz-column-title-content {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    line-height: 1.2;
+}
+
 /* ===========================================================================
    Notificaciones: respetar saltos de línea (\n) en el detalle
    =========================================================================== */

@@ -44,7 +44,7 @@
                         <ExpedienteEditor @bind-Value="item.Expediente" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Op" Title="OP" Width="110px">
+                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Op" Title="OP" Width="130px">
                     <EditTemplate Context="item">
                         <RadzenTextBox @bind-Value="item.Op" Style="width:100%" />
                     </EditTemplate>
@@ -54,17 +54,17 @@
                         <RadzenTextBox @bind-Value="item.Beneficiario" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="ImporteNeto" Title="Importe Neto" Width="130px" FormatString="{0:N2}">
+                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="ImporteNeto" Title="Importe Neto" Width="150px" FormatString="{0:N2}">
                     <EditTemplate Context="item">
                         <RadzenNumeric @bind-Value="item.ImporteNeto" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Estado" Title="Estado" Width="130px">
+                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Estado" Title="Estado" Width="150px">
                     <EditTemplate Context="item">
                         <RadzenTextBox @bind-Value="item.Estado" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="SeguroNombre" Title="Seguro" Width="130px">
+                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="SeguroNombre" Title="Seguro" Width="150px">
                     <EditTemplate Context="item">
                         <RadzenDropDown @bind-Value="item.SeguroOpcionId"
                                         Data="@_seguroOpciones"
