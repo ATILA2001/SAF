@@ -104,15 +104,30 @@ public class StatusContabilidadValidatorTests
     }
 
     [TestMethod]
-    public void Cronologia_Rechazo_QuedaFueraDeLaCadena()
+    public void Cronologia_RechazoPosteriorATodosLosPedidos_EsValido()
     {
         var vm = new StatusContabilidadViewModel
         {
             FechaPedidoFactura2 = new DateTime(2026, 1, 20),
             ReiterarPedidoFactura3 = new DateTime(2026, 1, 25),
-            FechaRechazo = new DateTime(2026, 1, 2),
+            FechaRechazo = new DateTime(2026, 1, 25),
         };
         Assert.AreEqual(0, StatusContabilidadValidator.Validar(vm).Count);
+    }
+
+    [TestMethod]
+    public void Cronologia_RechazoAnteriorAlUltimoPedido_EsInvalido()
+    {
+        var vm = new StatusContabilidadViewModel
+        {
+            FechaPedidoFactura2 = new DateTime(2026, 1, 20),
+            ReiterarPedidoFactura3 = new DateTime(2026, 1, 25),
+            FechaRechazo = new DateTime(2026, 1, 22),
+        };
+        var errores = StatusContabilidadValidator.Validar(vm);
+        Assert.AreEqual(1, errores.Count);
+        StringAssert.Contains(errores[0], "Fecha de rechazo");
+        StringAssert.Contains(errores[0], "Reiterar pedido de factura 3");
     }
 
     [TestMethod]
