@@ -25,18 +25,43 @@ public static class StatusContabilidadValidator
     }
 
     /// <summary>
-    /// Los pedidos de factura editables van en orden: la reiteración (3) no puede ser
-    /// anterior al pedido 2. El pedido 1 queda afuera: viene del devengado (fecha de
-    /// imputación, otra tabla, solo lectura) y no debe bloquear lo que carga el usuario.
-    /// Rechazo e ingreso de factura tampoco se ordenan: no son parte de la secuencia.
+    /// Los pedidos de factura van en orden: 1 → 2 → reiteración (3). Cada fecha
+    /// cargada se compara contra la última anterior que tenga valor (los huecos se
+    /// saltean). El pedido 1 no se edita (viene del devengado) pero sí es el piso de
+    /// los siguientes. El ingreso de la factura no puede ser anterior a ningún pedido
+    /// (la factura llega después de pedirla). El rechazo queda afuera de la secuencia.
     /// </summary>
     private static void ValidarCronologia(List<string> errores, StatusContabilidadViewModel vm)
     {
-        if (vm.ReiterarPedidoFactura3 is DateTime r3
-            && vm.FechaPedidoFactura2 is DateTime f2
-            && r3.Date < f2.Date)
+        var pedidos = new (DateTime? Fecha, string Nombre)[]
         {
-            errores.Add($"Reiterar pedido de factura 3 no puede ser anterior a Fecha pedido de factura 2 ({f2:dd/MM/yyyy}).");
+            (vm.FechaPedidoFactura1, "Fecha pedido de factura 1"),
+            (vm.FechaPedidoFactura2, "Fecha pedido de factura 2"),
+            (vm.ReiterarPedidoFactura3, "Reiterar pedido de factura 3"),
+        };
+
+        (DateTime Fecha, string Nombre)? previa = null;
+        foreach (var (fecha, nombre) in pedidos)
+        {
+            if (fecha is not DateTime actual) continue;
+
+            if (previa is { } p && actual.Date < p.Fecha.Date)
+                errores.Add($"{nombre} no puede ser anterior a {p.Nombre} ({p.Fecha:dd/MM/yyyy}).");
+
+            previa = (actual, nombre);
+        }
+
+        // Contra el pedido más tardío alcanza: si además hay pedidos desordenados,
+        // el error ya lo marcó la pasada de arriba.
+        if (vm.FechaIngresoFactura is DateTime ingreso)
+        {
+            var tope = pedidos
+                .Where(p => p.Fecha is not null)
+                .OrderByDescending(p => p.Fecha)
+                .FirstOrDefault();
+
+            if (tope.Fecha is DateTime f && ingreso.Date < f.Date)
+                errores.Add($"Fecha de ingreso de factura no puede ser anterior a {tope.Nombre} ({f:dd/MM/yyyy}).");
         }
     }
 }
