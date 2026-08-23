@@ -34,6 +34,14 @@
     <Content Remove="Tests\**\*" />
   </ItemGroup>
 
+  <!-- Exclude tools (migración one-off) from this web project build -->
+  <ItemGroup>
+    <Compile Remove="Tools\**\*.cs" />
+    <None Remove="Tools\**\*" />
+    <EmbeddedResource Remove="Tools\**\*" />
+    <Content Remove="Tools\**\*" />
+  </ItemGroup>
+
   <!-- Exclude IDE generated Razor hint files from compilation -->
   <ItemGroup>
     <Compile Remove="**\*.razor.*.ide.g.cs" />
