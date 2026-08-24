@@ -109,8 +109,8 @@ public partial class StatusContabilidad
     protected override string DescripcionFila(StatusContabilidadViewModel item) =>
         $"Devengado {item.TipoDev} {item.NroDev}";
 
-    // Naranja translúcido: legible sobre el fondo de la fila en tema claro y oscuro.
-    private const string EstiloPedidoAtrasado = "background-color: rgba(255, 152, 0, 0.30);";
+    // El color vive en el token (tokens.css); acá solo la aplicación a la celda.
+    private const string EstiloPedidoAtrasado = "background-color: var(--saf-atraso-bg);";
 
     // Aviso de pedidos atrasados: pinta la celda del pedido que ya corresponde hacer
     // (la regla vive en el ViewModel; acá solo el marcado y su explicación).

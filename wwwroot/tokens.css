@@ -1,0 +1,62 @@
+/* SAF — Tokens: identidad de color y variables del sistema.
+   Cambiá --custom-primary-color para reskinear toda la app.
+   Los overrides visuales del tema Radzen viven en radzen-overrides.css;
+   el layout y los estilos propios, en app.css. */
+
+/* ===========================================================================
+   Identidad de color (portado del esquema de SAI, con primario propio de SAF).
+   =========================================================================== */
+:root {
+    /* variables personalizadas */
+    --custom-primary-color: #375f0f; /* verde financiero propio de SAF (SAI usa #800080 púrpura) */
+    /* Acento claro de la misma familia: para TEXTO/íconos sobre fondo oscuro
+       (menú activo, links), donde el oliva #375f0f quedaría ilegible. */
+    --custom-primary-accent: #8bc34a;
+    /* Secondary fijo en teal para AMBOS temas. En el tema claro de Radzen el
+       secondary es magenta/rojo (#e31c65) y volvía rojos los botones
+       "Aplicaciones" y "Exportar Excel"; lo forzamos al teal del tema oscuro. */
+    --custom-secondary-color: #01a299;
+
+    /* Escala de primario de Radzen: override COMPLETO de la escala para que todos
+       los estados derivados (menú activo, focus, hover, fondos sutiles, filas
+       seleccionadas) usen el verde y no el violeta del tema material-dark.
+       material-dark usa: primary #bb86fc, light #c99efd, lighter rgba(.,.12),
+       dark #966bca, darker #7f5bab. */
+    --rz-primary: var(--custom-primary-color) !important;
+    --rz-primary-light: #4a7d14 !important;
+    --rz-primary-lighter: rgba(55, 95, 15, 0.14) !important;
+    --rz-primary-dark: #2c4c0c !important;
+    --rz-primary-darker: #21390a !important;
+
+    /* Estados de validación de los editores inline (los usan .valid/.invalid). */
+    --saf-valid: #26b050;
+    --saf-invalid: #e50000;
+
+    /* Naranja translúcido del aviso de pedido atrasado (Status Contabilidad):
+       legible sobre el fondo de la fila en tema claro y oscuro. */
+    --saf-atraso-bg: rgba(255, 152, 0, 0.30);
+
+    /* Fondo de los tooltips de detalle (líneas del devengado, OPs CAF): el mismo
+       que el ítem de menú seleccionado (--rz-primary-lighter). Ese token es
+       translúcido y el tooltip flota sobre la grilla, así que se compone sobre
+       la superficie base. Se aplica inline (TooltipOptions.Style) para ganarle
+       al fondo propio del tooltip de Radzen. */
+    --saf-tooltip-detalle-bg: linear-gradient(var(--rz-primary-lighter), var(--rz-primary-lighter)), var(--rz-base-background-color);
+}
+
+/* ===========================================================================
+   Variables que se adaptan al tema (claro/oscuro). El RadzenLayout expone en el
+   DOM .rz-material (claro) y .rz-material-dark (oscuro); las usamos como gancho
+   para que acentos y superficies sean legibles en ambos modos.
+   =========================================================================== */
+.rz-layout.rz-material-dark {
+    --menu-active-color: var(--custom-primary-accent); /* verde claro sobre sidebar oscuro */
+    --surface-border: rgba(255, 255, 255, .12);
+    --surface-bg: rgba(255, 255, 255, .04);
+}
+
+.rz-layout.rz-material {
+    --menu-active-color: var(--custom-primary-color); /* verde oliva sobre sidebar claro */
+    --surface-border: rgba(0, 0, 0, .14);
+    --surface-bg: rgba(0, 0, 0, .03);
+}

@@ -1,0 +1,120 @@
+/* SAF — Overrides de internals de Radzen (validados contra Radzen.Blazor 10.3.1).
+   Todo lo que pisa clases .rz-* del tema con !important vive acá: este es EL
+   archivo a repasar en cada upgrade de Radzen, porque depende de la estructura
+   y la especificidad internas del tema material. */
+
+/* ===========================================================================
+   Botones
+   =========================================================================== */
+.rz-button.rz-primary {
+    background-color: var(--custom-primary-color) !important;
+    color: var(--rz-white) !important;
+}
+
+/* Botones secondary (Aplicaciones, Exportar Excel): teal consistente en claro y
+   oscuro, en vez del magenta/rojo del tema claro. */
+.rz-button.rz-secondary {
+    background-color: var(--custom-secondary-color) !important;
+    color: var(--rz-white) !important;
+}
+
+.rz-clear-filter {
+    background-color: var(--rz-base-dark) !important;
+    color: var(--rz-white) !important;
+}
+
+/* ===========================================================================
+   Sidebar: ítem de menú activo
+   =========================================================================== */
+/* Color del primario, adaptado por tema. El tema lo resuelve vía
+   --rz-menu-item-selected-color -> var(--rz-primary), pero la cadena de
+   variables no propaga el override; aplicamos el color directo sobre el
+   link/ícono activo. Sin prefijo de ancestro porque el sidebar usa
+   .rz-panel-menu (no .rz-menu); con !important gana sobre el tema. */
+.rz-navigation-item-wrapper-active .rz-navigation-item-link,
+.rz-navigation-item-wrapper-active .rz-navigation-item-link .rzi,
+.rz-navigation-item-link.active,
+.rz-navigation-item-link.active .rzi:not(.rz-navigation-item-icon-children) {
+    color: var(--menu-active-color, var(--custom-primary-accent)) !important;
+}
+
+/* ===========================================================================
+   Menú "Aplicaciones" del header (app switcher)
+   =========================================================================== */
+/* El ítem de primer nivel vive sobre el header verde, pero el tema le pinta el
+   texto con el color de texto normal (oscuro en modo claro) y desaparece. Solo
+   el primer nivel hereda el color del header; el submenú desplegado apoya sobre
+   su propio panel claro y conserva los colores del tema. */
+.rz-header .rz-menu {
+    background: transparent;
+}
+
+.rz-header .rz-menu > .rz-navigation-item > .rz-navigation-item-wrapper .rz-navigation-item-link,
+.rz-header .rz-menu > .rz-navigation-item > .rz-navigation-item-wrapper .rz-navigation-item-link .rzi {
+    color: var(--rz-header-color, #fff) !important;
+}
+
+/* ===========================================================================
+   RadzenDataGrid: cabecera notoria y celdas compactas
+   =========================================================================== */
+.rz-data-grid table thead th {
+    font-weight: bold !important;
+    border-bottom: 2px solid gray !important;
+}
+
+/* Cambia el padding de todas las celdas de los grid */
+.rz-grid-table td {
+    padding: 0.25rem 1rem !important;
+}
+
+/* Encabezados compactos: menos padding vertical para ganar filas visibles
+   sin achicar la letra. */
+.rz-data-grid {
+    --rz-grid-header-cell-padding: 0.25rem 0.5rem;
+}
+
+/* Títulos de columna en hasta dos renglones: se lee el nombre completo sin
+   ensanchar la columna. Solo crece el alto del thead (una fila compartida por
+   todas las celdas, fijas incluidas); los anchos declarados no se tocan, así
+   los offsets sticky de las columnas fijas siguen válidos. Los selectores
+   repiten ".rz-grid-table thead th" porque el tema define el nowrap con esa
+   especificidad y un selector más corto pierde. */
+.rz-data-grid .rz-grid-table thead th .rz-column-title {
+    white-space: normal;
+}
+
+.rz-data-grid .rz-grid-table thead th .rz-column-title-content {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    line-height: 1.2;
+}
+
+/* ===========================================================================
+   Notificaciones: respetar saltos de línea (\n) en el detalle
+   =========================================================================== */
+.rz-messages-error {
+    position: relative !important;
+}
+
+.rz-notification, .rz-notification .rz-notification, .rz-notification .rz-notification-content, .rz-notification .rz-notification-message, .rz-notification .rz-notification-detail {
+    white-space: pre-line !important;
+}
+
+/* ===========================================================================
+   Diálogos: que no excedan el viewport; scroll interno del contenido
+   =========================================================================== */
+.rz-dialog {
+    height: auto !important;
+    max-height: 90vh !important;
+    overflow: auto !important;
+}
+
+.rz-dialog .rz-dialog-content {
+    max-height: calc(90vh - 4rem) !important;
+    overflow: auto !important;
+    min-height: 0 !important;
+}
