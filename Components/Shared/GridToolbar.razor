@@ -15,6 +15,17 @@
     <RadzenColumn Size="@SizeAcciones">
         <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center"
                      JustifyContent="JustifyContent.End" Wrap="FlexWrap.Wrap">
+            @if (OnBuscar.HasDelegate)
+            {
+                @* Búsqueda rápida en memoria sobre los campos de identidad: el camino
+                   corto (tipo Ctrl+F de la planilla) sin pasar por los popups de filtro.
+                   oninput y no Change: filtra mientras se tipea. *@
+                <RadzenTextBox Value="@TextoBusqueda"
+                               Placeholder="@PlaceholderBusqueda"
+                               aria-label="Búsqueda rápida"
+                               Style="width: 240px"
+                               @oninput="@(e => OnBuscar.InvokeAsync(e.Value?.ToString() ?? string.Empty))" />
+            }
             @Acciones
             @if (MostrarNuevo)
             {
@@ -43,10 +54,13 @@
             }
             @if (OnLimpiarFiltros.HasDelegate)
             {
+                @* Deshabilitado sin filtros ni búsqueda: el estado del botón avisa de un
+                   vistazo si la vista está filtrada. *@
                 <RadzenButton Icon="filter_alt_off"
                               ButtonStyle="ButtonStyle.Base"
                               Click="@OnLimpiarFiltros"
-                              title="Quitar todos los filtros" />
+                              Disabled="@LimpiarFiltrosDeshabilitado"
+                              title="@(LimpiarFiltrosDeshabilitado ? "No hay filtros aplicados" : "Quitar todos los filtros")" />
             }
             <RadzenButton Text="Exportar Excel"
                           Icon="download"
@@ -88,6 +102,14 @@
 
     // Con delegado presente se muestra el botón de quitar todos los filtros.
     [Parameter] public EventCallback OnLimpiarFiltros { get; set; }
+
+    // Sin filtros de columna ni búsqueda activa, el botón queda deshabilitado.
+    [Parameter] public bool LimpiarFiltrosDeshabilitado { get; set; }
+
+    // Con delegado presente se muestra la búsqueda rápida.
+    [Parameter] public EventCallback<string> OnBuscar { get; set; }
+    [Parameter] public string? TextoBusqueda { get; set; }
+    [Parameter] public string PlaceholderBusqueda { get; set; } = "Buscar…";
 
     [Parameter] public RenderFragment? Acciones { get; set; }
 }

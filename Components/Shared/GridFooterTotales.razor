@@ -4,7 +4,7 @@
 
 <RadzenStack Orientation="Orientation.Vertical" Class="rz-p-4 rz-w-100" Style="gap:0.5rem;">
     <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.SpaceBetween">
-        <RadzenLabel Text="@($"Filas filtradas: {Filas:N0}")" />
+        <RadzenLabel Text="@TextoFilas" />
         <RadzenLabel Text="@($"Importe total: {Importe:N2}{Sufijo}")" />
     </RadzenStack>
 </RadzenStack>
@@ -12,6 +12,16 @@
 @code {
     [Parameter, EditorRequired] public int Filas { get; set; }
     [Parameter, EditorRequired] public decimal Importe { get; set; }
+
+    /// <summary>Total de filas cargadas: con filtros activos el pie muestra "N de M".</summary>
+    [Parameter] public int? TotalFilas { get; set; }
+
+    // "120 de 1.450" solo cuando hay filtros recortando la vista: es la señal de que
+    // lo que se ve (y se suma) no es todo lo que hay.
+    private string TextoFilas =>
+        TotalFilas is int total && total != Filas
+            ? $"Filas: {Filas:N0} de {total:N0} (vista filtrada)"
+            : $"Filas: {Filas:N0}";
 
     /// <summary>La carga de fondo sigue trayendo filas: la suma es parcial.</summary>
     [Parameter] public bool Cargando { get; set; }
