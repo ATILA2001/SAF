@@ -1,11 +1,13 @@
+@using SAF.Application.Common
 @using SAF.Application.Pagos.Dtos
 @using SAF.Data.Entities
 
-@* Edición de la fila de Pagos en ventana, con panel de identidad (opción C del
-   rediseño): columna verde fija con el devengado, expediente, empresa e importe
-   siempre visibles, y los campos editables a la derecha. Los campos de identidad
-   (IVC) no se editan en filas existentes: viven en el panel, no como inputs
-   deshabilitados. Escribe sobre el mismo Borrador (buffer) que la edición inline.
+@* Edición y alta de la fila de Pagos en ventana, con panel de identidad (opción C
+   del rediseño): columna verde fija con el devengado, expediente, empresa e
+   importe siempre visibles, y los campos a la derecha. En edición, los campos de
+   identidad (IVC) no se editan: viven en el panel. En el alta (EsAlta) la fila
+   está naciendo: la sección IVC aparece como formulario y el panel se va
+   completando EN VIVO con lo tipeado — es la vista previa de lo que se va a crear.
    Requiere DialogOptions con ShowTitle=false y CssClass "saf-dialog-panel". *@
 
 <div style="display: flex; align-items: stretch;">
@@ -13,16 +15,16 @@
     <div style="width: 280px; flex-shrink: 0; background: var(--rz-primary-dark); color: #ffffff; padding: 26px 24px; display: flex; flex-direction: column; gap: 22px; box-sizing: border-box;">
         <div style="display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">Devengado</span>
-            <span style="font-size: 1.6rem; font-weight: 700;">@Item.TipoDev @Item.NroDev</span>
+            <span style="font-size: 1.6rem; font-weight: 700;">@TituloDevengado</span>
         </div>
         <div style="height: 1px; background: rgba(255,255,255,0.16);"></div>
         <div style="display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">Expediente</span>
-            <span style="font-size: 0.95rem; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere;">@Item.Expediente</span>
+            <span style="font-size: 0.95rem; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere;">@(string.IsNullOrWhiteSpace(Item.Expediente) ? "—" : Item.Expediente)</span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">Empresa</span>
-            <span style="font-size: 0.9rem; line-height: 1.45;">@Item.Empresa</span>
+            <span style="font-size: 0.9rem; line-height: 1.45;">@(string.IsNullOrWhiteSpace(Item.Empresa) ? "—" : Item.Empresa)</span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 4px;">
             <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">Importe</span>
@@ -42,14 +44,68 @@
 
     <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 24px 0 24px;">
-            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-size: 1.15rem;">Editar registro</RadzenText>
+            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-size: 1.15rem;">@(EsAlta ? "Nuevo devengado" : "Editar registro")</RadzenText>
             <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Size="ButtonSize.Small"
                           Click="@(() => DialogService.Close(false))" title="Cerrar sin guardar" />
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 20px; padding: 16px 24px 4px 24px;">
+            @if (EsAlta)
+            {
+                @* Los datos que en una fila existente vienen de IVC: acá se cargan a
+                   mano, con la misma validación en vivo que tenía el alta inline. *@
+                <RadzenStack Gap="0.85rem">
+                    <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0;">Datos del devengado</RadzenText>
+                    <RadzenRow Gap="1rem">
+                        <RadzenColumn Size="4">
+                            <RadzenFormField Text="Tipo Dev" Variant="Variant.Outlined" Style="width: 100%;">
+                                <RadzenTextBox @bind-Value="Borrador.TipoDev" Placeholder="PRD"
+                                               class="@GetValidationCssClass(!string.IsNullOrWhiteSpace(Borrador.TipoDev))" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+                        <RadzenColumn Size="4">
+                            <RadzenFormField Text="Nro Dev" Variant="Variant.Outlined" Style="width: 100%;">
+                                <RadzenNumeric TValue="int" @bind-Value="Borrador.NroDev" ShowUpDown="false"
+                                               class="@GetValidationCssClass(Borrador.NroDev > 0)" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+                        <RadzenColumn Size="4">
+                            <RadzenFormField Text="Fecha Devengado" Variant="Variant.Outlined" Style="width: 100%;">
+                                <RadzenDatePicker @bind-Value="Borrador.FechaDevengado" DateFormat="dd/MM/yyyy"
+                                                  class="@GetValidationCssClass(Borrador.FechaDevengado is not null)" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+                    </RadzenRow>
+                    <RadzenRow Gap="1rem">
+                        <RadzenColumn Size="6">
+                            <RadzenStack Gap="0.25rem">
+                                <RadzenFormField Text="Expediente" Variant="Variant.Outlined" Style="width: 100%;">
+                                    <RadzenTextBox @bind-Value="Borrador.Expediente"
+                                                   Placeholder="@ExpedienteKey.FormatosAceptados"
+                                                   class="@GetValidationCssClass(EsExpedienteValido)" />
+                                </RadzenFormField>
+                                <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">
+                                    Formato: @ExpedienteKey.FormatosAceptados
+                                </RadzenText>
+                            </RadzenStack>
+                        </RadzenColumn>
+                        <RadzenColumn Size="3">
+                            <RadzenFormField Text="Empresa" Variant="Variant.Outlined" Style="width: 100%;">
+                                <RadzenTextBox @bind-Value="Borrador.Empresa" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+                        <RadzenColumn Size="3">
+                            <RadzenFormField Text="Importe" Variant="Variant.Outlined" Style="width: 100%;">
+                                <RadzenNumeric TValue="decimal?" @bind-Value="Borrador.Importe" ShowUpDown="false"
+                                               class="@GetValidationCssClass(Borrador.Importe is > 0)" />
+                            </RadzenFormField>
+                        </RadzenColumn>
+                    </RadzenRow>
+                </RadzenStack>
+            }
+
             <RadzenStack Gap="0.85rem">
-                <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0;">Status y firma</RadzenText>
+                <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0;">Status y firma@(EsAlta ? " (opcional)" : "")</RadzenText>
                 <RadzenRow Gap="1rem">
                     <RadzenColumn Size="6">
                         <RadzenFormField Text="Status DGAyF" Variant="Variant.Outlined" Style="width: 100%;">
@@ -76,7 +132,7 @@
             </RadzenStack>
 
             <RadzenStack Gap="0.85rem">
-                <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0;">CCOO y notificación</RadzenText>
+                <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0;">CCOO y notificación@(EsAlta ? " (opcional)" : "")</RadzenText>
                 <RadzenRow Gap="1rem">
                     <RadzenColumn Size="6">
                         <RadzenFormField Text="CCOO" Variant="Variant.Outlined" Style="width: 100%;">
@@ -105,8 +161,8 @@
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem"
                      Style="padding: 16px 24px 20px 24px; border-top: 1px solid var(--surface-border, rgba(128,128,128,.25)); margin-top: 18px;">
             <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Light" Click="@(() => DialogService.Close(false))" />
-            <RadzenButton Text="Guardar cambios" ButtonStyle="ButtonStyle.Primary"
-                          Click="@Guardar" IsBusy="@_guardando" BusyText="Guardando..." />
+            <RadzenButton Text="@(EsAlta ? "Crear devengado" : "Guardar cambios")" ButtonStyle="ButtonStyle.Primary"
+                          Click="@Guardar" IsBusy="@_guardando" BusyText="@(EsAlta ? "Creando..." : "Guardando...")" />
         </RadzenStack>
     </div>
 </div>
@@ -114,11 +170,14 @@
 @code {
     [Inject] private DialogService DialogService { get; set; } = null!;
 
-    /// <summary>La fila real: identidad y valores de solo lectura del panel.</summary>
+    /// <summary>La fila real: identidad del panel. En el alta es el mismo objeto que Borrador.</summary>
     [Parameter, EditorRequired] public PagoViewModel Item { get; set; } = null!;
 
-    /// <summary>El buffer de edición compartido con la grilla: acá escriben los campos.</summary>
+    /// <summary>Donde escriben los campos: el buffer en edición; la fila nueva en el alta.</summary>
     [Parameter, EditorRequired] public PagoViewModel Borrador { get; set; } = null!;
+
+    /// <summary>true: alta de una fila nueva (sección IVC visible, panel en vivo).</summary>
+    [Parameter] public bool EsAlta { get; set; }
 
     [Parameter] public IReadOnlyList<StatusDgayfOpcion> StatusDgayfOpciones { get; set; } = [];
     [Parameter] public IReadOnlyList<StatusOpOpcion> StatusOpOpciones { get; set; } = [];
@@ -130,6 +189,14 @@
     [Parameter, EditorRequired] public Func<Task<bool>> GuardarAsync { get; set; } = null!;
 
     private bool _guardando;
+
+    // "—" mientras el alta no tiene tipo ni número: el panel es la vista previa.
+    private string TituloDevengado =>
+        string.IsNullOrWhiteSpace(Item.TipoDev) && Item.NroDev == 0
+            ? "—"
+            : $"{Item.TipoDev} {(Item.NroDev != 0 ? Item.NroDev.ToString() : "")}".Trim();
+
+    private bool EsExpedienteValido => ExpedienteKey.Normalizar(Borrador.Expediente) is not null;
 
     private async Task Guardar()
     {

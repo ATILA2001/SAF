@@ -586,6 +586,50 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
         }
     }
 
+    /// <summary>
+    /// Crea una fila desde un diálogo de alta: misma tubería que el alta inline
+    /// (permiso server-side, validación anticipada, confirmación de duplicados,
+    /// persistencia, auditoría y recarga). Devuelve true cuando el diálogo debe
+    /// cerrarse; con false queda abierto conservando lo tipeado. La fila nueva no
+    /// existe hasta persistir, así que cancelar el diálogo descarta el objeto solo.
+    /// </summary>
+    protected async Task<bool> CrearDesdeDialogoAsync(TItem item)
+    {
+        if (!CanCreate)
+        {
+            Notification.ShowError($"No tenés permiso para crear {TituloEntidad}.", "Permiso denegado");
+            return false;
+        }
+
+        if (!FilaValida(item, esAlta: true)) return false;
+
+        try
+        {
+            if (!await ConfirmarGuardadoAsync(item, esAlta: true)) return false;
+        }
+        catch (Exception ex)
+        {
+            Informar(ex, "El alta", "Error al crear");
+            return false;
+        }
+
+        PrepararParaGuardar(item);
+
+        try
+        {
+            await CrearAsync(item);
+            await RegistrarAuditoriaAsync("Alta", item, AuditoriaDiff.Snapshot(item, esBaja: false));
+            await ReloadAsync();
+            Notification.ShowSuccess($"{DescripcionFila(item)} creado.".TrimStart(), "Alta exitosa");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Informar(ex, "El alta", "Error al crear");
+            return false;
+        }
+    }
+
     protected async Task OnRowUpdate(TItem item)
     {
         if (!CanEdit)

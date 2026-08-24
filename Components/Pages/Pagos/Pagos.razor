@@ -22,10 +22,12 @@
         <Acciones>
             @if (CanCreate)
             {
+                @* Alta en ventana y no inline: los 6 campos de identidad juntos y con
+                   labels, en vez de repartidos por el ancho de la grilla. *@
                 <RadzenButton Text="Nuevo"
                               Icon="add"
                               ButtonStyle="ButtonStyle.Primary"
-                              Click="@AddRow"
+                              Click="@NuevoEnVentana"
                               Disabled="@(_loading || _syncing)" />
                 @* Light (gris): la acción principal de la vista es una sola (Nuevo);
                    dos primarios compiten y ninguno destaca. La última actualización

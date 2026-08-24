@@ -107,6 +107,30 @@ public partial class Pagos
         PagosService.DeleteDevengadoAsync(item.Id, item.RowVersion);
 
     /// <summary>
+    /// Alta en ventana (reemplaza al alta inline en la grilla): el panel de identidad
+    /// se completa en vivo con lo tipeado. Cancelar descarta el objeto solo — la fila
+    /// no existe hasta que CrearDesdeDialogoAsync la persiste.
+    /// </summary>
+    private async Task NuevoEnVentana()
+    {
+        var item = NuevaFila();
+
+        await DialogService.OpenAsync<PagoEditor>(
+            "Nuevo devengado",
+            new Dictionary<string, object?>
+            {
+                // El mismo objeto como Item y Borrador: el panel refleja lo que se tipea.
+                [nameof(PagoEditor.Item)] = item,
+                [nameof(PagoEditor.Borrador)] = item,
+                [nameof(PagoEditor.EsAlta)] = true,
+                [nameof(PagoEditor.StatusDgayfOpciones)] = _statusDgayfOpciones,
+                [nameof(PagoEditor.StatusOpOpciones)] = _statusOpOpciones,
+                [nameof(PagoEditor.GuardarAsync)] = (Func<Task<bool>>)(() => CrearDesdeDialogoAsync(item)),
+            },
+            new DialogOptions { Width = "1000px", ShowTitle = false, CssClass = "saf-dialog-panel" });
+    }
+
+    /// <summary>
     /// Edición en ventana: los campos editables a la vista, con labels. Comparte el
     /// borrador con la edición inline; cerrar sin guardar lo descarta.
     /// </summary>
