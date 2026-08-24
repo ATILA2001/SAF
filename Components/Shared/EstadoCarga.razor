@@ -6,7 +6,8 @@
 <RadzenStack AlignItems="AlignItems.Center" JustifyContent="JustifyContent.Center" Gap="0.75rem"
              Style="min-height: 40vh;">
     <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
-    <RadzenText TextStyle="TextStyle.Body1" class="rz-color-secondary" Style="margin: 0;">@Texto</RadzenText>
+    @* Gris de texto secundario, no rz-color-secondary (el SECONDARY del tema es magenta en claro). *@
+    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0; color: var(--rz-text-secondary-color);">@Texto</RadzenText>
 </RadzenStack>
 
 @code {

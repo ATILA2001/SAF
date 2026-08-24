@@ -9,7 +9,9 @@
                Placeholder="@ExpedienteKey.FormatosAceptados" />
 @if (!Deshabilitado)
 {
-    <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin:0;">
+    @* Gris de texto secundario, no rz-color-secondary (el SECONDARY del tema es
+       magenta en claro y la leyenda parecía un error). *@
+    <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">
         Formato: @ExpedienteKey.FormatosAceptados
     </RadzenText>
 }
