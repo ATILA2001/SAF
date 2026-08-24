@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Radzen;
 using SAF.Data.Entities;
 using SAF.Services.Abstractions;
 using SAF.Application.Seguros;
@@ -57,6 +58,48 @@ public partial class Seguros
     }
 
     protected override Task ActualizarAsync(SeguroViewModel item) => SeguroService.UpdateAsync(item);
+
+    /// <summary>
+    /// Edición en ventana: todos los campos con labels. Comparte el borrador con la
+    /// edición inline; cerrar sin guardar lo descarta.
+    /// </summary>
+    private async Task EditarEnVentana(SeguroViewModel item)
+    {
+        var resultado = await DialogService.OpenAsync<SeguroEditor>(
+            $"Editar — Seguro del expediente {item.Expediente}",
+            new Dictionary<string, object?>
+            {
+                [nameof(SeguroEditor.Item)] = item,
+                [nameof(SeguroEditor.Borrador)] = Buffer(item),
+                [nameof(SeguroEditor.SeguroOpciones)] = _seguroOpciones,
+                [nameof(SeguroEditor.GuardarAsync)] = (Func<Task<bool>>)(() => GuardarDesdeDialogoAsync(item)),
+            },
+            new DialogOptions { Width = "1000px", ShowTitle = false, CssClass = "saf-dialog-panel" });
+
+        if (resultado is not true) DescartarBuffer(item);
+    }
+
+    /// <summary>
+    /// Alta en ventana (reemplaza al alta inline): el panel de identidad se completa
+    /// en vivo con lo tipeado. Cancelar descarta el objeto solo.
+    /// </summary>
+    private async Task NuevoEnVentana()
+    {
+        var item = NuevaFila();
+
+        await DialogService.OpenAsync<SeguroEditor>(
+            "Nuevo seguro",
+            new Dictionary<string, object?>
+            {
+                // El mismo objeto como Item y Borrador: el panel refleja lo que se tipea.
+                [nameof(SeguroEditor.Item)] = item,
+                [nameof(SeguroEditor.Borrador)] = item,
+                [nameof(SeguroEditor.EsAlta)] = true,
+                [nameof(SeguroEditor.SeguroOpciones)] = _seguroOpciones,
+                [nameof(SeguroEditor.GuardarAsync)] = (Func<Task<bool>>)(() => CrearDesdeDialogoAsync(item)),
+            },
+            new DialogOptions { Width = "1000px", ShowTitle = false, CssClass = "saf-dialog-panel" });
+    }
 
     protected override Task EliminarAsync(SeguroViewModel item) =>
         item.Id != 0 ? SeguroService.DeleteAsync(item.Id, item.RowVersion) : Task.CompletedTask;

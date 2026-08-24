@@ -1,0 +1,167 @@
+@using SAF.Application.Common
+@using SAF.Application.Seguros.Dtos
+@using SAF.Data.Entities
+
+@* Edición y alta del seguro en ventana, con panel de identidad (mismo patrón que
+   las demás vistas): columna verde fija con el expediente, OP, beneficiario e
+   importe, y el formulario a la derecha. Todos los campos son editables, así que
+   en edición el panel muestra la identidad guardada; en el alta (EsAlta) se
+   completa EN VIVO con lo tipeado. Requiere DialogOptions con ShowTitle=false y
+   CssClass "saf-dialog-panel". *@
+
+<div style="display: flex; align-items: stretch; min-height: 500px;">
+
+    <div style="width: 280px; flex-shrink: 0; background: var(--rz-primary-dark); color: #ffffff; padding: 26px 24px; display: flex; flex-direction: column; gap: 22px; box-sizing: border-box;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">Expediente</span>
+            <span style="font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; line-height: 1.35;">@(string.IsNullOrWhiteSpace(Item.Expediente) ? "—" : Item.Expediente)</span>
+        </div>
+        <div style="height: 1px; background: rgba(255,255,255,0.16);"></div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">OP</span>
+            <span style="font-size: 0.95rem; font-weight: 500; font-variant-numeric: tabular-nums;">@(string.IsNullOrWhiteSpace(Item.Op) ? "—" : Item.Op)</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">Beneficiario</span>
+            <span style="font-size: 0.9rem; line-height: 1.45;">@(string.IsNullOrWhiteSpace(Item.Beneficiario) ? "—" : Item.Beneficiario)</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">Importe Neto</span>
+            <span style="font-size: 1.3rem; font-weight: 700; color: var(--custom-primary-accent); font-variant-numeric: tabular-nums;">@(Item.ImporteNeto?.ToString("N2") ?? "—")</span>
+        </div>
+        <div style="flex-grow: 1;"></div>
+        @* El seguro elegido y el estado, como contexto (en el alta, en vivo). *@
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            @if (NombreSeguro is string seguro)
+            {
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--custom-primary-accent); flex-shrink: 0;"></div>
+                    <span style="font-size: 0.75rem; color: rgba(255,255,255,0.75);">Seguro · @seguro</span>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Item.Estado))
+            {
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.4); flex-shrink: 0;"></div>
+                    <span style="font-size: 0.75rem; color: rgba(255,255,255,0.75);">Estado · @Item.Estado</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 24px 0 24px;">
+            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-size: 1.15rem;">@(EsAlta ? "Nuevo seguro" : "Editar registro")</RadzenText>
+            <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Size="ButtonSize.Small"
+                          Click="@(() => DialogService.Close(false))" title="Cerrar sin guardar" />
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px; padding: 16px 24px 16px 24px;">
+            <RadzenStack Gap="0.85rem">
+                <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0;">Identificación</RadzenText>
+                <RadzenRow Gap="1rem">
+                    <RadzenColumn Size="6">
+                        <RadzenStack Gap="0.25rem">
+                            <RadzenFormField Text="Expediente" Variant="Variant.Outlined" Style="width: 100%;">
+                                <RadzenTextBox @bind-Value="Borrador.Expediente"
+                                               Placeholder="@ExpedienteKey.FormatosAceptados"
+                                               class="@GetValidationCssClass(EsExpedienteValido)" />
+                            </RadzenFormField>
+                            <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">
+                                Formato: @ExpedienteKey.FormatosAceptados
+                            </RadzenText>
+                        </RadzenStack>
+                    </RadzenColumn>
+                    <RadzenColumn Size="6">
+                        <RadzenFormField Text="OP" Variant="Variant.Outlined" Style="width: 100%;">
+                            <RadzenTextBox @bind-Value="Borrador.Op" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
+                <RadzenRow Gap="1rem">
+                    <RadzenColumn Size="8">
+                        <RadzenFormField Text="Beneficiario" Variant="Variant.Outlined" Style="width: 100%;">
+                            <RadzenTextBox @bind-Value="Borrador.Beneficiario" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                    <RadzenColumn Size="4">
+                        <RadzenFormField Text="Importe Neto" Variant="Variant.Outlined" Style="width: 100%;">
+                            <RadzenNumeric TValue="decimal?" @bind-Value="Borrador.ImporteNeto" ShowUpDown="false" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenStack>
+
+            <RadzenStack Gap="0.85rem">
+                <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0;">Seguro</RadzenText>
+                <RadzenRow Gap="1rem">
+                    <RadzenColumn Size="6">
+                        <RadzenFormField Text="Seguro" Variant="Variant.Outlined" Style="width: 100%;">
+                            <RadzenDropDown @bind-Value="Borrador.SeguroOpcionId"
+                                            Data="@SeguroOpciones" TextProperty="Nombre" ValueProperty="Id"
+                                            AllowClear="true"
+                                            class="@GetValidationCssClass(Borrador.SeguroOpcionId is > 0)" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                    <RadzenColumn Size="6">
+                        <RadzenFormField Text="Estado" Variant="Variant.Outlined" Style="width: 100%;">
+                            <RadzenTextBox @bind-Value="Borrador.Estado" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenStack>
+        </div>
+
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem"
+                     Style="padding: 16px 24px 20px 24px; border-top: 1px solid var(--surface-border, rgba(128,128,128,.25)); margin-top: auto;">
+            <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Light" Click="@(() => DialogService.Close(false))" />
+            <RadzenButton Text="@(EsAlta ? "Crear seguro" : "Guardar cambios")" ButtonStyle="ButtonStyle.Primary"
+                          Click="@Guardar" IsBusy="@_guardando" BusyText="@(EsAlta ? "Creando..." : "Guardando...")" />
+        </RadzenStack>
+    </div>
+</div>
+
+@code {
+    [Inject] private DialogService DialogService { get; set; } = null!;
+
+    /// <summary>La fila real: identidad del panel. En el alta es el mismo objeto que Borrador.</summary>
+    [Parameter, EditorRequired] public SeguroViewModel Item { get; set; } = null!;
+
+    /// <summary>Donde escriben los campos: el buffer en edición; la fila nueva en el alta.</summary>
+    [Parameter, EditorRequired] public SeguroViewModel Borrador { get; set; } = null!;
+
+    /// <summary>true: alta de una fila nueva (el panel se completa en vivo).</summary>
+    [Parameter] public bool EsAlta { get; set; }
+
+    [Parameter] public IReadOnlyList<SeguroOpcion> SeguroOpciones { get; set; } = [];
+
+    /// <summary>
+    /// Guardado delegado a la página: true = cerrar el diálogo; false = quedó
+    /// abierto con lo tipeado (validación o error).
+    /// </summary>
+    [Parameter, EditorRequired] public Func<Task<bool>> GuardarAsync { get; set; } = null!;
+
+    private bool _guardando;
+
+    private bool EsExpedienteValido => ExpedienteKey.Normalizar(Borrador.Expediente) is not null;
+
+    // El nombre guardado de la fila o, en el alta (donde todavía no se resolvió),
+    // el de la opción elegida en el desplegable — así el hito del panel es en vivo.
+    private string? NombreSeguro =>
+        !string.IsNullOrWhiteSpace(Item.SeguroNombre)
+            ? Item.SeguroNombre
+            : SeguroOpciones.FirstOrDefault(o => o.Id == Item.SeguroOpcionId)?.Nombre;
+
+    private async Task Guardar()
+    {
+        _guardando = true;
+        try
+        {
+            if (await GuardarAsync()) DialogService.Close(true);
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+}

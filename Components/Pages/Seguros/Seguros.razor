@@ -13,7 +13,7 @@
                  LimpiarFiltrosDeshabilitado="@(!HayFiltrosActivos)"
                  MostrarNuevo="@CanCreate"
                  NuevoDeshabilitado="@_loading"
-                 OnNuevo="@AddRow"
+                 OnNuevo="@NuevoEnVentana"
                  CargandoResto="@_cargandoResto"
                  Exportando="@_exportando"
                  ExportarDeshabilitado="@ExportarDeshabilitado"
@@ -89,11 +89,13 @@
                 </RadzenDataGridColumn>
                 @if (CanEdit || CanDelete || CanCreate)
                 {
-                    <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Title="Acciones" Width="140px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
+                    @* 200px: hasta cuatro botones de acción (editar, ventana, eliminar, historial). *@
+                    <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Title="Acciones" Width="200px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
                         <Template Context="item">
                             <AccionesFila MostrarEditar="@CanEdit"
                                           MostrarEliminar="@CanDelete"
                                           OnEditar="@(() => _grid.EditRow(item))"
+                                          OnEditarEnVentana="@(() => EditarEnVentana(item))"
                                           OnEliminar="@(() => DeleteRow(item))"
                                           OnHistorial="@(() => VerHistorial(item))" />
                         </Template>
