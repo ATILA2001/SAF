@@ -53,6 +53,10 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
         : _items.Count == 0 ? "No hay filas para exportar."
         : null;
 
+    // Búsqueda rápida de la toolbar: filtra en memoria sobre los campos de identidad
+    // (CamposBusqueda), sin pasar por los popups de filtro de columna.
+    protected string _textoBusqueda = string.Empty;
+
     private CancellationTokenSource? _ctsLotes;
 
     // Vida de la página: cancela la carga inicial (y, encadenado, la de fondo) si el
@@ -60,13 +64,21 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     // trabajo completo para una grilla que ya no existía.
     private readonly CancellationTokenSource _ctsPagina = new();
 
-    // Los editores de la grilla escriben directo sobre la fila, así que cancelar no
-    // alcanza para deshacer: se guarda una copia al abrir la edición y se restaura.
+    // Los editores escriben sobre una COPIA de la fila (el buffer) y no sobre el ítem
+    // real: la vista filtrada de Radzen se re-evalúa en cada render, así que si los
+    // editores tocaran la fila, cambiar un campo filtrado la sacaría de la vista a
+    // mitad de la edición. El ítem real se pisa con el buffer recién al guardar
+    // (y cancelar es simplemente descartar el buffer: no hay nada que restaurar).
+    private readonly Dictionary<TItem, TItem> _buffers = new();
+
+    // Estado previo al guardado (capturado justo antes de aplicar el buffer):
+    // es la base del diff de auditoría en OnRowUpdate.
     private readonly Dictionary<TItem, TItem> _originales = new();
 
-    // Se excluyen las columnas que muta el completado en segundo plano: si el restore
-    // de un Cancelar las devolviera al estado pre-completado, quedarían vacías en
-    // pantalla hasta la próxima recarga (el usuario no puede editarlas de todos modos).
+    // Se excluyen las columnas que muta el completado en segundo plano: si al guardar
+    // el buffer las pisara con los valores viejos que copió al abrir la edición, un
+    // completado que llegó en el medio se perdería de la pantalla hasta la próxima
+    // recarga (el usuario no puede editarlas de todos modos).
     private static readonly PropertyInfo[] PropiedadesCopiables =
         typeof(TItem).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                      .Where(p => p.CanRead && p.CanWrite
@@ -117,6 +129,44 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
 
     /// <summary>Lookups y datos de encabezado. Corre antes de la carga de la grilla.</summary>
     protected virtual Task CargarAuxiliaresAsync() => Task.CompletedTask;
+
+    /// <summary>
+    /// Campos que recorre la búsqueda rápida (los que identifican la fila: expediente,
+    /// empresa, etc.). Lista vacía = la página no ofrece búsqueda.
+    /// </summary>
+    protected virtual IEnumerable<string?> CamposBusqueda(TItem item) => Array.Empty<string?>();
+
+    /// <summary>
+    /// Datos de la grilla: los ítems cargados, filtrados por la búsqueda rápida si hay
+    /// texto. Los filtros por columna de Radzen se aplican después, sobre este conjunto.
+    /// </summary>
+    protected IEnumerable<TItem> ItemsVisibles =>
+        string.IsNullOrWhiteSpace(_textoBusqueda)
+            ? _items
+            : _items.Where(item => CamposBusqueda(item)
+                .Any(v => v?.Contains(_textoBusqueda.Trim(), StringComparison.OrdinalIgnoreCase) == true));
+
+    /// <summary>Aplica el texto de búsqueda y recalcula la vista (filtros y totales incluidos).</summary>
+    protected async Task OnBusquedaChanged(string texto)
+    {
+        _textoBusqueda = texto;
+        if (_grid is not null) await _grid.Reload();
+    }
+
+    /// <summary>
+    /// Handler vacío para Filter/FilterCleared de la grilla: al ser un callback de la
+    /// página, su disparo re-renderiza la toolbar (el estado del botón Quitar filtros
+    /// depende de los filtros y la grilla no avisa de otro modo).
+    /// </summary>
+    protected void OnGridFilter(DataGridColumnFilterEventArgs<TItem> args) { }
+
+    /// <summary>
+    /// Hay algo para limpiar: búsqueda rápida o filtros de columna (los popups de
+    /// filtro escriben FilterValue/SecondFilterValue). Habilita el botón de la toolbar.
+    /// </summary>
+    protected bool HayFiltrosActivos =>
+        !string.IsNullOrWhiteSpace(_textoBusqueda)
+        || (_grid?.ColumnsCollection.Any(c => c.GetFilterValue() is not null || c.GetSecondFilterValue() is not null) ?? false);
 
     /// <summary>Fila en blanco del alta inline.</summary>
     protected virtual TItem NuevaFila() => new();
@@ -342,35 +392,46 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
 
     protected async Task AddRow() => await _grid.InsertRow(NuevaFila());
 
-    /// <summary>Quita los filtros de todas las columnas de la grilla y recarga la vista.</summary>
+    /// <summary>Quita la búsqueda rápida y los filtros de columna, y recarga la vista.</summary>
     protected async Task LimpiarFiltros()
     {
         if (_grid is null) return;
 
+        _textoBusqueda = string.Empty;
         foreach (var columna in _grid.ColumnsCollection)
             columna.ClearFilters();
 
         await _grid.Reload();
     }
 
-    /// <summary>Al abrir la edición se guarda el estado previo, para poder cancelar.</summary>
+    /// <summary>
+    /// Buffer de edición de la fila: los EditTemplates bindean acá. Se crea al abrir la
+    /// edición (RowEdit) o, para la fila del alta —que no pasa por RowEdit—, en el
+    /// primer render de sus editores.
+    /// </summary>
+    protected TItem Buffer(TItem item)
+    {
+        if (!_buffers.TryGetValue(item, out var buffer))
+            _buffers[item] = buffer = Copiar(item, new TItem());
+
+        return buffer;
+    }
+
+    /// <summary>Al abrir la edición se crea el buffer sobre el que escriben los editores.</summary>
     protected void OnRowEdit(TItem item)
     {
         // Con EditMode.Single, abrir otra fila cierra la anterior sin pasar por Cancelar:
-        // hay que deshacer lo que quedó a medias y no dejar la copia colgada.
-        foreach (var (fila, original) in _originales.ToList())
-            if (!ReferenceEquals(fila, item))
-            {
-                Copiar(original, fila);
-                _originales.Remove(fila);
-            }
+        // su buffer se descarta (el ítem real nunca se tocó).
+        foreach (var fila in _buffers.Keys.Where(f => !ReferenceEquals(f, item)).ToList())
+            _buffers.Remove(fila);
 
-        _originales[item] = Copiar(item, new TItem());
+        _buffers[item] = Copiar(item, new TItem());
     }
 
     protected void CancelEdit(TItem item)
     {
-        if (_originales.Remove(item, out var original)) Copiar(original, item);
+        // El ítem real nunca se tocó: cancelar es descartar el buffer.
+        _buffers.Remove(item);
         _grid.CancelEditRow(item);
     }
 
@@ -397,27 +458,35 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     }
 
     /// <summary>
-    /// Guarda la fila en edición. Valida ANTES de delegar en la grilla: si Radzen confirma
-    /// la fila, la cierra y lo cargado se pierde, así que el error tiene que frenar antes.
+    /// Guarda la fila en edición. Valida el buffer ANTES de delegar en la grilla: si
+    /// Radzen confirma la fila, la cierra y lo cargado se pierde, así que el error tiene
+    /// que frenar antes. El ítem real recién se pisa cuando el guardado va en serio.
     /// </summary>
     protected async Task GuardarFila(TItem item)
     {
         // La fila del alta todavía no está en la lista: eso la distingue de una edición.
         var esAlta = !_items.Contains(item);
-        if (!FilaValida(item, esAlta)) return;
+        var buffer = Buffer(item);
+        if (!FilaValida(buffer, esAlta)) return;
 
         // Se pregunta acá, antes de que la grilla cierre la fila: si el usuario cancela,
         // conserva lo que cargó. Una falla (la confirmación puede consultar la base)
         // tiene que dejar la fila en edición, no voltear el circuito.
         try
         {
-            if (!await ConfirmarGuardadoAsync(item, esAlta)) return;
+            if (!await ConfirmarGuardadoAsync(buffer, esAlta)) return;
         }
         catch (Exception ex)
         {
             Informar(ex, "El guardado", "Error al guardar");
             return;
         }
+
+        // Recién acá se aplica lo tipeado sobre la fila real, guardando antes el estado
+        // previo para el diff de auditoría de OnRowUpdate.
+        _originales[item] = Copiar(item, new TItem());
+        Copiar(buffer, item);
+        _buffers.Remove(item);
 
         await _grid.UpdateRow(item);
     }
@@ -548,6 +617,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     /// </summary>
     protected async Task ReloadAsync()
     {
+        _buffers.Clear();
         _originales.Clear();
         await CargarDatosAsync();
         await _grid.Reload();
