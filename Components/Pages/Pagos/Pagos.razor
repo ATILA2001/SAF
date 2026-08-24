@@ -12,6 +12,7 @@
                  CargandoResto="@_cargandoResto"
                  Exportando="@_exportando"
                  ExportarDeshabilitado="@ExportarDeshabilitado"
+                 TituloExportarDeshabilitado="@MotivoExportarDeshabilitado"
                  OnExportar="@ExportarExcel"
                  OnLimpiarFiltros="@LimpiarFiltros">
         <Acciones>
@@ -25,9 +26,12 @@
                               ButtonStyle="ButtonStyle.Primary"
                               Click="@AddRow"
                               Disabled="@(_loading || _syncing)" />
+                @* Secondary: la acción principal de la vista es una sola (Nuevo);
+                   dos primarios compiten y ninguno destaca. *@
                 <RadzenButton Text="Sincronizar"
                               Icon="sync"
-                              ButtonStyle="ButtonStyle.Primary"
+                              ButtonStyle="ButtonStyle.Secondary"
+                              title="Importa los devengados nuevos desde IVC"
                               Click="@SincronizarDevengados"
                               IsBusy="@_syncing"
                               BusyText="Sincronizando..."
@@ -53,6 +57,7 @@
                         FilterMode="FilterMode.CheckBoxList"
                         ClearFilterText="Limpiar"
                         ApplyFilterText="Aplicar"
+                        EmptyText="No hay filas para mostrar. Si aplicaste filtros, podés quitarlos con el botón de la barra superior."
                         AllowPaging="false"
                         AllowVirtualization="true"
                         Style="height: calc(100vh - 15rem)"
@@ -62,38 +67,42 @@
                         RowCreate="@OnRowCreate">
             <Columns>
                 @* Campos IVC: solo editables en el alta manual (Id == 0); en edición quedan bloqueados. *@
-                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="TipoDev" Title="Tipo Dev" Width="140px">
+                @* Como en Status Contabilidad, las columnas de identidad quedan fijas al
+                   scrollear: identifican la fila, no pueden faltar. Fecha Devengado va
+                   después del bloque fijo para que las congeladas sean contiguas (los
+                   offsets sticky se calculan con el Width declarado). *@
+                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="TipoDev" Title="Tipo Dev" Width="140px" Frozen="true">
                     <EditTemplate Context="item">
                         <RadzenTextBox @bind-Value="item.TipoDev" Disabled="@(item.Id != 0)" Placeholder="PRD" Style="width:100%"
                                        class="@GetValidationCssClass(item.Id != 0 || !string.IsNullOrWhiteSpace(item.TipoDev))" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="NroDev" Title="Nro Dev" Width="130px">
+                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="NroDev" Title="Nro Dev" Width="130px" Frozen="true" TextAlign="TextAlign.Right">
                     <EditTemplate Context="item">
                         <RadzenNumeric TValue="int" @bind-Value="item.NroDev" Disabled="@(item.Id != 0)" ShowUpDown="false" Style="width:100%"
                                        class="@GetValidationCssClass(item.Id != 0 || item.NroDev > 0)" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="Expediente" Title="Expediente" Width="180px" Frozen="true">
+                    <EditTemplate Context="item">
+                        <ExpedienteEditor @bind-Value="item.Expediente" Deshabilitado="@(item.Id != 0)" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="Empresa" Title="Empresa" Width="200px" Frozen="true">
+                    <EditTemplate Context="item">
+                        <RadzenTextBox @bind-Value="item.Empresa" Disabled="@(item.Id != 0)" Style="width:100%" />
+                    </EditTemplate>
+                </RadzenDataGridColumn>
+                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="Importe" Title="Importe" Width="160px" FormatString="{0:N2}" Frozen="true" TextAlign="TextAlign.Right">
+                    <EditTemplate Context="item">
+                        <RadzenNumeric TValue="decimal?" @bind-Value="item.Importe" Disabled="@(item.Id != 0)" ShowUpDown="false" Style="width:100%"
+                                       class="@GetValidationCssClass(item.Id != 0 || item.Importe is > 0)" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="FechaDevengado" Title="Fecha Devengado" Width="180px" FormatString="{0:dd/MM/yyyy}">
                     <EditTemplate Context="item">
                         <RadzenDatePicker @bind-Value="item.FechaDevengado" Disabled="@(item.Id != 0)" DateFormat="dd/MM/yyyy" Style="width:100%"
                                           class="@GetValidationCssClass(item.Id != 0 || item.FechaDevengado is not null)" />
-                    </EditTemplate>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="Expediente" Title="Expediente" Width="180px">
-                    <EditTemplate Context="item">
-                        <ExpedienteEditor @bind-Value="item.Expediente" Deshabilitado="@(item.Id != 0)" />
-                    </EditTemplate>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="Empresa" Title="Empresa" Width="200px">
-                    <EditTemplate Context="item">
-                        <RadzenTextBox @bind-Value="item.Empresa" Disabled="@(item.Id != 0)" Style="width:100%" />
-                    </EditTemplate>
-                </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="Importe" Title="Importe" Width="160px" FormatString="{0:N2}">
-                    <EditTemplate Context="item">
-                        <RadzenNumeric TValue="decimal?" @bind-Value="item.Importe" Disabled="@(item.Id != 0)" ShowUpDown="false" Style="width:100%"
-                                       class="@GetValidationCssClass(item.Id != 0 || item.Importe is > 0)" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="StatusDgayfNombre" Title="Status DGAyF" Width="150px">
@@ -192,21 +201,21 @@
                             @if (CanEdit)
                             {
                                 <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                              Click="@(() => _grid.EditRow(item))" />
+                                              Click="@(() => _grid.EditRow(item))" title="Editar fila" />
                             }
                             @if (CanDelete)
                             {
                                 <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
-                                              Click="@(() => DeleteRow(item))" />
+                                              Click="@(() => DeleteRow(item))" title="Eliminar fila" />
                             }
                             <RadzenButton Icon="history" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
                                           Click="@(() => VerHistorial(item))" title="Historial de cambios" />
                         </Template>
                         <EditTemplate Context="item">
                             <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
-                                          Click="@(() => GuardarFila(item))" />
+                                          Click="@(() => GuardarFila(item))" title="Guardar cambios" />
                             <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                          Click="@(() => CancelEdit(item))" />
+                                          Click="@(() => CancelEdit(item))" title="Cancelar edición" />
                         </EditTemplate>
                     </RadzenDataGridColumn>
                 }

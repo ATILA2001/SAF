@@ -11,6 +11,7 @@
                  CargandoResto="@_cargandoResto"
                  Exportando="@_exportando"
                  ExportarDeshabilitado="@ExportarDeshabilitado"
+                 TituloExportarDeshabilitado="@MotivoExportarDeshabilitado"
                  OnExportar="@ExportarExcel"
                  OnLimpiarFiltros="@LimpiarFiltros" />
 
@@ -31,6 +32,7 @@
                         FilterMode="FilterMode.CheckBoxList"
                         ClearFilterText="Limpiar"
                         ApplyFilterText="Aplicar"
+                        EmptyText="No hay filas para mostrar. Si aplicaste filtros, podés quitarlos con el botón de la barra superior."
                         AllowPaging="false"
                         AllowVirtualization="true"
                         Style="height: calc(100vh - 15rem)"
@@ -39,7 +41,9 @@
                         RowUpdate="@OnRowUpdate"
                         RowCreate="@OnRowCreate">
             <Columns>
-                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Expediente" Title="Expediente" Width="230px">
+                @* El expediente identifica la fila: queda fijo al scrollear (misma regla
+                   que en Pagos, Status y CAF). *@
+                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Expediente" Title="Expediente" Width="230px" Frozen="true">
                     <EditTemplate Context="item">
                         <ExpedienteEditor @bind-Value="item.Expediente" />
                     </EditTemplate>
@@ -54,7 +58,7 @@
                         <RadzenTextBox @bind-Value="item.Beneficiario" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="ImporteNeto" Title="Importe Neto" Width="150px" FormatString="{0:N2}">
+                <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="ImporteNeto" Title="Importe Neto" Width="150px" FormatString="{0:N2}" TextAlign="TextAlign.Right">
                     <EditTemplate Context="item">
                         <RadzenNumeric @bind-Value="item.ImporteNeto" Style="width:100%" />
                     </EditTemplate>
@@ -82,25 +86,32 @@
                             @if (CanEdit)
                             {
                                 <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                              Click="@(() => _grid.EditRow(item))" />
+                                              Click="@(() => _grid.EditRow(item))" title="Editar fila" />
                             }
                             @if (CanDelete)
                             {
                                 <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
-                                              Click="@(() => DeleteRow(item))" />
+                                              Click="@(() => DeleteRow(item))" title="Eliminar fila" />
                             }
                             <RadzenButton Icon="history" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
                                           Click="@(() => VerHistorial(item))" title="Historial de cambios" />
                         </Template>
                         <EditTemplate Context="item">
                             <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
-                                          Click="@(() => GuardarFila(item))" />
+                                          Click="@(() => GuardarFila(item))" title="Guardar cambios" />
                             <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                          Click="@(() => CancelEdit(item))" />
+                                          Click="@(() => CancelEdit(item))" title="Cancelar edición" />
                         </EditTemplate>
                     </RadzenDataGridColumn>
                 }
             </Columns>
+            <FooterTemplate>
+                @* View y no _items: es lo que queda a la vista con los filtros aplicados. *@
+                <GridFooterTotales Filas="@(_grid?.View?.Count() ?? 0)"
+                                   Importe="@(_grid?.View?.Sum(x => x.ImporteNeto ?? 0m) ?? 0m)"
+                                   Cargando="@_cargandoResto"
+                                   CargaIncompleta="@_cargaIncompleta" />
+            </FooterTemplate>
         </RadzenDataGrid>
     }
 </RadzenStack>

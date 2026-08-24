@@ -9,6 +9,7 @@
                  TextoCargando="Completando datos de SADE…"
                  Exportando="@_exportando"
                  ExportarDeshabilitado="@ExportarDeshabilitado"
+                 TituloExportarDeshabilitado="@MotivoExportarDeshabilitado"
                  OnExportar="@ExportarExcel"
                  OnLimpiarFiltros="@LimpiarFiltros" />
 
@@ -33,6 +34,7 @@
                         FilterMode="FilterMode.CheckBoxList"
                         ClearFilterText="Limpiar"
                         ApplyFilterText="Aplicar"
+                        EmptyText="No hay filas para mostrar. Si aplicaste filtros, podés quitarlos con el botón de la barra superior."
                         AllowPaging="false"
                         AllowVirtualization="true"
                         Style="height: calc(100vh - 15rem)"
@@ -47,23 +49,28 @@
                    el encabezado quedaba recortado a nada. En columnas fijas se agranda Width
                    y no MinWidth: los offsets sticky se calculan con el Width declarado. *@
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="TipoDev" Title="Tipo Dev" Width="140px" Frozen="true" Pickable="false" />
-                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="NroDev" Title="Nro Dev" Width="130px" Frozen="true" Pickable="false" />
+                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="NroDev" Title="Nro Dev" Width="130px" Frozen="true" Pickable="false" TextAlign="TextAlign.Right" />
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="Expediente" Title="Expediente" Width="180px" Frozen="true" Pickable="false" />
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="Empresa" Title="Empresa" Width="200px" Frozen="true" Pickable="false" />
                 @* El tablero agrupa las líneas del devengado; en Pagos se ven separadas.
                    El badge avisa cuántas resume esta fila y de cuál salen los datos. *@
-                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="ImporteTotal" Title="Importe" Width="150px" FormatString="{0:N2}" Frozen="true" Pickable="false">
+                @* 200px y no 150px: tienen que entrar el importe (hasta decenas de millones)
+                   y el badge de líneas, que no puede encogerse (flex-shrink: 0) porque el
+                   flex lo recortaba a la mitad del texto. *@
+                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="ImporteTotal" Title="Importe" Width="200px" FormatString="{0:N2}" Frozen="true" Pickable="false" TextAlign="TextAlign.Right">
                     <Template Context="item">
-                        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
-                            <span>@item.ImporteTotal?.ToString("N2")</span>
+                        @* Badge a la izquierda y número contra el borde derecho: los importes
+                           quedan alineados entre filas (con o sin badge) y se comparan a ojo. *@
+                        <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End">
                             @if (item.CantidadLineas > 1)
                             {
                                 <RadzenBadge BadgeStyle="BadgeStyle.Light"
                                              Text="@($"{item.CantidadLineas} líneas")"
-                                             Style="cursor: help;"
+                                             Style="cursor: help; flex-shrink: 0; white-space: nowrap;"
                                              MouseEnter="@(el => MostrarLineas(el, item))"
                                              MouseLeave="@(_ => TooltipService.Close())" />
                             }
+                            <span>@item.ImporteTotal?.ToString("N2")</span>
                         </RadzenStack>
                     </Template>
                 </RadzenDataGridColumn>
@@ -221,21 +228,21 @@
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="FechaNotificacion" Title="Fecha Notificación" Width="170px" FormatString="{0:dd/MM/yyyy}" />
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="BuzonSade" Title="Buzón SADE" Width="140px" />
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="UltimoMovimientoSade" Title="Último Movimiento" Width="180px" FormatString="{0:dd/MM/yyyy HH:mm}" />
-                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="DiasEnElArea" Title="Días en el Área" Width="155px" />
+                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="DiasEnElArea" Title="Días en el Área" Width="155px" TextAlign="TextAlign.Right" />
                 @if (CanEdit)
                 {
                     <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Title="Acciones" Width="170px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Pickable="false">
                         <Template Context="item">
                             <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                          Click="@(() => _grid.EditRow(item))" />
+                                          Click="@(() => _grid.EditRow(item))" title="Editar fila" />
                             <RadzenButton Icon="history" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
                                           Click="@(() => VerHistorial(item))" title="Historial de cambios" />
                         </Template>
                         <EditTemplate Context="item">
                             <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
-                                          Click="@(() => GuardarFila(item))" />
+                                          Click="@(() => GuardarFila(item))" title="Guardar cambios" />
                             <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                          Click="@(() => CancelEdit(item))" />
+                                          Click="@(() => CancelEdit(item))" title="Cancelar edición" />
                         </EditTemplate>
                     </RadzenDataGridColumn>
                 }
