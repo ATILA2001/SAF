@@ -12,10 +12,9 @@
     /* Acento claro de la misma familia: para TEXTO/íconos sobre fondo oscuro
        (menú activo, links), donde el oliva #375f0f quedaría ilegible. */
     --custom-primary-accent: #8bc34a;
-    /* Secondary fijo en teal para AMBOS temas. En el tema claro de Radzen el
-       secondary es magenta/rojo (#e31c65) y volvía rojos los botones
-       "Aplicaciones" y "Exportar Excel"; lo forzamos al teal del tema oscuro. */
-    --custom-secondary-color: #01a299;
+    /* OJO con ButtonStyle.Secondary: en el tema claro de Radzen el secondary es
+       magenta/rojo (#e31c65). Los botones secundarios de la app usan Light (gris);
+       si se reintroduce Secondary, hay que volver a pisarle el color. */
 
     /* Escala de primario de Radzen: override COMPLETO de la escala para que todos
        los estados derivados (menú activo, focus, hover, fondos sutiles, filas

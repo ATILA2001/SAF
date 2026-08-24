@@ -11,13 +11,6 @@
     color: var(--rz-white) !important;
 }
 
-/* Botones secondary (Aplicaciones, Exportar Excel): teal consistente en claro y
-   oscuro, en vez del magenta/rojo del tema claro. */
-.rz-button.rz-secondary {
-    background-color: var(--custom-secondary-color) !important;
-    color: var(--rz-white) !important;
-}
-
 .rz-clear-filter {
     background-color: var(--rz-base-dark) !important;
     color: var(--rz-white) !important;
