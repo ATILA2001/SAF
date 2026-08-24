@@ -129,7 +129,9 @@ public partial class StatusContabilidad
                 [nameof(StatusContabilidadEditor.SinFacturaMotivos)] = _sinFacturaMotivos,
                 [nameof(StatusContabilidadEditor.GuardarAsync)] = (Func<Task<bool>>)(() => GuardarDesdeDialogoAsync(item)),
             },
-            new DialogOptions { Width = "780px" });
+            // Sin barra de título de Radzen: el editor pone su propio encabezado y su
+            // panel de identidad va de borde a borde (padding 0 vía saf-dialog-panel).
+            new DialogOptions { Width = "1000px", ShowTitle = false, CssClass = "saf-dialog-panel" });
 
         // Cerrado sin guardar (Cancelar, la X o Escape): se descarta lo tipeado.
         if (resultado is not true) DescartarBuffer(item);

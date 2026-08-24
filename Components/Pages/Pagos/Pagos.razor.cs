@@ -106,6 +106,30 @@ public partial class Pagos
     protected override Task EliminarAsync(PagoViewModel item) =>
         PagosService.DeleteDevengadoAsync(item.Id, item.RowVersion);
 
+    /// <summary>
+    /// Edición en ventana: los campos editables a la vista, con labels. Comparte el
+    /// borrador con la edición inline; cerrar sin guardar lo descarta.
+    /// </summary>
+    private async Task EditarEnVentana(PagoViewModel item)
+    {
+        var resultado = await DialogService.OpenAsync<PagoEditor>(
+            $"Editar — Devengado {item.TipoDev} {item.NroDev}",
+            new Dictionary<string, object?>
+            {
+                [nameof(PagoEditor.Item)] = item,
+                [nameof(PagoEditor.Borrador)] = Buffer(item),
+                [nameof(PagoEditor.StatusDgayfOpciones)] = _statusDgayfOpciones,
+                [nameof(PagoEditor.StatusOpOpciones)] = _statusOpOpciones,
+                [nameof(PagoEditor.GuardarAsync)] = (Func<Task<bool>>)(() => GuardarDesdeDialogoAsync(item)),
+            },
+            // Sin barra de título de Radzen: el editor pone su propio encabezado y su
+            // panel de identidad va de borde a borde (padding 0 vía saf-dialog-panel).
+            new DialogOptions { Width = "1000px", ShowTitle = false, CssClass = "saf-dialog-panel" });
+
+        // Cerrado sin guardar (Cancelar, la X o Escape): se descarta lo tipeado.
+        if (resultado is not true) DescartarBuffer(item);
+    }
+
     private async Task SincronizarDevengados()
     {
         if (!CanCreate)

@@ -27,12 +27,12 @@
                               ButtonStyle="ButtonStyle.Primary"
                               Click="@AddRow"
                               Disabled="@(_loading || _syncing)" />
-                @* Secondary: la acción principal de la vista es una sola (Nuevo);
+                @* Light (gris): la acción principal de la vista es una sola (Nuevo);
                    dos primarios compiten y ninguno destaca. La última actualización
                    va en el tooltip: es el dato que decide si vale la pena sincronizar. *@
                 <RadzenButton Text="Sincronizar"
                               Icon="sync"
-                              ButtonStyle="ButtonStyle.Secondary"
+                              ButtonStyle="ButtonStyle.Light"
                               title="@($"Importa los devengados nuevos desde IVC. Última actualización: {_ultimaActualizacion?.ToString("dd/MM/yyyy") ?? "—"}")"
                               Click="@SincronizarDevengados"
                               IsBusy="@_syncing"
@@ -211,11 +211,13 @@
                 </RadzenDataGridColumn>
                 @if (CanEdit || CanDelete || CanCreate)
                 {
-                    <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Title="Acciones" Width="150px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
+                    @* 200px: hasta cuatro botones de acción (editar, ventana, eliminar, historial). *@
+                    <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Title="Acciones" Width="200px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
                         <Template Context="item">
                             <AccionesFila MostrarEditar="@CanEdit"
                                           MostrarEliminar="@CanDelete"
                                           OnEditar="@(() => _grid.EditRow(item))"
+                                          OnEditarEnVentana="@(() => EditarEnVentana(item))"
                                           OnEliminar="@(() => DeleteRow(item))"
                                           OnHistorial="@(() => VerHistorial(item))" />
                         </Template>

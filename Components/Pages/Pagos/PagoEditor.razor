@@ -1,0 +1,146 @@
+@using SAF.Application.Pagos.Dtos
+@using SAF.Data.Entities
+
+@* Edición de la fila de Pagos en ventana, con panel de identidad (opción C del
+   rediseño): columna verde fija con el devengado, expediente, empresa e importe
+   siempre visibles, y los campos editables a la derecha. Los campos de identidad
+   (IVC) no se editan en filas existentes: viven en el panel, no como inputs
+   deshabilitados. Escribe sobre el mismo Borrador (buffer) que la edición inline.
+   Requiere DialogOptions con ShowTitle=false y CssClass "saf-dialog-panel". *@
+
+<div style="display: flex; align-items: stretch;">
+
+    <div style="width: 280px; flex-shrink: 0; background: var(--rz-primary-dark); color: #ffffff; padding: 26px 24px; display: flex; flex-direction: column; gap: 22px; box-sizing: border-box;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">Devengado</span>
+            <span style="font-size: 1.6rem; font-weight: 700;">@Item.TipoDev @Item.NroDev</span>
+        </div>
+        <div style="height: 1px; background: rgba(255,255,255,0.16);"></div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">Expediente</span>
+            <span style="font-size: 0.95rem; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere;">@Item.Expediente</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">Empresa</span>
+            <span style="font-size: 0.9rem; line-height: 1.45;">@Item.Empresa</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">Importe</span>
+            <span style="font-size: 1.3rem; font-weight: 700; color: var(--custom-primary-accent); font-variant-numeric: tabular-nums;">@(Item.Importe?.ToString("N2") ?? "—")</span>
+        </div>
+        <div style="flex-grow: 1;"></div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            @if (Item.FechaDevengado is DateTime devengado)
+            {
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--custom-primary-accent); flex-shrink: 0;"></div>
+                    <span style="font-size: 0.75rem; color: rgba(255,255,255,0.75);">Devengado · @devengado.ToString("dd/MM/yyyy")</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 24px 0 24px;">
+            <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-size: 1.15rem;">Editar registro</RadzenText>
+            <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Size="ButtonSize.Small"
+                          Click="@(() => DialogService.Close(false))" title="Cerrar sin guardar" />
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px; padding: 16px 24px 4px 24px;">
+            <RadzenStack Gap="0.85rem">
+                <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0;">Status y firma</RadzenText>
+                <RadzenRow Gap="1rem">
+                    <RadzenColumn Size="6">
+                        <RadzenFormField Text="Status DGAyF" Variant="Variant.Outlined" Style="width: 100%;">
+                            <RadzenDropDown @bind-Value="Borrador.StatusDgayfOpcionId"
+                                            Data="@StatusDgayfOpciones" TextProperty="Nombre" ValueProperty="Id"
+                                            AllowClear="true" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                    <RadzenColumn Size="6">
+                        <RadzenFormField Text="Status OP" Variant="Variant.Outlined" Style="width: 100%;">
+                            <RadzenDropDown @bind-Value="Borrador.StatusOpOpcionId"
+                                            Data="@StatusOpOpciones" TextProperty="Nombre" ValueProperty="Id"
+                                            AllowClear="true" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
+                <RadzenRow Gap="1rem">
+                    <RadzenColumn Size="6">
+                        <RadzenFormField Text="Fecha Firma OP" Variant="Variant.Outlined" Style="width: 100%;">
+                            <RadzenDatePicker @bind-Value="Borrador.FechaFirmaOp" DateFormat="dd/MM/yyyy" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
+            </RadzenStack>
+
+            <RadzenStack Gap="0.85rem">
+                <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0;">CCOO y notificación</RadzenText>
+                <RadzenRow Gap="1rem">
+                    <RadzenColumn Size="6">
+                        <RadzenFormField Text="CCOO" Variant="Variant.Outlined" Style="width: 100%;">
+                            <RadzenTextBox @bind-Value="Borrador.Ccoo" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                    <RadzenColumn Size="6">
+                        <RadzenFormField Text="Fecha CCOO" Variant="Variant.Outlined" Style="width: 100%;">
+                            <RadzenDatePicker @bind-Value="Borrador.FechaCcoo" DateFormat="dd/MM/yyyy" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
+                <RadzenRow Gap="1rem">
+                    <RadzenColumn Size="6">
+                        <RadzenFormField Text="Fecha Notificación" Variant="Variant.Outlined" Style="width: 100%;">
+                            <RadzenDatePicker @bind-Value="Borrador.FechaNotificacion" DateFormat="dd/MM/yyyy" />
+                        </RadzenFormField>
+                    </RadzenColumn>
+                </RadzenRow>
+                <RadzenFormField Text="Observaciones" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenTextArea @bind-Value="Borrador.Observaciones" Rows="3" />
+                </RadzenFormField>
+            </RadzenStack>
+        </div>
+
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem"
+                     Style="padding: 16px 24px 20px 24px; border-top: 1px solid var(--surface-border, rgba(128,128,128,.25)); margin-top: 18px;">
+            <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Light" Click="@(() => DialogService.Close(false))" />
+            <RadzenButton Text="Guardar cambios" ButtonStyle="ButtonStyle.Primary"
+                          Click="@Guardar" IsBusy="@_guardando" BusyText="Guardando..." />
+        </RadzenStack>
+    </div>
+</div>
+
+@code {
+    [Inject] private DialogService DialogService { get; set; } = null!;
+
+    /// <summary>La fila real: identidad y valores de solo lectura del panel.</summary>
+    [Parameter, EditorRequired] public PagoViewModel Item { get; set; } = null!;
+
+    /// <summary>El buffer de edición compartido con la grilla: acá escriben los campos.</summary>
+    [Parameter, EditorRequired] public PagoViewModel Borrador { get; set; } = null!;
+
+    [Parameter] public IReadOnlyList<StatusDgayfOpcion> StatusDgayfOpciones { get; set; } = [];
+    [Parameter] public IReadOnlyList<StatusOpOpcion> StatusOpOpciones { get; set; } = [];
+
+    /// <summary>
+    /// Guardado delegado a la página (GuardarDesdeDialogoAsync): true = cerrar el
+    /// diálogo; false = quedó abierto con lo tipeado (validación o error).
+    /// </summary>
+    [Parameter, EditorRequired] public Func<Task<bool>> GuardarAsync { get; set; } = null!;
+
+    private bool _guardando;
+
+    private async Task Guardar()
+    {
+        _guardando = true;
+        try
+        {
+            if (await GuardarAsync()) DialogService.Close(true);
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+}

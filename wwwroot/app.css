@@ -141,6 +141,13 @@ html, body, #app {
     --rz-badge-padding: 0.05rem 0.35rem;
 }
 
+/* Diálogos de edición con panel de identidad: el contenido va de borde a borde
+   (el panel verde ocupa la columna izquierda completa); el componente pone sus
+   propios paddings, encabezado y botonera. */
+.saf-dialog-panel .rz-dialog-content {
+    padding: 0 !important;
+}
+
 /* Tabla simple de los diálogos de detalle (líneas del devengado, OPs CAF). */
 .saf-tabla-detalle {
     border-collapse: collapse;
