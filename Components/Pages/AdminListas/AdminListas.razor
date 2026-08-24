@@ -6,24 +6,31 @@
 <PageTitle>Administración de listas</PageTitle>
 
 <RadzenStack>
+    @* El selector define QUÉ lista muestra la página: va junto al título (donde el
+       usuario empieza a leer), no mezclado con las acciones. Reparto 7/5: el título
+       más el dropdown necesitan el ancho; las acciones acá son solo Nuevo y Exportar. *@
     <GridToolbar Titulo="Administración de listas"
+                 SizeTitulo="7"
+                 SizeAcciones="5"
                  MostrarNuevo="@CanCreate"
                  NuevoDeshabilitado="@_loading"
                  OnNuevo="@AddRow"
                  Exportando="@_exportando"
                  ExportarDeshabilitado="@ExportarDeshabilitado"
+                 TituloExportarDeshabilitado="@MotivoExportarDeshabilitado"
                  OnExportar="@ExportarExcel"
                  OnLimpiarFiltros="@LimpiarFiltros">
-        <Acciones>
-            <RadzenLabel Text="Lista:" />
+        <Contexto>
+            <RadzenLabel Text="Lista:" Component="ListaSeleccionada" />
             <RadzenDropDown TValue="ListaAdminDefinicion"
+                            Name="ListaSeleccionada"
                             Data="@_listasVisibles"
                             @bind-Value="_lista"
                             TextProperty="Titulo"
                             Change="@OnListaChanged"
                             Disabled="@_loading"
                             Style="min-width: 260px" />
-        </Acciones>
+        </Contexto>
     </GridToolbar>
 
     @if (_loading)
@@ -46,6 +53,7 @@
                         FilterMode="FilterMode.CheckBoxList"
                         ClearFilterText="Limpiar"
                         ApplyFilterText="Aplicar"
+                        EmptyText="No hay filas para mostrar. Si aplicaste filtros, podés quitarlos con el botón de la barra superior."
                         AllowPaging="false"
                         EditMode="DataGridEditMode.Single"
                         RowEdit="@OnRowEdit"
@@ -57,7 +65,7 @@
                         <RadzenTextBox @bind-Value="item.Nombre" MaxLength="@OpcionListaValidator.NombreMaxLength" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Orden" Title="Orden" Width="135px">
+                <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Orden" Title="Orden" Width="135px" TextAlign="TextAlign.Right">
                     <EditTemplate Context="item">
                         <RadzenNumeric TValue="int" @bind-Value="item.Orden" Min="0" Style="width:100%" />
                     </EditTemplate>
@@ -85,21 +93,21 @@
                             @if (CanEdit)
                             {
                                 <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                              Click="@(() => _grid.EditRow(item))" />
+                                              Click="@(() => _grid.EditRow(item))" title="Editar fila" />
                             }
                             @if (CanDelete)
                             {
                                 <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
-                                              Click="@(() => DeleteRow(item))" />
+                                              Click="@(() => DeleteRow(item))" title="Eliminar fila" />
                             }
                             <RadzenButton Icon="history" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
                                           Click="@(() => VerHistorial(item))" title="Historial de cambios" />
                         </Template>
                         <EditTemplate Context="item">
                             <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
-                                          Click="@(() => GuardarFila(item))" />
+                                          Click="@(() => GuardarFila(item))" title="Guardar cambios" />
                             <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                          Click="@(() => CancelEdit(item))" />
+                                          Click="@(() => CancelEdit(item))" title="Cancelar edición" />
                         </EditTemplate>
                     </RadzenDataGridColumn>
                 }
