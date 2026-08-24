@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Radzen;
 using SAF.Services.Abstractions;
 using SAF.Application.Caf;
 using SAF.Application.Caf.Dtos;
@@ -50,6 +51,46 @@ public partial class Caf
     }
 
     protected override Task ActualizarAsync(CafViewModel item) => CafService.UpdateAsync(item);
+
+    /// <summary>
+    /// Edición en ventana: todos los campos con labels. Comparte el borrador con la
+    /// edición inline; cerrar sin guardar lo descarta.
+    /// </summary>
+    private async Task EditarEnVentana(CafViewModel item)
+    {
+        var resultado = await DialogService.OpenAsync<CafEditor>(
+            $"Editar — Expediente CAF {item.Expediente}",
+            new Dictionary<string, object?>
+            {
+                [nameof(CafEditor.Item)] = item,
+                [nameof(CafEditor.Borrador)] = Buffer(item),
+                [nameof(CafEditor.GuardarAsync)] = (Func<Task<bool>>)(() => GuardarDesdeDialogoAsync(item)),
+            },
+            new DialogOptions { Width = "1000px", ShowTitle = false, CssClass = "saf-dialog-panel" });
+
+        if (resultado is not true) DescartarBuffer(item);
+    }
+
+    /// <summary>
+    /// Alta en ventana (reemplaza al alta inline): el panel de identidad se completa
+    /// en vivo con lo tipeado. Cancelar descarta el objeto solo.
+    /// </summary>
+    private async Task NuevoEnVentana()
+    {
+        var item = NuevaFila();
+
+        await DialogService.OpenAsync<CafEditor>(
+            "Nuevo expediente CAF",
+            new Dictionary<string, object?>
+            {
+                // El mismo objeto como Item y Borrador: el panel refleja lo que se tipea.
+                [nameof(CafEditor.Item)] = item,
+                [nameof(CafEditor.Borrador)] = item,
+                [nameof(CafEditor.EsAlta)] = true,
+                [nameof(CafEditor.GuardarAsync)] = (Func<Task<bool>>)(() => CrearDesdeDialogoAsync(item)),
+            },
+            new DialogOptions { Width = "1000px", ShowTitle = false, CssClass = "saf-dialog-panel" });
+    }
 
     protected override Task EliminarAsync(CafViewModel item) =>
         item.Id != 0 ? CafService.DeleteAsync(item.Id, item.RowVersion) : Task.CompletedTask;
