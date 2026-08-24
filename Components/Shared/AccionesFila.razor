@@ -1,0 +1,42 @@
+@* Botones de la columna Acciones, compartidos por las cinco grillas: una sola
+   definición de íconos, estilos, tooltips y permisos. Se usa dos veces por
+   columna: en el Template (Edicion=false) y en el EditTemplate (Edicion=true).
+   Las diferencias reales entre vistas entran por parámetros (Status no ofrece
+   eliminar; el resto sí). *@
+
+@if (Edicion)
+{
+    <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                  Click="@OnGuardar" title="Guardar cambios" />
+    <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                  Click="@OnCancelar" title="Cancelar edición" />
+}
+else
+{
+    @if (MostrarEditar)
+    {
+        <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                      Click="@OnEditar" title="Editar fila" />
+    }
+    @if (MostrarEliminar)
+    {
+        <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
+                      Click="@OnEliminar" title="Eliminar fila" />
+    }
+    <RadzenButton Icon="history" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                  Click="@OnHistorial" title="Historial de cambios" />
+}
+
+@code {
+    /// <summary>true: par Guardar/Cancelar del EditTemplate; false: acciones de lectura.</summary>
+    [Parameter] public bool Edicion { get; set; }
+
+    [Parameter] public bool MostrarEditar { get; set; }
+    [Parameter] public bool MostrarEliminar { get; set; }
+
+    [Parameter] public EventCallback OnEditar { get; set; }
+    [Parameter] public EventCallback OnEliminar { get; set; }
+    [Parameter] public EventCallback OnHistorial { get; set; }
+    [Parameter] public EventCallback OnGuardar { get; set; }
+    [Parameter] public EventCallback OnCancelar { get; set; }
+}

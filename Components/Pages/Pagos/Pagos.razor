@@ -59,9 +59,9 @@
                         AllowSorting="true"
                         AllowColumnResize="true"
                         FilterMode="FilterMode.CheckBoxList"
-                        ClearFilterText="Limpiar"
-                        ApplyFilterText="Aplicar"
-                        EmptyText="No hay filas para mostrar. Si aplicaste filtros, podés quitarlos con el botón de la barra superior."
+                        ClearFilterText="@GridTextos.LimpiarFiltro"
+                        ApplyFilterText="@GridTextos.AplicarFiltro"
+                        EmptyText="@GridTextos.Vacio"
                         AllowPaging="false"
                         AllowVirtualization="true"
                         Style="height: calc(100vh - 15rem)"
@@ -172,7 +172,7 @@
                                     @onclick="@(() => VerOpsCaf(item))" @onclick:stopPropagation="true">
                                 <RadzenBadge BadgeStyle="BadgeStyle.Warning"
                                              Text="@($"{item.CafOpsPagadas} de {item.CafOps} OP pagadas")"
-                                             Style="--rz-badge-font-size: 0.65rem; --rz-badge-padding: 0.05rem 0.35rem;"
+                                             class="saf-badge-compacto"
                                              MouseEnter="@(el => MostrarOpsCaf(el, item))"
                                              MouseLeave="@(_ => TooltipService.Close())" />
                             </button>
@@ -189,7 +189,7 @@
                                         @onclick="@(() => VerOpsCaf(item))" @onclick:stopPropagation="true">
                                     <RadzenBadge BadgeStyle="BadgeStyle.Light"
                                                  Text="@($"{item.CafOps} OP")"
-                                                 Style="--rz-badge-font-size: 0.65rem; --rz-badge-padding: 0.05rem 0.35rem;"
+                                                 class="saf-badge-compacto"
                                                  MouseEnter="@(el => MostrarOpsCaf(el, item))"
                                                  MouseLeave="@(_ => TooltipService.Close())" />
                                 </button>
@@ -213,24 +213,16 @@
                 {
                     <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Title="Acciones" Width="150px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
                         <Template Context="item">
-                            @if (CanEdit)
-                            {
-                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                              Click="@(() => _grid.EditRow(item))" title="Editar fila" />
-                            }
-                            @if (CanDelete)
-                            {
-                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
-                                              Click="@(() => DeleteRow(item))" title="Eliminar fila" />
-                            }
-                            <RadzenButton Icon="history" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                          Click="@(() => VerHistorial(item))" title="Historial de cambios" />
+                            <AccionesFila MostrarEditar="@CanEdit"
+                                          MostrarEliminar="@CanDelete"
+                                          OnEditar="@(() => _grid.EditRow(item))"
+                                          OnEliminar="@(() => DeleteRow(item))"
+                                          OnHistorial="@(() => VerHistorial(item))" />
                         </Template>
                         <EditTemplate Context="item">
-                            <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
-                                          Click="@(() => GuardarFila(item))" title="Guardar cambios" />
-                            <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                          Click="@(() => CancelEdit(item))" title="Cancelar edición" />
+                            <AccionesFila Edicion="true"
+                                          OnGuardar="@(() => GuardarFila(item))"
+                                          OnCancelar="@(() => CancelEdit(item))" />
                         </EditTemplate>
                     </RadzenDataGridColumn>
                 }
@@ -291,10 +283,9 @@
         {
             Position = TooltipPosition.Left,
             Duration = null,
-            // Mismo fondo que el ítem de menú seleccionado; se compone sobre la superficie
-            // base porque ese token es translúcido y el tooltip flota sobre la grilla.
-            Style = "background: linear-gradient(var(--rz-primary-lighter), var(--rz-primary-lighter)), "
-                  + "var(--rz-base-background-color); color: var(--rz-text-color);",
+            // La receta del fondo vive en el token (tokens.css); inline para ganarle
+            // al fondo propio del tooltip de Radzen.
+            Style = "background: var(--saf-tooltip-detalle-bg); color: var(--rz-text-color);",
         });
 
     // Detalle completo en diálogo: todas las OPs, accesible por teclado, scrolleable y

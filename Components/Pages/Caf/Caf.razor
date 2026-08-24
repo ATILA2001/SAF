@@ -38,9 +38,9 @@
                         AllowSorting="true"
                         AllowColumnResize="true"
                         FilterMode="FilterMode.CheckBoxList"
-                        ClearFilterText="Limpiar"
-                        ApplyFilterText="Aplicar"
-                        EmptyText="No hay filas para mostrar. Si aplicaste filtros, podés quitarlos con el botón de la barra superior."
+                        ClearFilterText="@GridTextos.LimpiarFiltro"
+                        ApplyFilterText="@GridTextos.AplicarFiltro"
+                        EmptyText="@GridTextos.Vacio"
                         AllowPaging="false"
                         AllowVirtualization="true"
                         Style="height: calc(100vh - 15rem)"
@@ -111,24 +111,16 @@
                 {
                     <RadzenDataGridColumn TItem="SAF.Application.Caf.Dtos.CafViewModel" Title="Acciones" Width="150px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
                         <Template Context="item">
-                            @if (CanEdit)
-                            {
-                                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                              Click="@(() => _grid.EditRow(item))" title="Editar fila" />
-                            }
-                            @if (CanDelete)
-                            {
-                                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small"
-                                              Click="@(() => DeleteRow(item))" title="Eliminar fila" />
-                            }
-                            <RadzenButton Icon="history" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                          Click="@(() => VerHistorial(item))" title="Historial de cambios" />
+                            <AccionesFila MostrarEditar="@CanEdit"
+                                          MostrarEliminar="@CanDelete"
+                                          OnEditar="@(() => _grid.EditRow(item))"
+                                          OnEliminar="@(() => DeleteRow(item))"
+                                          OnHistorial="@(() => VerHistorial(item))" />
                         </Template>
                         <EditTemplate Context="item">
-                            <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
-                                          Click="@(() => GuardarFila(item))" title="Guardar cambios" />
-                            <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                          Click="@(() => CancelEdit(item))" title="Cancelar edición" />
+                            <AccionesFila Edicion="true"
+                                          OnGuardar="@(() => GuardarFila(item))"
+                                          OnCancelar="@(() => CancelEdit(item))" />
                         </EditTemplate>
                     </RadzenDataGridColumn>
                 }

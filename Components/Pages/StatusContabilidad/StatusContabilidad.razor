@@ -36,13 +36,13 @@
                         AllowSorting="true"
                         AllowColumnResize="true"
                         AllowColumnPicking="true"
-                        ColumnsText="Columnas"
-                        AllColumnsText="Todas"
-                        ColumnsShowingText="columnas mostradas"
+                        ColumnsText="@GridTextos.Columnas"
+                        AllColumnsText="@GridTextos.TodasLasColumnas"
+                        ColumnsShowingText="@GridTextos.ColumnasMostradas"
                         FilterMode="FilterMode.CheckBoxList"
-                        ClearFilterText="Limpiar"
-                        ApplyFilterText="Aplicar"
-                        EmptyText="No hay filas para mostrar. Si aplicaste filtros, podés quitarlos con el botón de la barra superior."
+                        ClearFilterText="@GridTextos.LimpiarFiltro"
+                        ApplyFilterText="@GridTextos.AplicarFiltro"
+                        EmptyText="@GridTextos.Vacio"
                         AllowPaging="false"
                         AllowVirtualization="true"
                         Style="height: calc(100vh - 15rem)"
@@ -246,17 +246,16 @@
                 @if (CanEdit)
                 {
                     <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Title="Acciones" Width="170px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Pickable="false">
+                        @* Sin eliminar: las filas del tablero nacen del ledger de devengados. *@
                         <Template Context="item">
-                            <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                          Click="@(() => _grid.EditRow(item))" title="Editar fila" />
-                            <RadzenButton Icon="history" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                          Click="@(() => VerHistorial(item))" title="Historial de cambios" />
+                            <AccionesFila MostrarEditar="true"
+                                          OnEditar="@(() => _grid.EditRow(item))"
+                                          OnHistorial="@(() => VerHistorial(item))" />
                         </Template>
                         <EditTemplate Context="item">
-                            <RadzenButton Icon="save" ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
-                                          Click="@(() => GuardarFila(item))" title="Guardar cambios" />
-                            <RadzenButton Icon="cancel" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
-                                          Click="@(() => CancelEdit(item))" title="Cancelar edición" />
+                            <AccionesFila Edicion="true"
+                                          OnGuardar="@(() => GuardarFila(item))"
+                                          OnCancelar="@(() => CancelEdit(item))" />
                         </EditTemplate>
                     </RadzenDataGridColumn>
                 }
@@ -324,7 +323,7 @@
                                     {
                                         @* Primary: sobre el fondo claro, el badge claro no se distinguía. *@
                                         <RadzenBadge BadgeStyle="BadgeStyle.Primary" Text="principal"
-                                                     Style="--rz-badge-font-size: 0.65rem; --rz-badge-padding: 0.05rem 0.35rem;" />
+                                                     class="saf-badge-compacto" />
                                     }
                                 </RadzenStack>
                             </RadzenColumn>
@@ -346,11 +345,9 @@
         {
             Position = TooltipPosition.Left,
             Duration = null,
-            // Mismo fondo que el ítem de menú seleccionado (--rz-primary-lighter). Ese
-            // token es translúcido: sobre el sidebar apoya en su superficie, pero el
-            // tooltip flota sobre la grilla, así que se compone sobre la superficie base.
-            Style = "background: linear-gradient(var(--rz-primary-lighter), var(--rz-primary-lighter)), " +
-                    "var(--rz-base-background-color); color: var(--rz-text-color);",
+            // La receta del fondo vive en el token (tokens.css); inline para ganarle
+            // al fondo propio del tooltip de Radzen.
+            Style = "background: var(--saf-tooltip-detalle-bg); color: var(--rz-text-color);",
         });
     }
 
@@ -391,7 +388,7 @@
                                             @if (linea.EsPrincipal && i == linea.Valores.Count - 1)
                                             {
                                                 <RadzenBadge BadgeStyle="BadgeStyle.Primary" Text="principal"
-                                                             Style="margin-left: 0.5rem; --rz-badge-font-size: 0.65rem; --rz-badge-padding: 0.05rem 0.35rem;" />
+                                                             class="saf-badge-compacto" Style="margin-left: 0.5rem;" />
                                             }
                                         </td>
                                     }
