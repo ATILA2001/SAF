@@ -103,10 +103,6 @@ public partial class MainLayout : IDisposable
         _ => clientId
     };
 
-    private bool _appSwitcherOpen = false;
-
-    private void ToggleAppSwitcher() => _appSwitcherOpen = !_appSwitcherOpen;
-
     public void Dispose()
         => Navigation.LocationChanged -= OnLocationChanged;
 }

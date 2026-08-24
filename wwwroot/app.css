@@ -74,6 +74,22 @@
 }
 
 /* ===========================================================================
+   Menú "Aplicaciones" del header (app switcher)
+   =========================================================================== */
+/* El ítem de primer nivel vive sobre el header verde, pero el tema le pinta el
+   texto con el color de texto normal (oscuro en modo claro) y desaparece. Solo
+   el primer nivel hereda el color del header; el submenú desplegado apoya sobre
+   su propio panel claro y conserva los colores del tema. */
+.rz-header .rz-menu {
+    background: transparent;
+}
+
+.rz-header .rz-menu > .rz-navigation-item > .rz-navigation-item-wrapper .rz-navigation-item-link,
+.rz-header .rz-menu > .rz-navigation-item > .rz-navigation-item-wrapper .rz-navigation-item-link .rzi {
+    color: var(--rz-header-color, #fff) !important;
+}
+
+/* ===========================================================================
    Estados de validación
    =========================================================================== */
 h1:focus {
@@ -236,6 +252,39 @@ html, body, #app {
         .rz-body .rz-data-grid .rz-data-grid-data::-webkit-scrollbar-thumb:hover {
             background-color: rgba(128, 128, 128, 0.8);
         }
+
+/* ===========================================================================
+   Badges interactivos y tablas de detalle (diálogos de líneas/OPs)
+   =========================================================================== */
+/* Botón invisible alrededor de un badge clickeable: le da al badge semántica de
+   botón (teclado y lector de pantalla) sin cambiar cómo se ve. */
+.saf-boton-badge {
+    background: none;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+/* Tabla simple de los diálogos de detalle (líneas del devengado, OPs CAF). */
+.saf-tabla-detalle {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.saf-tabla-detalle th,
+.saf-tabla-detalle td {
+    text-align: left;
+    padding: 0.25rem 1rem 0.25rem 0;
+    white-space: nowrap;
+}
+
+.saf-tabla-detalle th {
+    border-bottom: 1px solid var(--surface-border, rgba(128, 128, 128, .35));
+}
 
 /* ===========================================================================
    Diálogos: que no excedan el viewport; scroll interno del contenido

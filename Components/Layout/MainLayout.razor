@@ -15,25 +15,18 @@
                 </AuthorizeView>
                 @if (_otherApps.Count > 0)
                 {
-                    <div style="position: relative; display: inline-block;">
-                        <RadzenButton Text="Aplicaciones"
-                                      Icon="grid_view"
-                                      ButtonStyle="ButtonStyle.Secondary"
-                                      Click="@ToggleAppSwitcher" />
-                        @if (_appSwitcherOpen)
-                        {
-                            <div style="position: absolute; right: 0; top: calc(100% + 4px); min-width: 220px; z-index: 1000;
-                                        background: var(--rz-overlay-background-color); border: var(--rz-overlay-border);
-                                        border-radius: var(--rz-border-radius); box-shadow: var(--rz-overlay-shadow); overflow: hidden;">
-                                @foreach (var app in _otherApps)
-                                {
-                                    <a href="@app.Url"
-                                       style="display: block; padding: 10px 16px; text-decoration: none; color: var(--rz-text-color);"
-                                       @onclick="@(() => _appSwitcherOpen = false)">@app.Label</a>
-                                }
-                            </div>
-                        }
-                    </div>
+                    @* RadzenMenu y no un dropdown casero: apertura/cierre (clic afuera,
+                       Escape), navegación por teclado y estados ARIA vienen resueltos.
+                       Los ítems renderizan como links reales al switch-app de Auth.Web
+                       (origen externo: navegación completa, sin router de Blazor). *@
+                    <RadzenMenu>
+                        <RadzenMenuItem Text="Aplicaciones" Icon="grid_view">
+                            @foreach (var app in _otherApps)
+                            {
+                                <RadzenMenuItem Text="@app.Label" Path="@app.Url" />
+                            }
+                        </RadzenMenuItem>
+                    </RadzenMenu>
                 }
                 <RadzenAppearanceToggle />
                 <RadzenButton Icon="logout"
