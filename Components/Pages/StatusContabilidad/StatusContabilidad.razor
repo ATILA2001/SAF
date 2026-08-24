@@ -246,7 +246,7 @@
                 @if (CanEdit)
                 {
                     @* 200px: tres botones de acción (editar, ventana, historial). *@
-                    <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Title="Acciones" Width="200px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Pickable="false">
+                    <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Title="Acciones" Width="200px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Pickable="false" Filterable="false" Sortable="false">
                         @* Sin eliminar: las filas del tablero nacen del ledger de devengados. *@
                         <Template Context="item">
                             <AccionesFila MostrarEditar="true"
