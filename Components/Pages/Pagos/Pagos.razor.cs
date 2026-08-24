@@ -41,6 +41,10 @@ public partial class Pagos
     protected override async Task<List<PagoViewModel>> ObtenerDatosAsync() =>
         (await PagosService.GetAllAsync()).ToList();
 
+    // Búsqueda rápida por los campos que identifican la fila.
+    protected override IEnumerable<string?> CamposBusqueda(PagoViewModel item) =>
+        [item.TipoDev, item.NroDev.ToString(), item.Expediente, item.Empresa];
+
     protected override bool CargaProgresiva => true;
 
     protected override async Task<List<PagoViewModel>> ObtenerLoteAsync(int skip, int take, CancellationToken ct) =>

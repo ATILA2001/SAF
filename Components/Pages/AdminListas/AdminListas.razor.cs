@@ -65,7 +65,9 @@ public partial class AdminListas
 
         // Duplicado contra lo ya cargado: el servicio revalida contra la base, pero
         // frenar acá deja la fila abierta en vez de cerrar y perder lo tipeado.
-        if (_items.Any(x => !ReferenceEquals(x, item)
+        // La exclusión es por Id y no por referencia: lo que llega acá es el buffer de
+        // edición (una copia), nunca el mismo objeto que está en la lista.
+        if (_items.Any(x => x.Id != item.Id
                 && string.Equals(x.Nombre.Trim(), item.Nombre.Trim(), StringComparison.OrdinalIgnoreCase)))
             errores.Add($"Ya existe una opción \"{item.Nombre.Trim()}\" en {_lista.Titulo}.");
 

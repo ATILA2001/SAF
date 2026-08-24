@@ -81,6 +81,10 @@ public partial class StatusContabilidad
     protected override async Task<List<StatusContabilidadViewModel>> ObtenerDatosAsync() =>
         (await StatusContabilidadService.GetAllAsync()).ToList();
 
+    // Búsqueda rápida por los campos que identifican la fila.
+    protected override IEnumerable<string?> CamposBusqueda(StatusContabilidadViewModel item) =>
+        [item.TipoDev, item.NroDev.ToString(), item.Expediente, item.Empresa];
+
     // Buzón SADE, Último Movimiento y Días en el Área (IVC) llegan con la grilla pintada.
     protected override bool CompletaEnSegundoPlano => true;
 

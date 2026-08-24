@@ -24,6 +24,10 @@ public partial class Seguros
     protected override async Task<List<SeguroViewModel>> ObtenerDatosAsync() =>
         (await SeguroService.GetAllAsync()).ToList();
 
+    // Búsqueda rápida por los campos que identifican la fila.
+    protected override IEnumerable<string?> CamposBusqueda(SeguroViewModel item) =>
+        [item.Expediente, item.Op, item.Beneficiario];
+
     protected override bool CargaProgresiva => true;
 
     protected override async Task<List<SeguroViewModel>> ObtenerLoteAsync(int skip, int take, CancellationToken ct) =>

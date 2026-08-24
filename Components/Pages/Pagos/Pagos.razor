@@ -9,6 +9,10 @@
     <GridToolbar Titulo="Pagos"
                  SizeTitulo="3"
                  SizeAcciones="9"
+                 OnBuscar="@OnBusquedaChanged"
+                 TextoBusqueda="@_textoBusqueda"
+                 PlaceholderBusqueda="Buscar devengado, expediente o empresa…"
+                 LimpiarFiltrosDeshabilitado="@(!HayFiltrosActivos)"
                  CargandoResto="@_cargandoResto"
                  Exportando="@_exportando"
                  ExportarDeshabilitado="@ExportarDeshabilitado"
@@ -16,9 +20,6 @@
                  OnExportar="@ExportarExcel"
                  OnLimpiarFiltros="@LimpiarFiltros">
         <Acciones>
-            <RadzenText TextStyle="TextStyle.Caption" class="rz-color-secondary" Style="margin:0;">
-                Última actualización: @(_ultimaActualizacion?.ToString("dd/MM/yyyy") ?? "—")
-            </RadzenText>
             @if (CanCreate)
             {
                 <RadzenButton Text="Nuevo"
@@ -27,11 +28,12 @@
                               Click="@AddRow"
                               Disabled="@(_loading || _syncing)" />
                 @* Secondary: la acción principal de la vista es una sola (Nuevo);
-                   dos primarios compiten y ninguno destaca. *@
+                   dos primarios compiten y ninguno destaca. La última actualización
+                   va en el tooltip: es el dato que decide si vale la pena sincronizar. *@
                 <RadzenButton Text="Sincronizar"
                               Icon="sync"
                               ButtonStyle="ButtonStyle.Secondary"
-                              title="Importa los devengados nuevos desde IVC"
+                              title="@($"Importa los devengados nuevos desde IVC. Última actualización: {_ultimaActualizacion?.ToString("dd/MM/yyyy") ?? "—"}")"
                               Click="@SincronizarDevengados"
                               IsBusy="@_syncing"
                               BusyText="Sincronizando..."
@@ -42,15 +44,17 @@
 
     @if (_loading)
     {
-        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        <EstadoCarga Texto="@($"Cargando {TituloEntidad}…")" />
     }
     else
     {
         @* Virtualización en lugar de paginado: scroll continuo (como la planilla)
            renderizando solo las filas visibles. Requiere el alto fijo del Style. *@
         <RadzenDataGrid @ref="_grid"
-                        Data="@_items"
+                        Data="@ItemsVisibles"
                         TItem="SAF.Application.Pagos.Dtos.PagoViewModel"
+                        Filter="@OnGridFilter"
+                        FilterCleared="@OnGridFilter"
                         AllowFiltering="true"
                         AllowSorting="true"
                         AllowColumnResize="true"
@@ -73,41 +77,41 @@
                    offsets sticky se calculan con el Width declarado). *@
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="TipoDev" Title="Tipo Dev" Width="140px" Frozen="true">
                     <EditTemplate Context="item">
-                        <RadzenTextBox @bind-Value="item.TipoDev" Disabled="@(item.Id != 0)" Placeholder="PRD" Style="width:100%"
-                                       class="@GetValidationCssClass(item.Id != 0 || !string.IsNullOrWhiteSpace(item.TipoDev))" />
+                        <RadzenTextBox @bind-Value="Buffer(item).TipoDev" Disabled="@(item.Id != 0)" Placeholder="PRD" Style="width:100%"
+                                       class="@GetValidationCssClass(item.Id != 0 || !string.IsNullOrWhiteSpace(Buffer(item).TipoDev))" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="NroDev" Title="Nro Dev" Width="130px" Frozen="true" TextAlign="TextAlign.Right">
                     <EditTemplate Context="item">
-                        <RadzenNumeric TValue="int" @bind-Value="item.NroDev" Disabled="@(item.Id != 0)" ShowUpDown="false" Style="width:100%"
-                                       class="@GetValidationCssClass(item.Id != 0 || item.NroDev > 0)" />
+                        <RadzenNumeric TValue="int" @bind-Value="Buffer(item).NroDev" Disabled="@(item.Id != 0)" ShowUpDown="false" Style="width:100%"
+                                       class="@GetValidationCssClass(item.Id != 0 || Buffer(item).NroDev > 0)" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="Expediente" Title="Expediente" Width="180px" Frozen="true">
                     <EditTemplate Context="item">
-                        <ExpedienteEditor @bind-Value="item.Expediente" Deshabilitado="@(item.Id != 0)" />
+                        <ExpedienteEditor @bind-Value="Buffer(item).Expediente" Deshabilitado="@(item.Id != 0)" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="Empresa" Title="Empresa" Width="200px" Frozen="true">
                     <EditTemplate Context="item">
-                        <RadzenTextBox @bind-Value="item.Empresa" Disabled="@(item.Id != 0)" Style="width:100%" />
+                        <RadzenTextBox @bind-Value="Buffer(item).Empresa" Disabled="@(item.Id != 0)" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="Importe" Title="Importe" Width="160px" FormatString="{0:N2}" Frozen="true" TextAlign="TextAlign.Right">
                     <EditTemplate Context="item">
-                        <RadzenNumeric TValue="decimal?" @bind-Value="item.Importe" Disabled="@(item.Id != 0)" ShowUpDown="false" Style="width:100%"
-                                       class="@GetValidationCssClass(item.Id != 0 || item.Importe is > 0)" />
+                        <RadzenNumeric TValue="decimal?" @bind-Value="Buffer(item).Importe" Disabled="@(item.Id != 0)" ShowUpDown="false" Style="width:100%"
+                                       class="@GetValidationCssClass(item.Id != 0 || Buffer(item).Importe is > 0)" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="FechaDevengado" Title="Fecha Devengado" Width="180px" FormatString="{0:dd/MM/yyyy}">
                     <EditTemplate Context="item">
-                        <RadzenDatePicker @bind-Value="item.FechaDevengado" Disabled="@(item.Id != 0)" DateFormat="dd/MM/yyyy" Style="width:100%"
-                                          class="@GetValidationCssClass(item.Id != 0 || item.FechaDevengado is not null)" />
+                        <RadzenDatePicker @bind-Value="Buffer(item).FechaDevengado" Disabled="@(item.Id != 0)" DateFormat="dd/MM/yyyy" Style="width:100%"
+                                          class="@GetValidationCssClass(item.Id != 0 || Buffer(item).FechaDevengado is not null)" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="StatusDgayfNombre" Title="Status DGAyF" Width="150px">
                     <EditTemplate Context="item">
-                        <RadzenDropDown @bind-Value="item.StatusDgayfOpcionId"
+                        <RadzenDropDown @bind-Value="Buffer(item).StatusDgayfOpcionId"
                                         Data="@_statusDgayfOpciones"
                                         TextProperty="Nombre"
                                         ValueProperty="Id"
@@ -117,7 +121,7 @@
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="StatusOpNombre" Title="Status OP" Width="150px">
                     <EditTemplate Context="item">
-                        <RadzenDropDown @bind-Value="item.StatusOpOpcionId"
+                        <RadzenDropDown @bind-Value="Buffer(item).StatusOpOpcionId"
                                         Data="@_statusOpOpciones"
                                         TextProperty="Nombre"
                                         ValueProperty="Id"
@@ -127,27 +131,27 @@
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="FechaFirmaOp" Title="Fecha Firma OP" Width="170px" FormatString="{0:dd/MM/yyyy}">
                     <EditTemplate Context="item">
-                        <RadzenDatePicker @bind-Value="item.FechaFirmaOp" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                        <RadzenDatePicker @bind-Value="Buffer(item).FechaFirmaOp" DateFormat="dd/MM/yyyy" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="Observaciones" Title="Observaciones" Width="200px">
                     <EditTemplate Context="item">
-                        <RadzenTextArea @bind-Value="item.Observaciones" Style="width:100%" Rows="2" />
+                        <RadzenTextArea @bind-Value="Buffer(item).Observaciones" Style="width:100%" Rows="2" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="Ccoo" Title="CCOO" Width="150px">
                     <EditTemplate Context="item">
-                        <RadzenTextBox @bind-Value="item.Ccoo" Style="width:100%" />
+                        <RadzenTextBox @bind-Value="Buffer(item).Ccoo" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="FechaCcoo" Title="Fecha CCOO" Width="140px" FormatString="{0:dd/MM/yyyy}">
                     <EditTemplate Context="item">
-                        <RadzenDatePicker @bind-Value="item.FechaCcoo" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                        <RadzenDatePicker @bind-Value="Buffer(item).FechaCcoo" DateFormat="dd/MM/yyyy" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="FechaNotificacion" Title="Fecha Notificación" Width="170px" FormatString="{0:dd/MM/yyyy}">
                     <EditTemplate Context="item">
-                        <RadzenDatePicker @bind-Value="item.FechaNotificacion" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                        <RadzenDatePicker @bind-Value="Buffer(item).FechaNotificacion" DateFormat="dd/MM/yyyy" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 @* Columnas calculadas/fórmula (a implementar luego): por ahora solo lectura *@
@@ -158,13 +162,20 @@
                    distingue los dos casos, que antes se veían igual (o peor: como pagado). *@
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="FechaDePagoCaf" Title="Fecha Pago CAF" Width="165px" FormatString="{0:dd/MM/yyyy}">
                     <Template Context="item">
+                        @* El badge es un botón: clic (o Enter) abre el detalle completo en un
+                           diálogo, accesible por teclado y scrolleable; el hover queda como
+                           vista rápida. *@
                         @if (item.CafPagoIncompleto)
                         {
-                            <RadzenBadge BadgeStyle="BadgeStyle.Warning"
-                                         Text="@($"{item.CafOpsPagadas} de {item.CafOps} OP pagadas")"
-                                         Style="cursor: help; --rz-badge-font-size: 0.65rem; --rz-badge-padding: 0.05rem 0.35rem;"
-                                         MouseEnter="@(el => MostrarOpsCaf(el, item))"
-                                         MouseLeave="@(_ => TooltipService.Close())" />
+                            <button type="button" class="saf-boton-badge"
+                                    aria-label="@($"Ver las {item.CafOps} OP del expediente {item.Expediente}")"
+                                    @onclick="@(() => VerOpsCaf(item))" @onclick:stopPropagation="true">
+                                <RadzenBadge BadgeStyle="BadgeStyle.Warning"
+                                             Text="@($"{item.CafOpsPagadas} de {item.CafOps} OP pagadas")"
+                                             Style="--rz-badge-font-size: 0.65rem; --rz-badge-padding: 0.05rem 0.35rem;"
+                                             MouseEnter="@(el => MostrarOpsCaf(el, item))"
+                                             MouseLeave="@(_ => TooltipService.Close())" />
+                            </button>
                         }
                         else
                         {
@@ -173,11 +184,15 @@
                             @* Con una sola OP la fecha se explica sola; con varias, el detalle. *@
                             @if (item.CafOps > 1)
                             {
-                                <RadzenBadge BadgeStyle="BadgeStyle.Light"
-                                             Text="@($"{item.CafOps} OP")"
-                                             Style="cursor: help; --rz-badge-font-size: 0.65rem; --rz-badge-padding: 0.05rem 0.35rem;"
-                                             MouseEnter="@(el => MostrarOpsCaf(el, item))"
-                                             MouseLeave="@(_ => TooltipService.Close())" />
+                                <button type="button" class="saf-boton-badge"
+                                        aria-label="@($"Ver las {item.CafOps} OP del expediente {item.Expediente}")"
+                                        @onclick="@(() => VerOpsCaf(item))" @onclick:stopPropagation="true">
+                                    <RadzenBadge BadgeStyle="BadgeStyle.Light"
+                                                 Text="@($"{item.CafOps} OP")"
+                                                 Style="--rz-badge-font-size: 0.65rem; --rz-badge-padding: 0.05rem 0.35rem;"
+                                                 MouseEnter="@(el => MostrarOpsCaf(el, item))"
+                                                 MouseLeave="@(_ => TooltipService.Close())" />
+                                </button>
                             }
                         }
                     </Template>
@@ -223,6 +238,7 @@
             <FooterTemplate>
                 @* View y no _items: es lo que queda a la vista con los filtros aplicados. *@
                 <GridFooterTotales Filas="@(_grid?.View?.Count() ?? 0)"
+                                   TotalFilas="@_items.Count"
                                    Importe="@(_grid?.View?.Sum(x => x.Importe ?? 0m) ?? 0m)"
                                    Cargando="@_cargandoResto"
                                    CargaIncompleta="@_cargaIncompleta" />
@@ -263,7 +279,7 @@
 
                 @if (item.CafLineas.Count > MaxLineasTooltip)
                 {
-                    <span>… y @(item.CafLineas.Count - MaxLineasTooltip) OP más. El detalle completo está en la vista Expedientes CAF.</span>
+                    <span>… y @(item.CafLineas.Count - MaxLineasTooltip) OP más. Hacé clic en la marca para ver el detalle completo.</span>
                 }
 
                 <small>
@@ -280,4 +296,38 @@
             Style = "background: linear-gradient(var(--rz-primary-lighter), var(--rz-primary-lighter)), "
                   + "var(--rz-base-background-color); color: var(--rz-text-color);",
         });
+
+    // Detalle completo en diálogo: todas las OPs, accesible por teclado, scrolleable y
+    // copiable — el tooltip de hover es solo la vista rápida (y trunca a 10).
+    private async Task VerOpsCaf(SAF.Application.Pagos.Dtos.PagoViewModel item)
+    {
+        TooltipService.Close();
+
+        await DialogService.OpenAsync($"OPs en CAF — Expediente {item.Expediente}", _ =>
+            @<RadzenStack Gap="0.75rem">
+                <strong>@item.CafOpsPagadas de @item.CafOps OP pagadas</strong>
+
+                <table class="saf-tabla-detalle">
+                    <thead>
+                        <tr><th>OP</th><th>Importe neto</th><th>Fecha de pago</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var linea in item.CafLineas)
+                        {
+                            <tr>
+                                <td>@linea.Op</td>
+                                <td>@linea.ImporteNeto?.ToString("N2")</td>
+                                <td>@(linea.FechaPago?.ToString("dd/MM/yyyy") ?? "-")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <small>
+                    La fecha de pago CAF se informa solo cuando todas las OPs del expediente
+                    están pagadas.
+                </small>
+            </RadzenStack>
+        , new DialogOptions { Width = "560px" });
+    }
 }

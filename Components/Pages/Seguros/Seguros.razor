@@ -5,6 +5,12 @@
 
 <RadzenStack>
     <GridToolbar Titulo="Seguros"
+                 SizeTitulo="3"
+                 SizeAcciones="9"
+                 OnBuscar="@OnBusquedaChanged"
+                 TextoBusqueda="@_textoBusqueda"
+                 PlaceholderBusqueda="Buscar expediente, OP o beneficiario…"
+                 LimpiarFiltrosDeshabilitado="@(!HayFiltrosActivos)"
                  MostrarNuevo="@CanCreate"
                  NuevoDeshabilitado="@_loading"
                  OnNuevo="@AddRow"
@@ -17,15 +23,17 @@
 
     @if (_loading)
     {
-        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        <EstadoCarga Texto="@($"Cargando {TituloEntidad}…")" />
     }
     else
     {
         @* Virtualización en lugar de paginado: scroll continuo (como la planilla)
            renderizando solo las filas visibles. Requiere el alto fijo del Style. *@
         <RadzenDataGrid @ref="_grid"
-                        Data="@_items"
+                        Data="@ItemsVisibles"
                         TItem="SAF.Application.Seguros.Dtos.SeguroViewModel"
+                        Filter="@OnGridFilter"
+                        FilterCleared="@OnGridFilter"
                         AllowFiltering="true"
                         AllowSorting="true"
                         AllowColumnResize="true"
@@ -45,37 +53,37 @@
                    que en Pagos, Status y CAF). *@
                 <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Expediente" Title="Expediente" Width="230px" Frozen="true">
                     <EditTemplate Context="item">
-                        <ExpedienteEditor @bind-Value="item.Expediente" />
+                        <ExpedienteEditor @bind-Value="Buffer(item).Expediente" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Op" Title="OP" Width="130px">
                     <EditTemplate Context="item">
-                        <RadzenTextBox @bind-Value="item.Op" Style="width:100%" />
+                        <RadzenTextBox @bind-Value="Buffer(item).Op" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Beneficiario" Title="Beneficiario" Width="220px">
                     <EditTemplate Context="item">
-                        <RadzenTextBox @bind-Value="item.Beneficiario" Style="width:100%" />
+                        <RadzenTextBox @bind-Value="Buffer(item).Beneficiario" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="ImporteNeto" Title="Importe Neto" Width="150px" FormatString="{0:N2}" TextAlign="TextAlign.Right">
                     <EditTemplate Context="item">
-                        <RadzenNumeric @bind-Value="item.ImporteNeto" Style="width:100%" />
+                        <RadzenNumeric @bind-Value="Buffer(item).ImporteNeto" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="Estado" Title="Estado" Width="150px">
                     <EditTemplate Context="item">
-                        <RadzenTextBox @bind-Value="item.Estado" Style="width:100%" />
+                        <RadzenTextBox @bind-Value="Buffer(item).Estado" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.Seguros.Dtos.SeguroViewModel" Property="SeguroNombre" Title="Seguro" Width="150px">
                     <EditTemplate Context="item">
-                        <RadzenDropDown @bind-Value="item.SeguroOpcionId"
+                        <RadzenDropDown @bind-Value="Buffer(item).SeguroOpcionId"
                                         Data="@_seguroOpciones"
                                         TextProperty="Nombre"
                                         ValueProperty="Id"
                                         AllowClear="true"
-                                        class="@GetValidationCssClass(item.SeguroOpcionId is > 0)"
+                                        class="@GetValidationCssClass(Buffer(item).SeguroOpcionId is > 0)"
                                         Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
@@ -108,6 +116,7 @@
             <FooterTemplate>
                 @* View y no _items: es lo que queda a la vista con los filtros aplicados. *@
                 <GridFooterTotales Filas="@(_grid?.View?.Count() ?? 0)"
+                                   TotalFilas="@_items.Count"
                                    Importe="@(_grid?.View?.Sum(x => x.ImporteNeto ?? 0m) ?? 0m)"
                                    Cargando="@_cargandoResto"
                                    CargaIncompleta="@_cargaIncompleta" />

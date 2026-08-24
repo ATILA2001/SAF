@@ -15,6 +15,7 @@
                  MostrarNuevo="@CanCreate"
                  NuevoDeshabilitado="@_loading"
                  OnNuevo="@AddRow"
+                 LimpiarFiltrosDeshabilitado="@(!HayFiltrosActivos)"
                  Exportando="@_exportando"
                  ExportarDeshabilitado="@ExportarDeshabilitado"
                  TituloExportarDeshabilitado="@MotivoExportarDeshabilitado"
@@ -35,7 +36,7 @@
 
     @if (_loading)
     {
-        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        <EstadoCarga Texto="@($"Cargando {TituloEntidad}…")" />
     }
     else if (_listasVisibles.Count == 0)
     {
@@ -47,6 +48,8 @@
         <RadzenDataGrid @ref="_grid"
                         Data="@_items"
                         TItem="OpcionListaViewModel"
+                        Filter="@OnGridFilter"
+                        FilterCleared="@OnGridFilter"
                         AllowFiltering="true"
                         AllowSorting="true"
                         AllowColumnResize="true"
@@ -62,18 +65,18 @@
             <Columns>
                 <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Nombre" Title="Nombre">
                     <EditTemplate Context="item">
-                        <RadzenTextBox @bind-Value="item.Nombre" MaxLength="@OpcionListaValidator.NombreMaxLength" Style="width:100%" />
+                        <RadzenTextBox @bind-Value="Buffer(item).Nombre" MaxLength="@OpcionListaValidator.NombreMaxLength" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Orden" Title="Orden" Width="135px" TextAlign="TextAlign.Right">
                     <EditTemplate Context="item">
-                        <RadzenNumeric TValue="int" @bind-Value="item.Orden" Min="0" Style="width:100%" />
+                        <RadzenNumeric TValue="int" @bind-Value="Buffer(item).Orden" Min="0" Style="width:100%" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="Activo" Title="Activo" Width="150px">
                     <Template Context="item">@(item.Activo ? "Sí" : "No")</Template>
                     <EditTemplate Context="item">
-                        <RadzenCheckBox TValue="bool" @bind-Value="item.Activo" />
+                        <RadzenCheckBox TValue="bool" @bind-Value="Buffer(item).Activo" />
                     </EditTemplate>
                 </RadzenDataGridColumn>
                 @if (_lista.TieneEsOk)
@@ -82,7 +85,7 @@
                     <RadzenDataGridColumn TItem="OpcionListaViewModel" Property="EsOk" Title="Cuenta como OK" Width="165px">
                         <Template Context="item">@(item.EsOk == true ? "Sí" : "No")</Template>
                         <EditTemplate Context="item">
-                            <RadzenCheckBox TValue="bool?" TriState="false" @bind-Value="item.EsOk" />
+                            <RadzenCheckBox TValue="bool?" TriState="false" @bind-Value="Buffer(item).EsOk" />
                         </EditTemplate>
                     </RadzenDataGridColumn>
                 }

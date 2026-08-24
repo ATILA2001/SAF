@@ -17,6 +17,10 @@ public partial class Caf
     protected override async Task<List<CafViewModel>> ObtenerDatosAsync() =>
         (await CafService.GetAllAsync()).ToList();
 
+    // Búsqueda rápida por los campos que identifican la fila.
+    protected override IEnumerable<string?> CamposBusqueda(CafViewModel item) =>
+        [item.Expediente, item.Op, item.Beneficiario];
+
     protected override bool CargaProgresiva => true;
 
     protected override async Task<List<CafViewModel>> ObtenerLoteAsync(int skip, int take, CancellationToken ct) =>

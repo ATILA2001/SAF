@@ -5,6 +5,12 @@
 
 <RadzenStack>
     <GridToolbar Titulo="Status Contabilidad"
+                 SizeTitulo="3"
+                 SizeAcciones="9"
+                 OnBuscar="@OnBusquedaChanged"
+                 TextoBusqueda="@_textoBusqueda"
+                 PlaceholderBusqueda="Buscar devengado, expediente o empresa…"
+                 LimpiarFiltrosDeshabilitado="@(!HayFiltrosActivos)"
                  CargandoResto="@_cargandoResto"
                  TextoCargando="Completando datos de SADE…"
                  Exportando="@_exportando"
@@ -15,15 +21,17 @@
 
     @if (_loading)
     {
-        <RadzenProgressBarCircular ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+        <EstadoCarga Texto="@($"Cargando {TituloEntidad}…")" />
     }
     else
     {
         @* Virtualización en lugar de paginado: scroll continuo (como la planilla)
            renderizando solo las filas visibles. Requiere el alto fijo del Style. *@
         <RadzenDataGrid @ref="_grid"
-                        Data="@_items"
+                        Data="@ItemsVisibles"
                         TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel"
+                        Filter="@OnGridFilter"
+                        FilterCleared="@OnGridFilter"
                         AllowFiltering="true"
                         AllowSorting="true"
                         AllowColumnResize="true"
@@ -64,11 +72,17 @@
                         <RadzenStack Orientation="Orientation.Horizontal" Gap="0.4rem" AlignItems="AlignItems.Center" JustifyContent="JustifyContent.End">
                             @if (item.CantidadLineas > 1)
                             {
-                                <RadzenBadge BadgeStyle="BadgeStyle.Light"
-                                             Text="@($"{item.CantidadLineas} líneas")"
-                                             Style="cursor: help; flex-shrink: 0; white-space: nowrap;"
-                                             MouseEnter="@(el => MostrarLineas(el, item))"
-                                             MouseLeave="@(_ => TooltipService.Close())" />
+                                @* Botón: clic (o Enter) abre el detalle completo en un diálogo,
+                                   accesible por teclado; el hover queda como vista rápida. *@
+                                <button type="button" class="saf-boton-badge"
+                                        aria-label="@($"Ver las {item.CantidadLineas} líneas del devengado {item.TipoDev} {item.NroDev}")"
+                                        @onclick="@(() => VerLineas(item))" @onclick:stopPropagation="true">
+                                    <RadzenBadge BadgeStyle="BadgeStyle.Light"
+                                                 Text="@($"{item.CantidadLineas} líneas")"
+                                                 Style="white-space: nowrap;"
+                                                 MouseEnter="@(el => MostrarLineas(el, item))"
+                                                 MouseLeave="@(_ => TooltipService.Close())" />
+                                </button>
                             }
                             <span>@item.ImporteTotal?.ToString("N2")</span>
                         </RadzenStack>
@@ -97,7 +111,7 @@
                     <EditTemplate Context="item">
                         @if (_editaCuentasPagar)
                         {
-                            <RadzenDatePicker @bind-Value="item.FechaPedidoFactura2" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                            <RadzenDatePicker @bind-Value="Buffer(item).FechaPedidoFactura2" DateFormat="dd/MM/yyyy" Style="width:100%" />
                         }
                         else
                         {
@@ -109,7 +123,7 @@
                     <EditTemplate Context="item">
                         @if (_editaCuentasPagar)
                         {
-                            <RadzenDatePicker @bind-Value="item.ReiterarPedidoFactura3" DateFormat="dd/MM/yyyy" Style="width:100%" />
+                            <RadzenDatePicker @bind-Value="Buffer(item).ReiterarPedidoFactura3" DateFormat="dd/MM/yyyy" Style="width:100%" />
                         }
                         else
                         {
@@ -121,7 +135,7 @@
                     <EditTemplate Context="item">
                         @if (_editaCuentasPagar)
                         {
-                            <RadzenDatePicker @bind-Value="item.FechaRechazo" DateFormat="dd/MM/yyyy" AllowClear="true" Style="width:100%" />
+                            <RadzenDatePicker @bind-Value="Buffer(item).FechaRechazo" DateFormat="dd/MM/yyyy" AllowClear="true" Style="width:100%" />
                         }
                         else
                         {
@@ -138,8 +152,8 @@
                         @if (_editaCuentasPagar)
                         {
                             <RadzenStack Gap="0.25rem">
-                                <RadzenDatePicker @bind-Value="item.FechaIngresoFactura" DateFormat="dd/MM/yyyy" AllowClear="true" Style="width:100%" />
-                                <RadzenDropDown @bind-Value="item.SinFacturaMotivo"
+                                <RadzenDatePicker @bind-Value="Buffer(item).FechaIngresoFactura" DateFormat="dd/MM/yyyy" AllowClear="true" Style="width:100%" />
+                                <RadzenDropDown @bind-Value="Buffer(item).SinFacturaMotivo"
                                                 Data="@_sinFacturaMotivos"
                                                 AllowClear="true"
                                                 Placeholder="Sin factura..."
@@ -154,7 +168,7 @@
                 </RadzenDataGridColumn>
                 <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="StatusContableNombre" Title="Status Contable" Width="150px">
                     <EditTemplate Context="item">
-                        <RadzenDropDown @bind-Value="item.StatusContableOpcionId"
+                        <RadzenDropDown @bind-Value="Buffer(item).StatusContableOpcionId"
                                         Data="@_statusContableOpciones"
                                         TextProperty="Nombre"
                                         ValueProperty="Id"
@@ -166,7 +180,7 @@
                     <EditTemplate Context="item">
                         @if (_editaCuentasPagar)
                         {
-                            <RadzenTextArea @bind-Value="item.ObservacionesCuentasPagar" Style="width:100%" Rows="2" />
+                            <RadzenTextArea @bind-Value="Buffer(item).ObservacionesCuentasPagar" Style="width:100%" Rows="2" />
                         }
                         else
                         {
@@ -178,7 +192,7 @@
                     <EditTemplate Context="item">
                         @if (_editaCuentasPagar)
                         {
-                            <RadzenDropDown @bind-Value="item.TramitadorCuentasPagarOpcionId"
+                            <RadzenDropDown @bind-Value="Buffer(item).TramitadorCuentasPagarOpcionId"
                                             Data="@_tramitadoresCuentasPagar"
                                             TextProperty="Nombre"
                                             ValueProperty="Id"
@@ -196,7 +210,7 @@
                     <EditTemplate Context="item">
                         @if (_editaLiquidaciones)
                         {
-                            <RadzenDropDown @bind-Value="item.TramitadorLiquidacionesOpcionId"
+                            <RadzenDropDown @bind-Value="Buffer(item).TramitadorLiquidacionesOpcionId"
                                             Data="@_tramitadoresLiquidaciones"
                                             TextProperty="Nombre"
                                             ValueProperty="Id"
@@ -213,7 +227,7 @@
                     <EditTemplate Context="item">
                         @if (_editaLiquidaciones)
                         {
-                            <RadzenTextArea @bind-Value="item.ObservacionesLiquidaciones" Style="width:100%" Rows="2" />
+                            <RadzenTextArea @bind-Value="Buffer(item).ObservacionesLiquidaciones" Style="width:100%" Rows="2" />
                         }
                         else
                         {
@@ -252,6 +266,7 @@
                    Sin las marcas de carga parcial: acá las filas (y sus importes) llegan
                    completas de entrada, el segundo plano solo rellena columnas SADE/IVC. *@
                 <GridFooterTotales Filas="@(_grid?.View?.Count() ?? 0)"
+                                   TotalFilas="@_items.Count"
                                    Importe="@(_grid?.View?.Sum(x => x.ImporteTotal ?? 0m) ?? 0m)" />
             </FooterTemplate>
         </RadzenDataGrid>
@@ -318,7 +333,7 @@
 
                     @if (item.DetalleLineas.Filas.Count > MaxLineasTooltip)
                     {
-                        <span>… y @(item.DetalleLineas.Filas.Count - MaxLineasTooltip) líneas más.</span>
+                        <span>… y @(item.DetalleLineas.Filas.Count - MaxLineasTooltip) líneas más. Hacé clic en la marca para ver el detalle completo.</span>
                     }
                 }
 
@@ -337,5 +352,60 @@
             Style = "background: linear-gradient(var(--rz-primary-lighter), var(--rz-primary-lighter)), " +
                     "var(--rz-base-background-color); color: var(--rz-text-color);",
         });
+    }
+
+    // Detalle completo en diálogo: todas las líneas, accesible por teclado, scrolleable
+    // y copiable — el tooltip de hover es solo la vista rápida (y trunca a 10).
+    private async Task VerLineas(SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel item)
+    {
+        TooltipService.Close();
+
+        await DialogService.OpenAsync($"Líneas en Pagos — Devengado {item.TipoDev} {item.NroDev}", _ =>
+            @<RadzenStack Gap="0.75rem">
+                @if (item.DetalleLineas.SinDiferencias)
+                {
+                    <span>
+                        Las @item.CantidadLineas líneas traen los mismos datos; el tablero
+                        suma los importes.
+                    </span>
+                }
+                else
+                {
+                    <table class="saf-tabla-detalle">
+                        <thead>
+                            <tr>
+                                @foreach (var columna in item.DetalleLineas.Columnas)
+                                {
+                                    <th>@columna</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var linea in item.DetalleLineas.Filas)
+                            {
+                                <tr>
+                                    @for (var i = 0; i < linea.Valores.Count; i++)
+                                    {
+                                        <td>
+                                            @linea.Valores[i]
+                                            @if (linea.EsPrincipal && i == linea.Valores.Count - 1)
+                                            {
+                                                <RadzenBadge BadgeStyle="BadgeStyle.Primary" Text="principal"
+                                                             Style="margin-left: 0.5rem; --rz-badge-font-size: 0.65rem; --rz-badge-padding: 0.05rem 0.35rem;" />
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+
+                <small>
+                    Solo se listan los datos que difieren. De la línea principal salen el
+                    expediente, la empresa y los datos cargados; el importe es la suma.
+                </small>
+            </RadzenStack>
+        , new DialogOptions { Width = "640px" });
     }
 }
