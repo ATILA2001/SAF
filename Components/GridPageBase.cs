@@ -43,6 +43,16 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     /// <summary>Condición compartida del botón Exportar (la usa GridToolbar en las 4 vistas).</summary>
     protected bool ExportarDeshabilitado => _items.Count == 0 || _exportando || _cargandoResto || _cargaIncompleta;
 
+    /// <summary>
+    /// Explicación del Exportar deshabilitado, para el tooltip del botón (mismos
+    /// motivos, en el mismo orden, que los avisos server-side de ExportarExcel).
+    /// </summary>
+    protected string? MotivoExportarDeshabilitado =>
+        _cargandoResto ? "Esperá a que termine de cargar la grilla para exportar."
+        : _cargaIncompleta ? "La carga no se completó: recargá la vista antes de exportar."
+        : _items.Count == 0 ? "No hay filas para exportar."
+        : null;
+
     private CancellationTokenSource? _ctsLotes;
 
     // Vida de la página: cancela la carga inicial (y, encadenado, la de fondo) si el

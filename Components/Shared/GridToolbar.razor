@@ -4,8 +4,13 @@
 
 <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
     <RadzenColumn Size="@SizeTitulo">
-        @* Márgenes mínimos: el título no debe robarle alto a la grilla. *@
-        <h2 style="margin: 7px 0;">@Titulo</h2>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1rem" Wrap="FlexWrap.Wrap">
+            @* h1 y no h2: es el título de la página (FocusOnNavigate lo enfoca al navegar
+               y la jerarquía de headings arranca en 1). Tamaño de h2 y márgenes mínimos:
+               el título no debe robarle alto a la grilla. *@
+            <h1 style="margin: 7px 0; font-size: 1.5rem;">@Titulo</h1>
+            @Contexto
+        </RadzenStack>
     </RadzenColumn>
     <RadzenColumn Size="@SizeAcciones">
         <RadzenStack Orientation="Orientation.Horizontal" Gap="0.5rem" AlignItems="AlignItems.Center"
@@ -49,7 +54,8 @@
                           Click="@OnExportar"
                           IsBusy="@Exportando"
                           BusyText="Exportando..."
-                          Disabled="@ExportarDeshabilitado" />
+                          Disabled="@ExportarDeshabilitado"
+                          title="@(ExportarDeshabilitado ? TituloExportarDeshabilitado : null)" />
         </RadzenStack>
     </RadzenColumn>
 </RadzenRow>
@@ -71,6 +77,14 @@
     [Parameter] public bool Exportando { get; set; }
     [Parameter] public bool ExportarDeshabilitado { get; set; }
     [Parameter] public EventCallback OnExportar { get; set; }
+
+    // Por qué Exportar está deshabilitado (tooltip): un botón gris sin explicación
+    // obliga a adivinar. Las páginas lo toman de MotivoExportarDeshabilitado.
+    [Parameter] public string? TituloExportarDeshabilitado { get; set; }
+
+    // Controles que definen QUÉ muestra la página (ej: selector de lista en
+    // Administración de listas): van junto al título, no entre las acciones.
+    [Parameter] public RenderFragment? Contexto { get; set; }
 
     // Con delegado presente se muestra el botón de quitar todos los filtros.
     [Parameter] public EventCallback OnLimpiarFiltros { get; set; }
