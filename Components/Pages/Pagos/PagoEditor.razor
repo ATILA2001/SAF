@@ -10,7 +10,8 @@
    completando EN VIVO con lo tipeado — es la vista previa de lo que se va a crear.
    Requiere DialogOptions con ShowTitle=false y CssClass "saf-dialog-panel". *@
 
-<div style="display: flex; align-items: stretch;">
+@* min-height y botonera anclada abajo: mismo criterio que los demás editores. *@
+<div style="display: flex; align-items: stretch; min-height: 560px;">
 
     <div style="width: 280px; flex-shrink: 0; background: var(--rz-primary-dark); color: #ffffff; padding: 26px 24px; display: flex; flex-direction: column; gap: 22px; box-sizing: border-box;">
         <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -49,7 +50,7 @@
                           Click="@(() => DialogService.Close(false))" title="Cerrar sin guardar" />
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 20px; padding: 16px 24px 4px 24px;">
+        <div style="display: flex; flex-direction: column; gap: 20px; padding: 16px 24px 16px 24px;">
             @if (EsAlta)
             {
                 @* Los datos que en una fila existente vienen de IVC: acá se cargan a
@@ -159,7 +160,7 @@
         </div>
 
         <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem"
-                     Style="padding: 16px 24px 20px 24px; border-top: 1px solid var(--surface-border, rgba(128,128,128,.25)); margin-top: 18px;">
+                     Style="padding: 16px 24px 20px 24px; border-top: 1px solid var(--surface-border, rgba(128,128,128,.25)); margin-top: auto;">
             <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Light" Click="@(() => DialogService.Close(false))" />
             <RadzenButton Text="@(EsAlta ? "Crear devengado" : "Guardar cambios")" ButtonStyle="ButtonStyle.Primary"
                           Click="@Guardar" IsBusy="@_guardando" BusyText="@(EsAlta ? "Creando..." : "Guardando...")" />
