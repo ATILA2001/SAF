@@ -109,6 +109,32 @@ public partial class StatusContabilidad
     protected override string DescripcionFila(StatusContabilidadViewModel item) =>
         $"Devengado {item.TipoDev} {item.NroDev}";
 
+    /// <summary>
+    /// Edición en ventana: todos los campos a la vista, agrupados por área. Comparte
+    /// el borrador con la edición inline; cerrar sin guardar lo descarta.
+    /// </summary>
+    private async Task EditarEnVentana(StatusContabilidadViewModel item)
+    {
+        var resultado = await DialogService.OpenAsync<StatusContabilidadEditor>(
+            $"Editar — Devengado {item.TipoDev} {item.NroDev}",
+            new Dictionary<string, object?>
+            {
+                [nameof(StatusContabilidadEditor.Item)] = item,
+                [nameof(StatusContabilidadEditor.Borrador)] = Buffer(item),
+                [nameof(StatusContabilidadEditor.EditaCuentasPagar)] = _editaCuentasPagar,
+                [nameof(StatusContabilidadEditor.EditaLiquidaciones)] = _editaLiquidaciones,
+                [nameof(StatusContabilidadEditor.StatusContableOpciones)] = _statusContableOpciones,
+                [nameof(StatusContabilidadEditor.TramitadoresCuentasPagar)] = _tramitadoresCuentasPagar,
+                [nameof(StatusContabilidadEditor.TramitadoresLiquidaciones)] = _tramitadoresLiquidaciones,
+                [nameof(StatusContabilidadEditor.SinFacturaMotivos)] = _sinFacturaMotivos,
+                [nameof(StatusContabilidadEditor.GuardarAsync)] = (Func<Task<bool>>)(() => GuardarDesdeDialogoAsync(item)),
+            },
+            new DialogOptions { Width = "780px" });
+
+        // Cerrado sin guardar (Cancelar, la X o Escape): se descarta lo tipeado.
+        if (resultado is not true) DescartarBuffer(item);
+    }
+
     // El color vive en el token (tokens.css); acá solo la aplicación a la celda.
     private const string EstiloPedidoAtrasado = "background-color: var(--saf-atraso-bg);";
 

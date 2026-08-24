@@ -1,0 +1,149 @@
+@using SAF.Application.StatusContabilidad.Dtos
+@using SAF.Data.Entities
+
+@* Edición de la fila del tablero en ventana: todos los campos a la vista, con
+   labels reales y agrupados por área — sin el scroll horizontal de la edición
+   inline sobre 24 columnas. Escribe sobre el mismo Borrador (buffer) que la
+   edición inline, así que cerrar o cancelar descarta sin tocar la fila; los
+   permisos por área se expresan deshabilitando la sección. *@
+
+<RadzenStack Gap="1.25rem">
+    @* Identidad de la fila: qué se está editando, siempre a la vista. *@
+    <RadzenText TextStyle="TextStyle.Body2" class="rz-color-secondary" Style="margin: 0;">
+        @Item.Expediente · @Item.Empresa · Importe @(Item.ImporteTotal?.ToString("N2") ?? "—")
+    </RadzenText>
+
+    <RadzenStack Gap="0.75rem">
+        <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0;">
+            Cuentas a Pagar@(EditaCuentasPagar ? "" : " (solo lectura para tu área)")
+        </RadzenText>
+        <RadzenRow Gap="0.75rem">
+            <RadzenColumn Size="4">
+                @* El pedido 1 no se edita en ninguna parte: va deshabilitado como
+                   contexto de la cronología (los pedidos 2 y 3 no pueden precederlo). *@
+                <RadzenFormField Text="Fecha Ped. Factura 1" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenDatePicker TValue="DateTime?" Value="@Item.FechaPedidoFactura1" DateFormat="dd/MM/yyyy" Disabled="true" />
+                </RadzenFormField>
+            </RadzenColumn>
+            <RadzenColumn Size="4">
+                <RadzenFormField Text="Fecha Ped. Factura 2" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenDatePicker @bind-Value="Borrador.FechaPedidoFactura2" DateFormat="dd/MM/yyyy" Disabled="@(!EditaCuentasPagar)" />
+                </RadzenFormField>
+            </RadzenColumn>
+            <RadzenColumn Size="4">
+                <RadzenFormField Text="Reit. Ped. Factura 3" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenDatePicker @bind-Value="Borrador.ReiterarPedidoFactura3" DateFormat="dd/MM/yyyy" Disabled="@(!EditaCuentasPagar)" />
+                </RadzenFormField>
+            </RadzenColumn>
+        </RadzenRow>
+        <RadzenRow Gap="0.75rem">
+            <RadzenColumn Size="4">
+                <RadzenFormField Text="Fecha de Rechazo" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenDatePicker @bind-Value="Borrador.FechaRechazo" DateFormat="dd/MM/yyyy" AllowClear="true" Disabled="@(!EditaCuentasPagar)" />
+                </RadzenFormField>
+            </RadzenColumn>
+            <RadzenColumn Size="4">
+                <RadzenFormField Text="Ingreso Factura" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenDatePicker @bind-Value="Borrador.FechaIngresoFactura" DateFormat="dd/MM/yyyy" AllowClear="true" Disabled="@(!EditaCuentasPagar)" />
+                </RadzenFormField>
+            </RadzenColumn>
+            <RadzenColumn Size="4">
+                <RadzenFormField Text="Sin factura (motivo)" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenDropDown @bind-Value="Borrador.SinFacturaMotivo" Data="@SinFacturaMotivos" AllowClear="true" Disabled="@(!EditaCuentasPagar)" />
+                </RadzenFormField>
+            </RadzenColumn>
+        </RadzenRow>
+        <RadzenRow Gap="0.75rem">
+            <RadzenColumn Size="6">
+                <RadzenFormField Text="Tramitador Ctas. Pagar" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenDropDown @bind-Value="Borrador.TramitadorCuentasPagarOpcionId"
+                                    Data="@TramitadoresCuentasPagar" TextProperty="Nombre" ValueProperty="Id"
+                                    AllowClear="true" Disabled="@(!EditaCuentasPagar)" />
+                </RadzenFormField>
+            </RadzenColumn>
+            <RadzenColumn Size="6">
+                <RadzenFormField Text="Obs. Ctas. a Pagar" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenTextArea @bind-Value="Borrador.ObservacionesCuentasPagar" Rows="2" Disabled="@(!EditaCuentasPagar)" />
+                </RadzenFormField>
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenStack>
+
+    <RadzenStack Gap="0.75rem">
+        <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0;">Contabilidad</RadzenText>
+        <RadzenRow Gap="0.75rem">
+            <RadzenColumn Size="6">
+                <RadzenFormField Text="Status Contable" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenDropDown @bind-Value="Borrador.StatusContableOpcionId"
+                                    Data="@StatusContableOpciones" TextProperty="Nombre" ValueProperty="Id"
+                                    AllowClear="true" />
+                </RadzenFormField>
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenStack>
+
+    <RadzenStack Gap="0.75rem">
+        <RadzenText TextStyle="TextStyle.Subtitle2" Style="margin: 0;">
+            Liquidaciones@(EditaLiquidaciones ? "" : " (solo lectura para tu área)")
+        </RadzenText>
+        <RadzenRow Gap="0.75rem">
+            <RadzenColumn Size="6">
+                <RadzenFormField Text="Tramitador Liquidaciones" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenDropDown @bind-Value="Borrador.TramitadorLiquidacionesOpcionId"
+                                    Data="@TramitadoresLiquidaciones" TextProperty="Nombre" ValueProperty="Id"
+                                    AllowClear="true" Disabled="@(!EditaLiquidaciones)" />
+                </RadzenFormField>
+            </RadzenColumn>
+            <RadzenColumn Size="6">
+                <RadzenFormField Text="Obs. Liquidaciones" Variant="Variant.Outlined" Style="width: 100%;">
+                    <RadzenTextArea @bind-Value="Borrador.ObservacionesLiquidaciones" Rows="2" Disabled="@(!EditaLiquidaciones)" />
+                </RadzenFormField>
+            </RadzenColumn>
+        </RadzenRow>
+    </RadzenStack>
+
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem">
+        <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Light" Click="@(() => DialogService.Close(false))" />
+        <RadzenButton Text="Guardar cambios" ButtonStyle="ButtonStyle.Primary"
+                      Click="@Guardar" IsBusy="@_guardando" BusyText="Guardando..." />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Inject] private DialogService DialogService { get; set; } = null!;
+
+    /// <summary>La fila real: identidad y valores de solo lectura.</summary>
+    [Parameter, EditorRequired] public StatusContabilidadViewModel Item { get; set; } = null!;
+
+    /// <summary>El buffer de edición compartido con la grilla: acá escriben los campos.</summary>
+    [Parameter, EditorRequired] public StatusContabilidadViewModel Borrador { get; set; } = null!;
+
+    [Parameter] public bool EditaCuentasPagar { get; set; }
+    [Parameter] public bool EditaLiquidaciones { get; set; }
+
+    [Parameter] public IReadOnlyList<StatusContableOpcion> StatusContableOpciones { get; set; } = [];
+    [Parameter] public IReadOnlyList<TramitadorCuentasPagarOpcion> TramitadoresCuentasPagar { get; set; } = [];
+    [Parameter] public IReadOnlyList<TramitadorLiquidacionesOpcion> TramitadoresLiquidaciones { get; set; } = [];
+    [Parameter] public IReadOnlyList<string> SinFacturaMotivos { get; set; } = [];
+
+    /// <summary>
+    /// Guardado delegado a la página (GuardarDesdeDialogoAsync): true = cerrar el
+    /// diálogo; false = quedó abierto con lo tipeado (validación o error).
+    /// </summary>
+    [Parameter, EditorRequired] public Func<Task<bool>> GuardarAsync { get; set; } = null!;
+
+    private bool _guardando;
+
+    private async Task Guardar()
+    {
+        _guardando = true;
+        try
+        {
+            if (await GuardarAsync()) DialogService.Close(true);
+        }
+        finally
+        {
+            _guardando = false;
+        }
+    }
+}

@@ -525,6 +525,67 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
         }
     }
 
+    /// <summary>Descarta el borrador de la fila (cierre o cancelación de un diálogo de edición).</summary>
+    protected void DescartarBuffer(TItem item) => _buffers.Remove(item);
+
+    /// <summary>
+    /// Guarda los cambios hechos en un diálogo de edición: la misma tubería que la
+    /// edición inline (validación anticipada, confirmación, snapshot de auditoría,
+    /// persistencia y recarga) sin pasar por la grilla. Devuelve true cuando el
+    /// diálogo debe cerrarse: se guardó, o hubo conflicto de concurrencia y la vista
+    /// se recargó (seguir editando un borrador viejo no tiene sentido). Con false el
+    /// diálogo queda abierto y el borrador conserva lo tipeado.
+    /// </summary>
+    protected async Task<bool> GuardarDesdeDialogoAsync(TItem item)
+    {
+        if (!CanEdit)
+        {
+            Notification.ShowError($"No tenés permiso para editar {TituloEntidad}.", "Permiso denegado");
+            return false;
+        }
+
+        var buffer = Buffer(item);
+        if (!FilaValida(buffer, esAlta: false)) return false;
+
+        try
+        {
+            if (!await ConfirmarGuardadoAsync(buffer, esAlta: false)) return false;
+        }
+        catch (Exception ex)
+        {
+            Informar(ex, "El guardado", "Error al guardar");
+            return false;
+        }
+
+        var original = Copiar(item, new TItem());
+        Copiar(buffer, item);
+        PrepararParaGuardar(item);
+
+        try
+        {
+            await ActualizarAsync(item);
+            await RegistrarAuditoriaAsync("Edición", item, AuditoriaDiff.Comparar(original, item));
+            await ReloadAsync();
+            return true;
+        }
+        catch (ConflictoDeConcurrenciaException ex)
+        {
+            Logger.LogWarning("Conflicto de concurrencia al guardar en {Pagina}.", PageUrl);
+            Notification.ShowWarning(ex.Message, "Fila desactualizada");
+            await ReloadAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Informar(ex, "El guardado", "Error al guardar");
+            // La fila en pantalla vuelve al estado persistido y el borrador conserva
+            // lo tipeado: el usuario corrige y reintenta sin perder nada.
+            Copiar(original, item);
+            _buffers[item] = buffer;
+            return false;
+        }
+    }
+
     protected async Task OnRowUpdate(TItem item)
     {
         if (!CanEdit)

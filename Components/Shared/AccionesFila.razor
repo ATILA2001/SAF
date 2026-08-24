@@ -17,6 +17,14 @@ else
     {
         <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
                       Click="@OnEditar" title="Editar fila" />
+
+        @* Edición en ventana: todos los campos a la vista, sin scroll horizontal.
+           Aparece solo en las vistas que la implementan (delegado presente). *@
+        @if (OnEditarEnVentana.HasDelegate)
+        {
+            <RadzenButton Icon="open_in_full" ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small"
+                          Click="@OnEditarEnVentana" title="Editar en ventana (todos los campos)" />
+        }
     }
     @if (MostrarEliminar)
     {
@@ -35,6 +43,7 @@ else
     [Parameter] public bool MostrarEliminar { get; set; }
 
     [Parameter] public EventCallback OnEditar { get; set; }
+    [Parameter] public EventCallback OnEditarEnVentana { get; set; }
     [Parameter] public EventCallback OnEliminar { get; set; }
     [Parameter] public EventCallback OnHistorial { get; set; }
     [Parameter] public EventCallback OnGuardar { get; set; }
