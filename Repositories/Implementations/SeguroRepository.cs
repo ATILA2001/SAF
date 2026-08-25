@@ -14,8 +14,8 @@ public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISegu
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         return await db.ExpedientesSeguro.AsNoTracking()
             .Include(e => e.SeguroOpcion)
-            .OrderBy(e => e.Expediente)
-            .ThenBy(e => e.Op)
+            // Orden de carga (Id): los recién agregados quedan al final, como en la planilla.
+            .OrderBy(e => e.Id)
             .ToListAsync(ct);
     }
 
@@ -27,9 +27,8 @@ public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISegu
         // estrictamente determinístico o los lotes pueden repetir o saltear filas.
         return await db.ExpedientesSeguro.AsNoTracking()
             .Include(e => e.SeguroOpcion)
-            .OrderBy(e => e.Expediente)
-            .ThenBy(e => e.Op)
-            .ThenBy(e => e.Id)
+            // Mismo orden que GetAllAsync; el Id ya es único, Skip/Take es determinístico.
+            .OrderBy(e => e.Id)
             .Skip(skip)
             .Take(take)
             .ToListAsync(ct);

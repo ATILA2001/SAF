@@ -9,11 +9,16 @@ namespace SAF.Repositories.Implementations;
 
 public class DevengadoRepository(IDbContextFactory<AppDbContext> dbFactory) : IDevengadoRepository
 {
+    // Orden cronológico como la planilla: fechas más viejas arriba, lo reciente al
+    // final (FechaImputacion es la "Fecha Devengado" de la grilla). Alimenta Pagos
+    // y el tablero de Status (que agrupa preservando este orden). El desempate por
+    // tipo y número mantiene juntas las líneas de un devengado con la misma fecha.
     public async Task<IReadOnlyList<Devengado>> GetAllAsync(CancellationToken ct = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         return await db.Devengados.AsNoTracking()
-            .OrderBy(d => d.TipoDev)
+            .OrderBy(d => d.FechaImputacion)
+            .ThenBy(d => d.TipoDev)
             .ThenBy(d => d.NroDev)
             .ToListAsync(ct);
     }
@@ -25,7 +30,8 @@ public class DevengadoRepository(IDbContextFactory<AppDbContext> dbFactory) : ID
         // Mismo orden que GetAllAsync más desempate por Id: Skip/Take exige un orden
         // estrictamente determinístico o los lotes pueden repetir o saltear filas.
         return await db.Devengados.AsNoTracking()
-            .OrderBy(d => d.TipoDev)
+            .OrderBy(d => d.FechaImputacion)
+            .ThenBy(d => d.TipoDev)
             .ThenBy(d => d.NroDev)
             .ThenBy(d => d.Id)
             .Skip(skip)

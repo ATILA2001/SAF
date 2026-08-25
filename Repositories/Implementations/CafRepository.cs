@@ -14,9 +14,8 @@ public class CafRepository(IDbContextFactory<AppDbContext> dbFactory) : ICafRepo
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         return await db.ExpedientesCaf.AsNoTracking()
-            .OrderByDescending(e => e.Anio)
-            .ThenBy(e => e.Expediente)
-            .ThenBy(e => e.Op)
+            // Orden de carga (Id): los recién agregados quedan al final, como en la planilla.
+            .OrderBy(e => e.Id)
             .ToListAsync(ct);
     }
 
@@ -27,10 +26,8 @@ public class CafRepository(IDbContextFactory<AppDbContext> dbFactory) : ICafRepo
         // Mismo orden que GetAllAsync más desempate por Id: Skip/Take exige un orden
         // estrictamente determinístico o los lotes pueden repetir o saltear filas.
         return await db.ExpedientesCaf.AsNoTracking()
-            .OrderByDescending(e => e.Anio)
-            .ThenBy(e => e.Expediente)
-            .ThenBy(e => e.Op)
-            .ThenBy(e => e.Id)
+            // Mismo orden que GetAllAsync; el Id ya es único, Skip/Take es determinístico.
+            .OrderBy(e => e.Id)
             .Skip(skip)
             .Take(take)
             .ToListAsync(ct);
