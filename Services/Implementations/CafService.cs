@@ -22,6 +22,9 @@ public class CafService(ICafRepository repo, ILogger<CafService> logger) : ICafS
         return rows.Select(ToVm).ToList();
     }
 
+    public async Task<CafViewModel?> GetByIdAsync(int id, CancellationToken ct = default)
+        => await repo.GetByIdAsync(id, ct) is { } entity ? ToVm(entity) : null;
+
     public async Task<CafViewModel> CreateAsync(CafViewModel vm, CancellationToken ct = default)
     {
         Validar(vm);

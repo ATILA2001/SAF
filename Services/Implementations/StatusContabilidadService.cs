@@ -43,50 +43,78 @@ public class StatusContabilidadService(
 
         var result = new List<StatusContabilidadViewModel>(grouped.Count);
         foreach (var kvp in grouped)
-        {
-            var d = kvp.Value.Fila;
-            var importeTotal = kvp.Value.ImporteTotal;
-            var key = kvp.Key;
-            pagosDict.TryGetValue(d.Id, out var pago);
-            extrasDict.TryGetValue(key, out var extra);
+            result.Add(Mapear(kvp.Value, pagosDict, extrasDict));
 
-            var vm = new StatusContabilidadViewModel
-            {
-                TipoDev = d.TipoDev,
-                NroDev = d.NroDev,
-                Expediente = d.Expediente,
-                Empresa = d.Empresa,
-                ImporteTotal = importeTotal,
-                CantidadLineas = kvp.Value.Ordenadas.Count,
-                DetalleLineas = CompararLineas(kvp.Value.Ordenadas, pagosDict),
-                StatusDgayfNombre = pago?.StatusDgayfOpcion?.Nombre,
-                FirmadaPorMiguel = pago?.StatusOpOpcion?.Nombre,
-                FechaPedidoFactura1 = d.FechaImputacion,
-                EeSade = BuildEeSade(d.Expediente),
-                Observaciones = pago?.Observaciones,
-                Ccoo = pago?.Ccoo,
-                FechaCcoo = pago?.FechaCcoo,
-                FechaNotificacion = pago?.FechaNotificacion,
-                // BuzonSade y UltimoMovimientoSade los rellena CompletarIvcAsync.
-                FechaPedidoFactura2 = extra?.FechaPedidoFactura2,
-                ReiterarPedidoFactura3 = extra?.ReiterarPedidoFactura3,
-                FechaRechazo = extra?.FechaRechazo,
-                FechaIngresoFactura = extra?.FechaIngresoFactura,
-                SinFacturaMotivo = extra?.SinFacturaMotivo,
-                StatusContableOpcionId = extra?.StatusContableOpcionId,
-                StatusContableNombre = extra?.StatusContableOpcion?.Nombre,
-                ObservacionesCuentasPagar = extra?.ObservacionesCuentasPagar,
-                TramitadorCuentasPagarOpcionId = extra?.TramitadorCuentasPagarOpcionId,
-                TramitadorCuentasPagarNombre = extra?.TramitadorCuentasPagarOpcion?.Nombre,
-                TramitadorLiquidacionesOpcionId = extra?.TramitadorLiquidacionesOpcionId,
-                TramitadorLiquidacionesNombre = extra?.TramitadorLiquidacionesOpcion?.Nombre,
-                ObservacionesLiquidaciones = extra?.ObservacionesLiquidaciones,
-                RowVersion = extra?.RowVersion,
-            };
-            vm.CalcularAtraso();
-            result.Add(vm);
-        }
         return result;
+    }
+
+    public async Task<StatusContabilidadViewModel?> GetPorDevengadoAsync(
+        string tipoDev, int nroDev, CancellationToken ct = default)
+    {
+        var lineas = await devengadoRepo.GetByClaveAsync(tipoDev, nroDev, ct);
+        if (lineas.Count == 0) return null;
+
+        // Las tablas de datos manuales solo tienen filas cargadas a mano: traerlas
+        // enteras sigue siendo mucho más barato que releer el ledger completo. En
+        // paralelo: cada repositorio crea su propio DbContext (IDbContextFactory).
+        var pagosTask = pagosRepo.GetAllAsync(ct);
+        var extrasTask = contaRepo.GetAllAsync(ct);
+        await Task.WhenAll(pagosTask, extrasTask);
+
+        return Mapear(
+            Agrupar(lineas),
+            pagosTask.Result.ToDictionary(e => e.DevengadoId),
+            extrasTask.Result.ToDictionary(e => ((string)e.TipoDev, e.NroDev)));
+    }
+
+    /// <summary>
+    /// Arma la fila del tablero con el grupo de líneas y los datos manuales. Compartido
+    /// por la carga completa y la relectura de una sola fila, para que no se separen.
+    /// </summary>
+    private static StatusContabilidadViewModel Mapear(
+        (Data.Entities.Devengado Fila, decimal ImporteTotal, List<Data.Entities.Devengado> Ordenadas) grupo,
+        Dictionary<int, Data.Entities.DevengadoExtra> pagosDict,
+        Dictionary<(string, int), Data.Entities.StatusContabilidadExtra> extrasDict)
+    {
+        var d = grupo.Fila;
+        pagosDict.TryGetValue(d.Id, out var pago);
+        extrasDict.TryGetValue((d.TipoDev, d.NroDev), out var extra);
+
+        var vm = new StatusContabilidadViewModel
+        {
+            TipoDev = d.TipoDev,
+            NroDev = d.NroDev,
+            Expediente = d.Expediente,
+            Empresa = d.Empresa,
+            ImporteTotal = grupo.ImporteTotal,
+            CantidadLineas = grupo.Ordenadas.Count,
+            DetalleLineas = CompararLineas(grupo.Ordenadas, pagosDict),
+            StatusDgayfNombre = pago?.StatusDgayfOpcion?.Nombre,
+            FirmadaPorMiguel = pago?.StatusOpOpcion?.Nombre,
+            FechaPedidoFactura1 = d.FechaImputacion,
+            EeSade = BuildEeSade(d.Expediente),
+            Observaciones = pago?.Observaciones,
+            Ccoo = pago?.Ccoo,
+            FechaCcoo = pago?.FechaCcoo,
+            FechaNotificacion = pago?.FechaNotificacion,
+            // BuzonSade y UltimoMovimientoSade los rellena CompletarIvcAsync.
+            FechaPedidoFactura2 = extra?.FechaPedidoFactura2,
+            ReiterarPedidoFactura3 = extra?.ReiterarPedidoFactura3,
+            FechaRechazo = extra?.FechaRechazo,
+            FechaIngresoFactura = extra?.FechaIngresoFactura,
+            SinFacturaMotivo = extra?.SinFacturaMotivo,
+            StatusContableOpcionId = extra?.StatusContableOpcionId,
+            StatusContableNombre = extra?.StatusContableOpcion?.Nombre,
+            ObservacionesCuentasPagar = extra?.ObservacionesCuentasPagar,
+            TramitadorCuentasPagarOpcionId = extra?.TramitadorCuentasPagarOpcionId,
+            TramitadorCuentasPagarNombre = extra?.TramitadorCuentasPagarOpcion?.Nombre,
+            TramitadorLiquidacionesOpcionId = extra?.TramitadorLiquidacionesOpcionId,
+            TramitadorLiquidacionesNombre = extra?.TramitadorLiquidacionesOpcion?.Nombre,
+            ObservacionesLiquidaciones = extra?.ObservacionesLiquidaciones,
+            RowVersion = extra?.RowVersion,
+        };
+        vm.CalcularAtraso();
+        return vm;
     }
 
     public async Task CompletarIvcAsync(IReadOnlyList<StatusContabilidadViewModel> items, CancellationToken ct = default)

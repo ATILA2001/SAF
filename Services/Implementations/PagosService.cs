@@ -23,6 +23,16 @@ public class PagosService(
     public async Task<IReadOnlyList<PagoViewModel>> GetPageAsync(int skip, int take, CancellationToken ct = default)
         => await MapearAsync(await devengadoRepo.GetPageAsync(skip, take, ct), ct);
 
+    public async Task<PagoViewModel?> GetByIdAsync(int devengadoId, CancellationToken ct = default)
+    {
+        var devengado = await devengadoRepo.GetByIdAsync(devengadoId, ct);
+        if (devengado is null) return null;
+
+        // Por el mismo mapeo que la carga completa: las derivadas (status contable,
+        // fecha de pago CAF, seguros) cambian con lo que se acaba de editar.
+        return (await MapearAsync([devengado], ct)).FirstOrDefault();
+    }
+
     /// <summary>
     /// FASE PROPIA: deriva todas las columnas que salen de las tablas de SAF. Las que
     /// dependen de IVC (Fecha/Buzón SADE, Fecha Pago No CAF y Fecha Pago Total) quedan
@@ -33,14 +43,19 @@ public class PagosService(
     private async Task<IReadOnlyList<PagoViewModel>> MapearAsync(
         IReadOnlyList<Devengado> devengados, CancellationToken ct)
     {
+        // En paralelo (cada repositorio crea su propio DbContext vía IDbContextFactory):
+        // desde la relectura de una fila tras guardar, estas dos cargas son el costo
+        // dominante y en serie duplicaban la espera.
+        var extrasTask = extraRepo.GetAllAsync(ct);
+        var statusContabsTask = statusContabRepo.GetAllAsync(ct);
+        await Task.WhenAll(extrasTask, statusContabsTask);
+
         // Un registro editable por FILA del ledger (DevengadoId), no por (TipoDev, NroDev).
-        var extras = await extraRepo.GetAllAsync(ct);
-        var extrasDict = extras.ToDictionary(e => e.DevengadoId);
+        var extrasDict = extrasTask.Result.ToDictionary(e => e.DevengadoId);
 
         // STATUS CONTABLE / PEDIDO FACTURA 2·3 / FECHA FACTURA CORRECTA: cruce interno con
         // el tablero StatusContabilidadExtra por (TipoDev, NroDev).
-        var statusContabs = await statusContabRepo.GetAllAsync(ct);
-        var statusContabDict = statusContabs.ToDictionary(e => (e.TipoDev, e.NroDev));
+        var statusContabDict = statusContabsTask.Result.ToDictionary(e => (e.TipoDev, e.NroDev));
 
         var expedientes = devengados
             .Where(d => !string.IsNullOrWhiteSpace(d.Expediente))

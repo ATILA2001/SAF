@@ -34,6 +34,11 @@ public partial class Seguros
     protected override async Task<List<SeguroViewModel>> ObtenerLoteAsync(int skip, int take, CancellationToken ct) =>
         (await SeguroService.GetPageAsync(skip, take, ct)).ToList();
 
+    // Relectura de a una fila: es lo que deja refrescar lo guardado sin recargar la
+    // grilla (que devolvía al usuario al primer registro).
+    protected override async Task<SeguroViewModel?> ObtenerFilaAsync(SeguroViewModel item, CancellationToken ct) =>
+        item.Id != 0 ? await SeguroService.GetByIdAsync(item.Id, ct) : null;
+
     protected override string DescripcionFila(SeguroViewModel item) =>
         $"Seguro del expediente {item.Expediente}";
 

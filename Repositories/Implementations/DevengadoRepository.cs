@@ -39,6 +39,24 @@ public class DevengadoRepository(IDbContextFactory<AppDbContext> dbFactory) : ID
             .ToListAsync(ct);
     }
 
+    public async Task<Devengado?> GetByIdAsync(int id, CancellationToken ct = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.Devengados.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id, ct);
+    }
+
+    public async Task<IReadOnlyList<Devengado>> GetByClaveAsync(
+        string tipoDev, int nroDev, CancellationToken ct = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        return await db.Devengados.AsNoTracking()
+            .Where(d => d.TipoDev == tipoDev && d.NroDev == nroDev)
+            .OrderBy(d => d.FechaImputacion)
+            .ThenBy(d => d.TipoDev)
+            .ThenBy(d => d.NroDev)
+            .ToListAsync(ct);
+    }
+
     public async Task<DateTime?> GetMaxFechaImputacionAsync(CancellationToken ct = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);

@@ -12,6 +12,12 @@ public interface IPagosService
     Task<IReadOnlyList<PagoViewModel>> GetPageAsync(int skip, int take, CancellationToken ct = default);
 
     /// <summary>
+    /// Relee una sola fila con sus derivadas propias, para refrescar en el lugar la que
+    /// se acaba de guardar. Null: otro usuario la borró mientras se editaba.
+    /// </summary>
+    Task<PagoViewModel?> GetByIdAsync(int devengadoId, CancellationToken ct = default);
+
+    /// <summary>
     /// Rellena sobre los ítems ya pintados las columnas que dependen de IVC (Fecha y
     /// Buzón SADE, Fecha Pago No CAF y Fecha Pago Total). Se difiere porque la primera
     /// conexión a IVC puede tardar segundos y no debe frenar la primera pintada.

@@ -10,6 +10,16 @@ public interface IDevengadoRepository
 {
     Task<IReadOnlyList<Devengado>> GetAllAsync(CancellationToken ct = default);
 
+    /// <summary>Una sola fila del ledger, para releerla sin recargar la vista entera.</summary>
+    Task<Devengado?> GetByIdAsync(int id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Las líneas de un devengado (TipoDev + NroDev), que es la fila del tablero de
+    /// Status Contabilidad. Mismo orden que la carga completa: el representante del
+    /// grupo tiene que salir igual que ahí.
+    /// </summary>
+    Task<IReadOnlyList<Devengado>> GetByClaveAsync(string tipoDev, int nroDev, CancellationToken ct = default);
+
     /// <summary>
     /// Máxima FECHA_IMPUTACION presente en la tabla acumulativa; refleja hasta qué
     /// fecha están sincronizados los devengados. Null si la tabla está vacía.

@@ -22,6 +22,9 @@ public class SeguroService(ISeguroRepository repo, ILogger<SeguroService> logger
         return rows.Select(ToVm).ToList();
     }
 
+    public async Task<SeguroViewModel?> GetByIdAsync(int id, CancellationToken ct = default)
+        => await repo.GetByIdAsync(id, ct) is { } entity ? ToVm(entity) : null;
+
     public async Task<SeguroViewModel> CreateAsync(SeguroViewModel vm, CancellationToken ct = default)
     {
         Validar(vm);

@@ -27,6 +27,11 @@ public partial class Caf
     protected override async Task<List<CafViewModel>> ObtenerLoteAsync(int skip, int take, CancellationToken ct) =>
         (await CafService.GetPageAsync(skip, take, ct)).ToList();
 
+    // Relectura de a una fila: es lo que deja refrescar lo guardado sin recargar la
+    // grilla (que devolvía al usuario al primer registro).
+    protected override async Task<CafViewModel?> ObtenerFilaAsync(CafViewModel item, CancellationToken ct) =>
+        item.Id != 0 ? await CafService.GetByIdAsync(item.Id, ct) : null;
+
     protected override CafViewModel NuevaFila() => new() { Anio = DateTime.Now.Year };
 
     protected override string DescripcionFila(CafViewModel item) =>

@@ -91,6 +91,13 @@ public partial class StatusContabilidad
     protected override Task CompletarAsync(List<StatusContabilidadViewModel> items, CancellationToken ct) =>
         StatusContabilidadService.CompletarIvcAsync(items, ct);
 
+    // Relectura de a una fila: es lo que deja refrescar lo guardado sin recargar la
+    // grilla (que devolvía al usuario al primer registro). La fila del tablero es un
+    // devengado entero, así que se identifica por su clave, no por un Id técnico.
+    protected override async Task<StatusContabilidadViewModel?> ObtenerFilaAsync(
+        StatusContabilidadViewModel item, CancellationToken ct) =>
+        await StatusContabilidadService.GetPorDevengadoAsync(item.TipoDev, item.NroDev, ct);
+
     protected override void PrepararParaGuardar(StatusContabilidadViewModel item)
     {
         item.StatusContableNombre = _statusContableOpciones.FirstOrDefault(x => x.Id == item.StatusContableOpcionId)?.Nombre;

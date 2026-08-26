@@ -56,6 +56,11 @@ public partial class Pagos
     protected override Task CompletarAsync(List<PagoViewModel> items, CancellationToken ct) =>
         PagosService.CompletarIvcAsync(items, ct);
 
+    // Relectura de a una fila: es lo que deja refrescar lo guardado sin recargar la
+    // grilla (que devolvía al usuario al primer registro).
+    protected override async Task<PagoViewModel?> ObtenerFilaAsync(PagoViewModel item, CancellationToken ct) =>
+        item.Id != 0 ? await PagosService.GetByIdAsync(item.Id, ct) : null;
+
     protected override PagoViewModel NuevaFila() => new() { FechaDevengado = DateTime.Today };
 
     protected override string DescripcionFila(PagoViewModel item) =>

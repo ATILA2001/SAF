@@ -85,6 +85,14 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
                          && p.GetCustomAttribute<RestoreIgnoreAttribute>() is null)
                      .ToArray();
 
+    // Refrescar una fila recién guardada SÍ pisa las columnas del completado: la fila
+    // releída ya las trae recalculadas (Fecha Pago Total, por ejemplo, depende del
+    // status que se acaba de editar), así que dejarlas afuera mostraría datos viejos.
+    private static readonly PropertyInfo[] PropiedadesRefrescables =
+        typeof(TItem).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                     .Where(p => p.CanRead && p.CanWrite)
+                     .ToArray();
+
     /// <summary>Ruta de la página, para resolver permisos (ej: "/caf").</summary>
     protected abstract string PageUrl { get; }
 
@@ -120,6 +128,14 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     /// </summary>
     protected virtual Task CompletarAsync(List<TItem> items, CancellationToken ct)
         => throw new NotSupportedException($"{GetType().Name} activó CompletaEnSegundoPlano sin implementar CompletarAsync.");
+
+    /// <summary>
+    /// Relee del origen SOLO esta fila, con sus columnas derivadas. Es lo que permite
+    /// refrescar lo guardado sin recargar la vista entera. El default (null) deja el
+    /// comportamiento viejo: recargar todo.
+    /// </summary>
+    protected virtual Task<TItem?> ObtenerFilaAsync(TItem item, CancellationToken ct)
+        => Task.FromResult<TItem?>(null);
 
     /// <summary>Tamaño del primer lote: chico, para que la primera pintada sea inmediata.</summary>
     protected virtual int TamanoPrimerLote => 100;
@@ -450,8 +466,11 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     }
 
     private static TItem Copiar(TItem origen, TItem destino)
+        => Copiar(origen, destino, PropiedadesCopiables);
+
+    private static TItem Copiar(TItem origen, TItem destino, PropertyInfo[] propiedades)
     {
-        foreach (var propiedad in PropiedadesCopiables)
+        foreach (var propiedad in propiedades)
             propiedad.SetValue(destino, propiedad.GetValue(origen));
 
         return destino;
@@ -565,7 +584,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
         {
             await ActualizarAsync(item);
             await RegistrarAuditoriaAsync("Edición", item, AuditoriaDiff.Comparar(original, item));
-            await ReloadAsync();
+            await RefrescarFilaAsync(item);
             return true;
         }
         catch (ConflictoDeConcurrenciaException ex)
@@ -651,7 +670,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
             await ActualizarAsync(item);
             if (original is not null)
                 await RegistrarAuditoriaAsync("Edición", item, AuditoriaDiff.Comparar(original, item));
-            await ReloadAsync();
+            await RefrescarFilaAsync(item);
         }
         catch (ConflictoDeConcurrenciaException ex)
         {
@@ -686,7 +705,26 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
             await EliminarAsync(item);
             // El snapshot completo es lo que permite responder "¿qué decía la fila borrada?".
             await RegistrarAuditoriaAsync("Baja", item, AuditoriaDiff.Snapshot(item, esBaja: true));
-            await ReloadAsync();
+
+            if (_cargandoResto)
+            {
+                // Carga de fondo en vuelo: el DELETE corre las filas siguientes y el
+                // Skip/Take del runner saltearía una en silencio; además el completado
+                // puede estar recorriendo _items en otro hilo (mutar la lista rompería
+                // esa enumeración). Recargar —que cancela el runner— es el único camino
+                // coherente; la posición se pierde solo en esta ventana.
+                await ReloadAsync();
+            }
+            else
+            {
+                // Se saca de la lista en el lugar: recargar todo dejaba la grilla en
+                // el primer registro y el usuario perdía dónde estaba.
+                _items.Remove(item);
+                _buffers.Remove(item);
+                _originales.Remove(item);
+                await _grid.Reload();
+            }
+
             Notification.ShowSuccess($"{DescripcionFila(item)} eliminado.".TrimStart(), "Baja exitosa");
         }
         catch (ConflictoDeConcurrenciaException ex)
@@ -726,6 +764,96 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
         _originales.Clear();
         await CargarDatosAsync();
         await _grid.Reload();
+    }
+
+    /// <summary>
+    /// Refresca EN EL LUGAR la fila que se acaba de guardar: la relee del origen y le
+    /// copia los valores encima, sin rearmar la lista. Recargar la vista entera dejaba
+    /// la grilla en el primer registro (y con la carga progresiva, además, con solo el
+    /// primer lote), así que después de cada edición había que volver a buscar el
+    /// expediente. Las páginas que no saben releer de a una fila recargan como antes.
+    /// </summary>
+    private async Task RefrescarFilaAsync(TItem item)
+    {
+        _buffers.Remove(item);
+        _originales.Remove(item);
+
+        // El usuario ya navegó: la página está muerta y no hay nada que refrescar
+        // (además el Token ya no puede leerse tras el Dispose).
+        if (_ctsPagina.IsCancellationRequested) return;
+
+        TItem? fresca = null;
+        try
+        {
+            fresca = await ObtenerFilaAsync(item, _ctsPagina.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Navegó mientras se releía: silencio, como el resto de la clase.
+            return;
+        }
+        catch (Exception ex)
+        {
+            // El guardado ya está hecho: que falle la relectura no puede voltearlo.
+            // Se cae a la recarga completa de abajo (fresca queda en null).
+            Logger.LogWarning(ex, "No se pudo releer la fila guardada en {Pagina}.", PageUrl);
+        }
+
+        // Sin fila: la página no implementa la relectura, otro usuario la borró
+        // mientras se editaba, o la relectura falló. Recargar deja los datos al día
+        // (perdiendo la posición).
+        if (fresca is null)
+        {
+            await RecargarTrasGuardarAsync();
+            return;
+        }
+
+        // Las columnas de fuentes lentas se recalculan solo para esta fila.
+        var completada = true;
+        if (CompletaEnSegundoPlano)
+        {
+            try
+            {
+                await CompletarAsync([fresca], _ctsPagina.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                return; // navegación: ya no queda nadie mirando la grilla
+            }
+            catch (Exception ex)
+            {
+                // IVC caída: el resto de la fila igual se refresca y esas columnas
+                // quedan como estaban, en vez de vaciarse en pantalla.
+                completada = false;
+                Logger.LogWarning(ex,
+                    "No se pudieron completar las columnas de fondo de la fila guardada en {Pagina}.", PageUrl);
+            }
+        }
+
+        Copiar(fresca, item, completada ? PropiedadesRefrescables : PropiedadesCopiables);
+        await _grid.Reload();
+    }
+
+    /// <summary>
+    /// Recarga de respaldo tras un guardado exitoso. Nunca propaga: si la excepción
+    /// llegara al catch del guardado, este lo reportaría como "Error al guardar" y
+    /// revertiría en pantalla una fila que SÍ se guardó (dejando además la versión
+    /// vieja en el borrador, que convierte el reintento en un falso conflicto).
+    /// </summary>
+    private async Task RecargarTrasGuardarAsync()
+    {
+        try
+        {
+            await ReloadAsync();
+        }
+        catch (OperationCanceledException)
+        {
+            // Navegación: nada que informar.
+        }
+        catch (Exception ex)
+        {
+            Informar(ex, "La recarga", $"Error al cargar {TituloEntidad}");
+        }
     }
 
     protected async Task ExportarExcel()
