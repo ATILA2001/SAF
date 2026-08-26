@@ -28,9 +28,18 @@ public class PagosService(
         var devengado = await devengadoRepo.GetByIdAsync(devengadoId, ct);
         if (devengado is null) return null;
 
-        // Por el mismo mapeo que la carga completa: las derivadas (status contable,
-        // fecha de pago CAF, seguros) cambian con lo que se acaba de editar.
-        return (await MapearAsync([devengado], ct)).FirstOrDefault();
+        // Mismo mapeo que la carga completa, pero alimentado por clave: las tablas de
+        // datos manuales crecen una fila por cada fila editada, así que escanearlas
+        // enteras degradaría cada guardado a medida que se usan. En paralelo: cada
+        // repositorio crea su propio DbContext (IDbContextFactory).
+        var extrasTask = extraRepo.GetByDevengadoIdsAsync([devengado.Id], ct);
+        var statusContabTask = statusContabRepo.GetByClaveAsync(devengado.TipoDev, devengado.NroDev, ct);
+        await Task.WhenAll(extrasTask, statusContabTask);
+
+        IReadOnlyList<StatusContabilidadExtra> statusContabs =
+            statusContabTask.Result is { } sc ? [sc] : Array.Empty<StatusContabilidadExtra>();
+
+        return (await MapearAsync([devengado], extrasTask.Result, statusContabs, ct)).FirstOrDefault();
     }
 
     /// <summary>
@@ -43,19 +52,31 @@ public class PagosService(
     private async Task<IReadOnlyList<PagoViewModel>> MapearAsync(
         IReadOnlyList<Devengado> devengados, CancellationToken ct)
     {
-        // En paralelo (cada repositorio crea su propio DbContext vía IDbContextFactory):
-        // desde la relectura de una fila tras guardar, estas dos cargas son el costo
-        // dominante y en serie duplicaban la espera.
+        // En paralelo: cada repositorio crea su propio DbContext (IDbContextFactory).
         var extrasTask = extraRepo.GetAllAsync(ct);
         var statusContabsTask = statusContabRepo.GetAllAsync(ct);
         await Task.WhenAll(extrasTask, statusContabsTask);
 
+        return await MapearAsync(devengados, extrasTask.Result, statusContabsTask.Result, ct);
+    }
+
+    /// <summary>
+    /// El mapeo en sí, con los datos manuales ya traídos: la carga completa los pasa
+    /// enteros y la relectura de una fila (GetByIdAsync) solo los de su clave. Un solo
+    /// cuerpo para ambas, así no pueden divergir.
+    /// </summary>
+    private async Task<IReadOnlyList<PagoViewModel>> MapearAsync(
+        IReadOnlyList<Devengado> devengados,
+        IReadOnlyList<DevengadoExtra> extras,
+        IReadOnlyList<StatusContabilidadExtra> statusContabs,
+        CancellationToken ct)
+    {
         // Un registro editable por FILA del ledger (DevengadoId), no por (TipoDev, NroDev).
-        var extrasDict = extrasTask.Result.ToDictionary(e => e.DevengadoId);
+        var extrasDict = extras.ToDictionary(e => e.DevengadoId);
 
         // STATUS CONTABLE / PEDIDO FACTURA 2·3 / FECHA FACTURA CORRECTA: cruce interno con
         // el tablero StatusContabilidadExtra por (TipoDev, NroDev).
-        var statusContabDict = statusContabsTask.Result.ToDictionary(e => (e.TipoDev, e.NroDev));
+        var statusContabDict = statusContabs.ToDictionary(e => (e.TipoDev, e.NroDev));
 
         var expedientes = devengados
             .Where(d => !string.IsNullOrWhiteSpace(d.Expediente))

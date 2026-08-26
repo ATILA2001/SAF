@@ -10,16 +10,30 @@ namespace SAF.Repositories.Implementations;
 public class StatusContabilidadExtraRepository(IDbContextFactory<AppDbContext> dbFactory)
     : ExtraRepositoryBase<StatusContabilidadExtra>(dbFactory), IStatusContabilidadExtraRepository
 {
+    // Única definición de la consulta de lectura (navegaciones incluidas): la
+    // comparten la carga completa y la búsqueda por clave, para que un Include
+    // agregado a una no pueda faltar en la otra.
+    private static IQueryable<StatusContabilidadExtra> Query(AppDbContext db) =>
+        db.StatusContabilidadExtras.AsNoTracking()
+            .Include(e => e.StatusContableOpcion)
+            .Include(e => e.TramitadorCuentasPagarOpcion)
+            .Include(e => e.TramitadorLiquidacionesOpcion);
+
     public async Task<IReadOnlyList<StatusContabilidadExtra>> GetAllAsync(CancellationToken ct = default)
     {
         await using var db = await DbFactory.CreateDbContextAsync(ct);
-        return await db.StatusContabilidadExtras.AsNoTracking()
-            .Include(e => e.StatusContableOpcion)
-            .Include(e => e.TramitadorCuentasPagarOpcion)
-            .Include(e => e.TramitadorLiquidacionesOpcion)
+        return await Query(db)
             .OrderBy(e => e.TipoDev)
             .ThenBy(e => e.NroDev)
             .ToListAsync(ct);
+    }
+
+    public async Task<StatusContabilidadExtra?> GetByClaveAsync(
+        string tipoDev, int nroDev, CancellationToken ct = default)
+    {
+        await using var db = await DbFactory.CreateDbContextAsync(ct);
+        return await Query(db)
+            .FirstOrDefaultAsync(e => e.TipoDev == tipoDev && e.NroDev == nroDev, ct);
     }
 
     protected override Expression<Func<StatusContabilidadExtra, bool>> MismaClave(StatusContabilidadExtra entity)

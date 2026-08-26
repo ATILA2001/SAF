@@ -10,14 +10,29 @@ namespace SAF.Repositories.Implementations;
 public class DevengadoExtraRepository(IDbContextFactory<AppDbContext> dbFactory)
     : ExtraRepositoryBase<DevengadoExtra>(dbFactory), IDevengadoExtraRepository
 {
+    // Única definición de la consulta de lectura (navegaciones incluidas): la
+    // comparten la carga completa y la búsqueda por clave, para que un Include
+    // agregado a una no pueda faltar en la otra.
+    private static IQueryable<DevengadoExtra> Query(AppDbContext db) =>
+        db.DevengadosExtra.AsNoTracking()
+            .Include(e => e.StatusDgayfOpcion)
+            .Include(e => e.StatusOpOpcion);
+
     public async Task<IReadOnlyList<DevengadoExtra>> GetAllAsync(CancellationToken ct = default)
     {
         await using var db = await DbFactory.CreateDbContextAsync(ct);
-        return await db.DevengadosExtra.AsNoTracking()
-            .Include(e => e.StatusDgayfOpcion)
-            .Include(e => e.StatusOpOpcion)
+        return await Query(db)
             .OrderBy(e => e.TipoDev)
             .ThenBy(e => e.NroDev)
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<DevengadoExtra>> GetByDevengadoIdsAsync(
+        IReadOnlyCollection<int> devengadoIds, CancellationToken ct = default)
+    {
+        await using var db = await DbFactory.CreateDbContextAsync(ct);
+        return await Query(db)
+            .Where(e => devengadoIds.Contains(e.DevengadoId))
             .ToListAsync(ct);
     }
 

@@ -54,17 +54,21 @@ public class StatusContabilidadService(
         var lineas = await devengadoRepo.GetByClaveAsync(tipoDev, nroDev, ct);
         if (lineas.Count == 0) return null;
 
-        // Las tablas de datos manuales solo tienen filas cargadas a mano: traerlas
-        // enteras sigue siendo mucho más barato que releer el ledger completo. En
+        // Datos manuales por clave, no las tablas enteras: crecen una fila por cada
+        // fila editada, así que escanearlas degradaría cada guardado con el uso. En
         // paralelo: cada repositorio crea su propio DbContext (IDbContextFactory).
-        var pagosTask = pagosRepo.GetAllAsync(ct);
-        var extrasTask = contaRepo.GetAllAsync(ct);
-        await Task.WhenAll(pagosTask, extrasTask);
+        var pagosTask = pagosRepo.GetByDevengadoIdsAsync(lineas.Select(l => l.Id).ToList(), ct);
+        var extraTask = contaRepo.GetByClaveAsync(tipoDev, nroDev, ct);
+        await Task.WhenAll(pagosTask, extraTask);
+
+        var extrasDict = new Dictionary<(string, int), Data.Entities.StatusContabilidadExtra>();
+        if (extraTask.Result is { } extra)
+            extrasDict[(extra.TipoDev, extra.NroDev)] = extra;
 
         return Mapear(
             Agrupar(lineas),
             pagosTask.Result.ToDictionary(e => e.DevengadoId),
-            extrasTask.Result.ToDictionary(e => ((string)e.TipoDev, e.NroDev)));
+            extrasDict);
     }
 
     /// <summary>
