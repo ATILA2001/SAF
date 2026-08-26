@@ -88,6 +88,13 @@ public class StatusContabilidadViewModel
     [MaxLength(20)]
     public string? SinFacturaMotivo { get; set; }            // N/C · CCOO · PAV · Anulado
 
+    // Col K unificada para la grilla: la columna filtra por esta propiedad y no por la
+    // fecha, porque el filtro de checkboxes lista los valores de la propiedad filtrada
+    // y con la fecha sola los motivos (N/C · CCOO · PAV · Anulado) caían como "vacío".
+    [ExportIgnore, AuditIgnore]
+    public string? IngresoFacturaTexto =>
+        FechaIngresoFactura?.ToString("dd/MM/yyyy") ?? SinFacturaMotivo;
+
     [ExportIgnore, AuditIgnore]
     public int? StatusContableOpcionId { get; set; }          // col L
 

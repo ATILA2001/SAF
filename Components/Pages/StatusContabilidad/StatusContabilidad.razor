@@ -143,11 +143,10 @@
                         }
                     </EditTemplate>
                 </RadzenDataGridColumn>
-                @* Col K del tablero: fecha, o marca "Sin factura" (N/C · CCOO · PAV · Anulado) cuando no hay fecha *@
-                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="FechaIngresoFactura" Title="Ingreso Factura" Width="145px">
-                    <Template Context="item">
-                        @(item.FechaIngresoFactura?.ToString("dd/MM/yyyy") ?? item.SinFacturaMotivo)
-                    </Template>
+                @* Col K del tablero: fecha, o marca "Sin factura" (N/C · CCOO · PAV · Anulado) cuando no hay fecha.
+                   Filtra por el texto unificado (así los motivos aparecen en el filtro y no cuentan
+                   como vacío) pero ordena por la fecha real para mantener el orden cronológico. *@
+                <RadzenDataGridColumn TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel" Property="IngresoFacturaTexto" SortProperty="FechaIngresoFactura" Title="Ingreso Factura" Width="145px">
                     <EditTemplate Context="item">
                         @if (_editaCuentasPagar)
                         {
