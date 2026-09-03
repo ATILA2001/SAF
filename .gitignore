@@ -66,3 +66,4 @@ ScaffoldingReadMe.txt
 # Secrets locales (descomenta si contienen datos reales)
 # appsettings.Development.json
 # appsettings.Test.json
+.vscode/tasks.json
