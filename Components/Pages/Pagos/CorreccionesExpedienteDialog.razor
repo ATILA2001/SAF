@@ -1,0 +1,96 @@
+@using SAF.Application.Pagos
+
+@* Confirmación de las correcciones de expediente detectadas tras sincronizar: la
+   fuente (IVC) trae el valor corregido pero el ledger de SAF conserva el viejo.
+   Se muestra el diff completo con un selector por fila — el error también puede
+   estar en IVC, y en ese caso la fila se destilda para conservar el valor de SAF.
+   Cierra devolviendo la lista de correcciones tildadas; cualquier otro cierre
+   (Ahora no, la X o Escape) no aplica nada. *@
+
+<RadzenStack Gap="1rem">
+    <RadzenText TextStyle="TextStyle.Body1" Style="margin: 0;">
+        @(Correcciones.Count == 1
+            ? "Hay 1 fila cuyo expediente difiere del vigente en devengados."
+            : $"Hay {Correcciones.Count} filas cuyo expediente difiere del vigente en devengados.")
+        Al aplicar, las filas tildadas toman el expediente del devengado y sus cruces (CAF, Seguros, SADE,
+        fechas de pago) pasan a calcularse con el expediente nuevo. Destildá las filas en las
+        que el valor correcto es el de SAF (el error también puede estar en reporte de devengados).
+    </RadzenText>
+
+    <RadzenDataGrid Data="@Correcciones"
+                    TItem="CorreccionExpediente"
+                    AllowFiltering="false"
+                    AllowSorting="false"
+                    AllowPaging="false"
+                    Density="Density.Compact"
+                    Style="max-height: 320px;">
+        <Columns>
+            <RadzenDataGridColumn TItem="CorreccionExpediente" Width="56px" Sortable="false" Filterable="false">
+                <HeaderTemplate>
+                    <RadzenCheckBox TValue="bool" Value="@TodasSeleccionadas"
+                                    Change="@((bool v) => SeleccionarTodas(v))"
+                                    title="Tildar o destildar todas" />
+                </HeaderTemplate>
+                <Template Context="c">
+                    <RadzenCheckBox TValue="bool" Value="@_seleccionadas.Contains(c)"
+                                    Change="@((bool v) => Seleccionar(c, v))" />
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="CorreccionExpediente" Title="Devengado" Width="140px">
+                <Template Context="c">@c.TipoDev @c.NroDev</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="CorreccionExpediente" Title="Fecha" Width="110px">
+                <Template Context="c">@(c.FechaImputacion?.ToString("dd/MM/yyyy") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="CorreccionExpediente" Title="Importe" Width="130px" >
+                <Template Context="c">@(c.ImportePp?.ToString("N2") ?? "—")</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="CorreccionExpediente" Title="Expediente en SAF">
+                <Template Context="c">@(string.IsNullOrWhiteSpace(c.ExpedienteActual) ? "(vacío)" : c.ExpedienteActual)</Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="CorreccionExpediente" Title="Expediente en devengados">
+                <Template Context="c"><strong>@c.ExpedienteNuevo</strong></Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+
+    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="0.5rem">
+        <RadzenButton Text="Ahora no" ButtonStyle="ButtonStyle.Light"
+                      Click="@(() => DialogService.Close(false))" />
+        <RadzenButton Text="@TextoAplicar"
+                      ButtonStyle="ButtonStyle.Primary"
+                      Disabled="@(_seleccionadas.Count == 0)"
+                      Click="@Aplicar" />
+    </RadzenStack>
+</RadzenStack>
+
+@code {
+    [Inject] private DialogService DialogService { get; set; } = null!;
+
+    [Parameter, EditorRequired] public IReadOnlyList<CorreccionExpediente> Correcciones { get; set; } = [];
+
+    private HashSet<CorreccionExpediente> _seleccionadas = [];
+
+    // Todas tildadas por defecto: el caso normal es aceptar la corrección de IVC;
+    // destildar es la excepción (el error estaba en IVC y SAF tiene el valor bueno).
+    protected override void OnInitialized() => _seleccionadas = [.. Correcciones];
+
+    private bool TodasSeleccionadas => _seleccionadas.Count == Correcciones.Count;
+
+    private string TextoAplicar => _seleccionadas.Count == 1
+        ? "Aplicar 1 corrección"
+        : $"Aplicar {_seleccionadas.Count} correcciones";
+
+    private void Seleccionar(CorreccionExpediente c, bool tildada)
+    {
+        if (tildada) _seleccionadas.Add(c);
+        else _seleccionadas.Remove(c);
+    }
+
+    private void SeleccionarTodas(bool tildadas) =>
+        _seleccionadas = tildadas ? [.. Correcciones] : [];
+
+    // Se devuelve en el orden de la lista (no el del HashSet): es el que vio el usuario.
+    private void Aplicar() =>
+        DialogService.Close(Correcciones.Where(_seleccionadas.Contains).ToList());
+}

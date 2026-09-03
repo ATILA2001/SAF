@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Radzen;
+using SAF.Application.Common;
 using SAF.Data.Entities;
 using SAF.Services.Abstractions;
 using SAF.Application.Pagos;
@@ -194,6 +195,13 @@ public partial class Pagos
                         "Sin datos");
                     break;
             }
+
+            // El append nunca relee filas ya importadas, así que una corrección de
+            // expediente hecha en IVC (el Excel se corrige antes de la recarga diaria)
+            // solo llega a SAF por este diff. Corre también con YaActualizado: la
+            // corrección puede ser sobre filas de días anteriores.
+            if (result.Status != SyncStatus.SinDatosEnIvc)
+                await OfrecerCorreccionesExpedienteAsync();
         }
         catch (Exception ex)
         {
@@ -202,6 +210,93 @@ public partial class Pagos
         finally
         {
             _syncing = false;
+        }
+    }
+
+    /// <summary>
+    /// Diff de expedientes SAF ↔ IVC tras sincronizar: si hay filas cuyo expediente
+    /// fue corregido en la fuente, se muestran para aplicar con confirmación. Una
+    /// falla acá no desluce la sync (que ya terminó bien): se informa y listo.
+    /// </summary>
+    private async Task OfrecerCorreccionesExpedienteAsync()
+    {
+        DeteccionCorrecciones deteccion;
+        try
+        {
+            deteccion = await SyncService.DetectarCorreccionesExpedienteAsync();
+        }
+        catch (Exception ex)
+        {
+            Informar(ex, "El diff de expedientes", "Error al comparar expedientes con IVC");
+            return;
+        }
+
+        if (deteccion.ClavesAmbiguas.Count > 0)
+            Notification.ShowWarning(
+                "Estos devengados tienen líneas idénticas con expedientes distintos en IVC y no se " +
+                $"pueden corregir automáticamente: {string.Join(", ", deteccion.ClavesAmbiguas)}.",
+                "Expedientes ambiguos");
+
+        if (deteccion.Correcciones.Count == 0) return;
+
+        // El diálogo devuelve SOLO las correcciones que el usuario dejó tildadas: el
+        // error también puede estar en IVC, y esas filas se destildan para conservar
+        // el valor de SAF. Cualquier otro cierre (Ahora no, la X, Escape) no aplica nada.
+        var resultado = await DialogService.OpenAsync<CorreccionesExpedienteDialog>(
+            "Expedientes corregidos en IVC",
+            new Dictionary<string, object?>
+            {
+                [nameof(CorreccionesExpedienteDialog.Correcciones)] = deteccion.Correcciones,
+            },
+            new DialogOptions { Width = "900px" });
+        if (resultado is not List<CorreccionExpediente> seleccionadas || seleccionadas.Count == 0) return;
+
+        try
+        {
+            var aplicadas = await SyncService.AplicarCorreccionesExpedienteAsync(seleccionadas);
+            await AuditarCorreccionesAsync(aplicadas);
+            await ReloadAsync();
+
+            // Puede aplicar menos de lo tildado (una fila borrada o editada en el
+            // medio): el número real evita que "quedó todo corregido" sea mentira.
+            Notification.ShowSuccess(
+                aplicadas.Count == seleccionadas.Count
+                    ? $"{aplicadas.Count} expediente(s) actualizado(s) desde IVC."
+                    : $"{aplicadas.Count} de {seleccionadas.Count} expedientes actualizados; " +
+                      "el resto cambió mientras confirmabas (volvé a sincronizar para revisarlos).",
+                "Correcciones aplicadas");
+        }
+        catch (Exception ex)
+        {
+            Informar(ex, "La corrección de expedientes", "Error al aplicar las correcciones");
+        }
+    }
+
+    /// <summary>
+    /// Un registro de historial por fila corregida, con la misma vista y clave que las
+    /// ediciones comunes (queda visible en el historial de la fila). La auditoría
+    /// nunca voltea la corrección que audita: una falla se loguea y sigue.
+    /// </summary>
+    private async Task AuditarCorreccionesAsync(IReadOnlyList<CorreccionExpediente> aplicadas)
+    {
+        foreach (var c in aplicadas)
+        {
+            try
+            {
+                await Auditoria.RegistrarAsync(new RegistroAuditoria(
+                    PageUrl,
+                    c.DevengadoId,
+                    $"Devengado {c.TipoDev} {c.NroDev}",
+                    "Corrección",
+                    NombreUsuario,
+                    [new AuditoriaDiff.Cambio("EXPEDIENTE", c.ExpedienteActual, c.ExpedienteNuevo)]));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex,
+                    "No se pudo auditar la corrección de expediente del devengado {Tipo} {Nro}.",
+                    c.TipoDev, c.NroDev);
+            }
         }
     }
 }

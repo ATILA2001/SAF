@@ -1,6 +1,7 @@
 #nullable enable
 using Microsoft.EntityFrameworkCore;
 using SAF.Application.Common;
+using SAF.Application.Pagos;
 using SAF.Data;
 using SAF.Data.Entities;
 using SAF.Services.Abstractions;
@@ -131,5 +132,75 @@ public class DevengadoSyncService(
         db.Devengados.AddRange(nuevos);
         await db.SaveChangesAsync(ct);
         return new SyncResult(SyncStatus.Importado, nuevos.Count, ultimaFecha);
+    }
+
+    public async Task<DeteccionCorrecciones> DetectarCorreccionesExpedienteAsync(CancellationToken ct = default)
+    {
+        await using var ivc = await ivcFactory.CreateDbContextAsync(ct);
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+
+        // Mismo filtro que la sync, pero TODAS las fechas: la corrección del Excel
+        // puede ser sobre un devengado viejo, e IVC retiene histórico 2024+.
+        var filasIvc = await ivc.Devengados.AsNoTracking()
+            .Where(d => !TiposExcluidos.Contains(d.TipoDev) && d.ImportePp > 0)
+            .Select(d => new CorreccionExpedienteDetector.FilaIvc(
+                d.TipoDev, d.NroDev, d.FechaImputacion, d.ImportePp, d.EeFinanciera))
+            .ToListAsync(ct);
+
+        var filasSaf = await db.Devengados.AsNoTracking()
+            .Select(d => new CorreccionExpedienteDetector.FilaLedger(
+                d.Id, d.TipoDev, d.NroDev, d.FechaImputacion, d.ImportePp, d.Expediente))
+            .ToListAsync(ct);
+
+        var resultado = CorreccionExpedienteDetector.Detectar(filasSaf, filasIvc);
+
+        if (resultado.Correcciones.Count > 0 || resultado.ClavesAmbiguas.Count > 0)
+            logger.LogInformation(
+                "Diff de expedientes SAF ↔ IVC: {Correcciones} corrección(es), {Ambiguas} clave(s) ambigua(s).",
+                resultado.Correcciones.Count, resultado.ClavesAmbiguas.Count);
+
+        return resultado;
+    }
+
+    public async Task<IReadOnlyList<CorreccionExpediente>> AplicarCorreccionesExpedienteAsync(
+        IReadOnlyList<CorreccionExpediente> correcciones, CancellationToken ct = default)
+    {
+        if (correcciones.Count == 0) return Array.Empty<CorreccionExpediente>();
+
+        // Mismo candado que la sync: que un import no corra mientras se corrige.
+        await Candado.WaitAsync(ct);
+        try
+        {
+            await using var db = await dbFactory.CreateDbContextAsync(ct);
+
+            var ids = correcciones.Select(c => c.DevengadoId).ToList();
+            var filas = (await db.Devengados.Where(d => ids.Contains(d.Id)).ToListAsync(ct))
+                .ToDictionary(d => d.Id);
+
+            var aplicadas = new List<CorreccionExpediente>(correcciones.Count);
+            foreach (var c in correcciones)
+            {
+                // Entre la detección y la confirmación la fila pudo borrarse o cambiar:
+                // solo se corrige si sigue diciendo lo que el usuario vio en el diálogo.
+                if (!filas.TryGetValue(c.DevengadoId, out var fila)) continue;
+                if (!string.Equals(fila.Expediente, c.ExpedienteActual, StringComparison.OrdinalIgnoreCase)) continue;
+
+                fila.Expediente = c.ExpedienteNuevo;
+                aplicadas.Add(c);
+            }
+
+            if (aplicadas.Count > 0)
+                await db.SaveChangesAsync(ct); // un solo SaveChanges: el lote entra todo o nada
+
+            logger.LogInformation(
+                "Corrección de expedientes: {Aplicadas} de {Total} fila(s) actualizadas desde IVC.",
+                aplicadas.Count, correcciones.Count);
+
+            return aplicadas;
+        }
+        finally
+        {
+            Candado.Release();
+        }
     }
 }

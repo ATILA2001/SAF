@@ -19,11 +19,14 @@ namespace SAF.Components;
 public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable where TItem : class, new()
 {
     [Inject] protected INotificationHelper Notification { get; set; } = null!;
-    [Inject] private ILogger<GridPageBase<TItem>> Logger { get; set; } = null!;
+    // Logger y Auditoria protegidos: una página con operaciones por lote propias
+    // (las correcciones de expediente de Pagos) audita y loguea con los mismos
+    // servicios que el circuito común, sin volver a inyectarlos.
+    [Inject] protected ILogger<GridPageBase<TItem>> Logger { get; set; } = null!;
     [Inject] private IExportService ExportService { get; set; } = null!;
     [Inject] protected DialogService DialogService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
-    [Inject] private IAuditoriaService Auditoria { get; set; } = null!;
+    [Inject] protected IAuditoriaService Auditoria { get; set; } = null!;
 
     protected RadzenDataGrid<TItem> _grid = null!;
     protected List<TItem> _items = new();
