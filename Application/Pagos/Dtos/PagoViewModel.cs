@@ -73,6 +73,23 @@ public class PagoViewModel
     [MaxLength(200)]
     public string? SegurosTeso { get; set; }
 
+    // Estado de la hoja de seguros (ej. "OP firmada"), solo si todas las OPs del
+    // expediente coinciden: con estados mezclados la celda queda vacía y el badge
+    // con el detalle por OP explica el porqué.
+    [Display(Name = "ESTADO SEGUROS")]
+    [MaxLength(100)]
+    public string? SeguroEstado { get; set; }
+
+    // Cantidad de OPs del expediente en seguros: con más de una, la columna muestra
+    // el badge de detalle. AuditIgnore: derivada técnica, ensuciaría los snapshots.
+    [ExportIgnore, AuditIgnore]
+    public int SeguroOps { get; set; }
+
+    /// <summary>Detalle de esas OPs, para ver el seguro y el estado de cada una.</summary>
+    [ExportIgnore]
+    public IReadOnlyList<SAF.Application.Seguros.Dtos.LineaSeguroViewModel> SeguroLineas { get; set; }
+        = Array.Empty<SAF.Application.Seguros.Dtos.LineaSeguroViewModel>();
+
     // Las cuatro columnas que muta CompletarIvcAsync en segundo plano no se auditan
     // (si cambian durante una edición no fue el usuario) ni se restauran al cancelar
     // (el restore las devolvería vacías al estado pre-completado).

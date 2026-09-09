@@ -86,7 +86,7 @@ public class PagosService(
         // FECHA PAGO CAF + SEGUROS TESO: tablas propias, en paralelo (cada repositorio
         // crea su propio DbContext vía IDbContextFactory).
         var cafTask = cafRepo.GetResumenCafByExpedientesAsync(expedientes, ct);
-        var segurosTask = seguroRepo.GetSeguroByExpedientesAsync(expedientes, ct);
+        var segurosTask = seguroRepo.GetResumenSeguroByExpedientesAsync(expedientes, ct);
         await Task.WhenAll(cafTask, segurosTask);
         var cafPagos = cafTask.Result;
         var segurosTeso = segurosTask.Result;
@@ -94,6 +94,8 @@ public class PagosService(
         var result = new List<PagoViewModel>(devengados.Count);
         foreach (var d in devengados)
         {
+            Application.Seguros.Dtos.ResumenSeguroViewModel? resumenSeguro =
+                d.Expediente is not null && segurosTeso.TryGetValue(d.Expediente, out var seg) ? seg : null;
             extrasDict.TryGetValue(d.Id, out var extra);
             statusContabDict.TryGetValue((d.TipoDev, d.NroDev), out var sc);
             var statusDgayf = extra?.StatusDgayfOpcion?.Nombre;
@@ -125,7 +127,10 @@ public class PagosService(
                 FechaCcoo = extra?.FechaCcoo,
                 FechaNotificacion = extra?.FechaNotificacion,
                 StatusContable = DerivarStatusContable(extra?.StatusOpOpcion?.Nombre, sc?.StatusContableOpcion?.Nombre),
-                SegurosTeso = d.Expediente is not null && segurosTeso.TryGetValue(d.Expediente, out var seg) ? seg : null,
+                SegurosTeso = resumenSeguro?.Seguro,
+                SeguroEstado = resumenSeguro?.Estado,
+                SeguroOps = resumenSeguro?.Ops ?? 0,
+                SeguroLineas = resumenSeguro?.Lineas ?? Array.Empty<Application.Seguros.Dtos.LineaSeguroViewModel>(),
                 FechaDePagoCaf = fechaDePagoCaf,
                 CafOps = resumenCaf?.Ops ?? 0,
                 CafOpsPagadas = resumenCaf?.OpsPagadas ?? 0,
@@ -193,7 +198,7 @@ public class PagosService(
             Ccoo = vm.Ccoo,
             FechaCcoo = vm.FechaCcoo,
             FechaNotificacion = vm.FechaNotificacion,
-            // Derivadas (no se persisten): StatusContable, SegurosTeso, PedidoFactura2/3,
+            // Derivadas (no se persisten): StatusContable, SegurosTeso, SeguroEstado, PedidoFactura2/3,
             // FechaFacturaCorrecta, FechaDePagoNoCaf/Caf, FechaPagoTotal, FechaSade y BuzonSade.
             CafSiNo = vm.CafSiNo,
             // Versión que tenía el registro al cargarse: el upsert la exige para detectar

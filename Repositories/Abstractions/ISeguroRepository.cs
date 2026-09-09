@@ -19,9 +19,10 @@ public interface ISeguroRepository
     Task DeleteAsync(int id, byte[]? rowVersion, CancellationToken ct = default);
 
     /// <summary>
-    /// Devuelve el estado de seguro de cada expediente solicitado, cruzando por la clave
-    /// financiera normalizada (case-insensitive). Una entrada por expediente.
+    /// Devuelve el seguro (peor caso gana) y el estado de cada expediente solicitado, con
+    /// el detalle por OP, cruzando por la clave financiera normalizada (case-insensitive).
+    /// Una entrada por expediente.
     /// </summary>
-    Task<IReadOnlyDictionary<string, string>> GetSeguroByExpedientesAsync(
+    Task<IReadOnlyDictionary<string, SAF.Application.Seguros.Dtos.ResumenSeguroViewModel>> GetResumenSeguroByExpedientesAsync(
         IReadOnlyCollection<string> expedientes, CancellationToken ct = default);
 }

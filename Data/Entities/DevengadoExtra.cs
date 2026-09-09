@@ -37,6 +37,7 @@ public class DevengadoExtra : IExtraEditable
     // Derivadas (no se persisten, se calculan en PagosService):
     //   StatusContable ← tablero StatusContabilidad + regla "OP Lista"
     //   SegurosTeso ← tabla ExpedienteSeguro (columna Seguro)
+    //   SeguroEstado ← tabla ExpedienteSeguro (columna Estado, si todas las OPs coinciden)
     //   PedidoFactura2/3, FechaFacturaCorrecta ← tablero StatusContabilidad
     //   FechaDePagoNoCaf ← IVC.SIGAF_OP (MAX FECHA_PAGO)
     //   FechaDePagoCaf ← tabla ExpedienteCaf (cuando StatusDGAyF = "avanzar CAF")

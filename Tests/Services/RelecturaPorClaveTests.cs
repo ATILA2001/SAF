@@ -44,9 +44,9 @@ public class RelecturaPorClaveTests
         cafRepo.Setup(r => r.GetResumenCafByExpedientesAsync(
                 It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, SAF.Application.Caf.Dtos.ResumenCafViewModel>());
-        seguroRepo.Setup(r => r.GetSeguroByExpedientesAsync(
+        seguroRepo.Setup(r => r.GetResumenSeguroByExpedientesAsync(
                 It.IsAny<IReadOnlyCollection<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, string>());
+            .ReturnsAsync(new Dictionary<string, SAF.Application.Seguros.Dtos.ResumenSeguroViewModel>());
 
         var service = new PagosService(
             devengadoRepo.Object, extraRepo.Object, Mock.Of<ISadeRepository>(),

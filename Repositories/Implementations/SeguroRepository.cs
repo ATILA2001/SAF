@@ -1,6 +1,7 @@
 #nullable enable
 using Microsoft.EntityFrameworkCore;
 using SAF.Application.Common;
+using SAF.Application.Seguros.Dtos;
 using SAF.Data;
 using SAF.Data.Entities;
 using SAF.Repositories.Abstractions;
@@ -93,10 +94,10 @@ public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISegu
         }
     }
 
-    public async Task<IReadOnlyDictionary<string, string>> GetSeguroByExpedientesAsync(
+    public async Task<IReadOnlyDictionary<string, ResumenSeguroViewModel>> GetResumenSeguroByExpedientesAsync(
         IReadOnlyCollection<string> expedientes, CancellationToken ct = default)
     {
-        var empty = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var empty = new Dictionary<string, ResumenSeguroViewModel>(StringComparer.OrdinalIgnoreCase);
         if (expedientes is null || expedientes.Count == 0)
             return empty;
 
@@ -109,30 +110,65 @@ public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISegu
 
         await using var db = await dbFactory.CreateDbContextAsync(ct);
 
+        // Se traen TODAS las filas del expediente, tengan o no seguro asignado: el
+        // estado y el detalle por OP existen igual sin seguro; solo el resumen de
+        // seguro ignora las filas sin él (abajo).
         var rows = await db.ExpedientesSeguro.AsNoTracking()
-            .Where(s => s.SeguroOpcionId != null
-                     && distinct.Contains(s.Expediente))
+            .Where(s => distinct.Contains(s.Expediente))
             .Select(s => new
             {
                 s.Expediente,
-                s.SeguroOpcion!.Nombre,
-                s.SeguroOpcion.EsOk,
+                s.Op,
+                s.ImporteNeto,
+                s.Estado,
+                Seguro = s.SeguroOpcion == null ? null : s.SeguroOpcion.Nombre,
+                EsOk = s.SeguroOpcion == null ? (bool?)null : s.SeguroOpcion.EsOk,
                 s.FechaModificacion,
                 s.Id,
             })
             .ToListAsync(ct);
 
-        // Peor caso gana: si alguna fila del expediente NO está ok, se muestra esa
-        // (la columna existe para frenar pagos con seguro pendiente). Desempate
-        // determinista: modificación más reciente y luego Id.
         return rows
             .GroupBy(r => r.Expediente, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(
                 g => g.Key,
-                g => g.OrderBy(r => r.EsOk)                       // false (no ok) primero
-                      .ThenByDescending(r => r.FechaModificacion)
-                      .ThenByDescending(r => r.Id)
-                      .First().Nombre,
+                g =>
+                {
+                    // Peor caso gana: si alguna fila del expediente NO está ok, se muestra esa
+                    // (la columna existe para frenar pagos con seguro pendiente). Desempate
+                    // determinista: modificación más reciente y luego Id.
+                    var seguro = g.Where(r => r.EsOk != null)
+                        .OrderBy(r => r.EsOk)                     // false (no ok) primero
+                        .ThenByDescending(r => r.FechaModificacion)
+                        .ThenByDescending(r => r.Id)
+                        .FirstOrDefault()?.Seguro;
+
+                    // El estado es texto libre (no lista): no hay "peor caso" posible.
+                    // Se informa solo si todas las OPs coinciden (sin estado cuenta como
+                    // distinto); si difieren, la celda queda vacía y el detalle lo muestra.
+                    var estados = g
+                        .Select(r => string.IsNullOrWhiteSpace(r.Estado) ? null : r.Estado.Trim())
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+
+                    return new ResumenSeguroViewModel
+                    {
+                        Seguro = seguro,
+                        Estado = estados.Count == 1 ? estados[0] : null,
+                        Ops = g.Count(),
+                        Lineas = g
+                            .OrderBy(r => r.Op)
+                            .ThenBy(r => r.Id)
+                            .Select(r => new LineaSeguroViewModel
+                            {
+                                Op = r.Op,
+                                ImporteNeto = r.ImporteNeto,
+                                Seguro = r.Seguro,
+                                Estado = string.IsNullOrWhiteSpace(r.Estado) ? null : r.Estado.Trim(),
+                            })
+                            .ToList(),
+                    };
+                },
                 StringComparer.OrdinalIgnoreCase);
     }
 }
