@@ -80,10 +80,21 @@ public class PagoViewModel
     [MaxLength(100)]
     public string? SeguroEstado { get; set; }
 
-    // Cantidad de OPs del expediente en seguros: con más de una, la columna muestra
-    // el badge de detalle. AuditIgnore: derivada técnica, ensuciaría los snapshots.
+    // Cantidad de OPs del expediente en seguros: si hay al menos una, la columna
+    // muestra el badge de detalle. AuditIgnore: derivada técnica, ensuciaría los snapshots.
     [ExportIgnore, AuditIgnore]
     public int SeguroOps { get; set; }
+
+    /// <summary>
+    /// Texto de la columna unificada de seguros de la grilla: seguro (peor caso) y
+    /// estado (si todas las OPs coinciden). Solo presentación — el export mantiene
+    /// SEGUROS TESO y ESTADO SEGUROS como columnas separadas.
+    /// </summary>
+    [ExportIgnore, AuditIgnore]
+    public string? SegurosResumen =>
+        SegurosTeso is null ? SeguroEstado
+        : SeguroEstado is null ? SegurosTeso
+        : $"{SegurosTeso} · {SeguroEstado}";
 
     /// <summary>Detalle de esas OPs, para ver el seguro y el estado de cada una.</summary>
     [ExportIgnore]

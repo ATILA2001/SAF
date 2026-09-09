@@ -158,19 +158,19 @@
                 </RadzenDataGridColumn>
                 @* Columnas calculadas/fórmula (a implementar luego): por ahora solo lectura *@
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="StatusContable" Title="Status Contable" Width="150px" />
-                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="SegurosTeso" Title="Seguros Teso" Width="150px" />
-                @* El estado viene de la hoja de seguros y es texto libre: solo se muestra en
-                   la celda cuando todas las OPs del expediente coinciden. Con varias OPs, el
-                   badge abre el detalle (seguro y estado de cada una), como en Fecha Pago CAF. *@
-                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="SeguroEstado" Title="Estado Seguros" Width="165px">
+                @* Columna unificada de seguros: seguro (peor caso gana) + estado (solo si
+                   todas las OPs del expediente coinciden; es texto libre, no hay peor caso).
+                   El badge está siempre que el expediente tenga OPs en seguros: el detalle
+                   muestra todos los casos aunque el resumen quede vacío o parcial. En el
+                   export siguen siendo dos columnas (SEGUROS TESO y ESTADO SEGUROS). *@
+                <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="SegurosResumen" Title="Seguros Teso" Width="210px">
                     <Template Context="item">
-                        @item.SeguroEstado
+                        @item.SegurosResumen
 
-                        @* Con una sola OP el estado se explica solo; con varias, el detalle. *@
-                        @if (item.SeguroOps > 1)
+                        @if (item.SeguroOps > 0)
                         {
                             <button type="button" class="saf-boton-badge"
-                                    aria-label="@($"Ver las {item.SeguroOps} OP en seguros del expediente {item.Expediente}")"
+                                    aria-label="@($"Ver el detalle de seguros del expediente {item.Expediente}")"
                                     @onclick="@(() => VerOpsSeguro(item))" @onclick:stopPropagation="true">
                                 <RadzenBadge BadgeStyle="BadgeStyle.Light"
                                              Text="@($"{item.SeguroOps} OP")"
@@ -378,8 +378,8 @@
                 }
 
                 <small>
-                    El estado se muestra en la columna solo cuando todas las OPs del
-                    expediente coinciden.
+                    En la columna, el seguro se resume con la peor OP y el estado se
+                    muestra solo cuando todas las OPs del expediente coinciden.
                 </small>
             </RadzenStack>
         , new TooltipOptions
@@ -419,8 +419,8 @@
                 </table>
 
                 <small>
-                    El estado se muestra en la columna solo cuando todas las OPs del
-                    expediente coinciden.
+                    En la columna, el seguro se resume con la peor OP y el estado se
+                    muestra solo cuando todas las OPs del expediente coinciden.
                 </small>
             </RadzenStack>
         , new DialogOptions { Width = "640px" });
