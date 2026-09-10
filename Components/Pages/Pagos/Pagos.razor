@@ -158,11 +158,12 @@
                 </RadzenDataGridColumn>
                 @* Columnas calculadas/fórmula (a implementar luego): por ahora solo lectura *@
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="StatusContable" Title="Status Contable" Width="150px" />
-                @* Columna unificada de seguros: seguro (peor caso gana) + estado (solo si
-                   todas las OPs del expediente coinciden; es texto libre, no hay peor caso).
-                   El badge está siempre que el expediente tenga OPs en seguros: el detalle
-                   muestra todos los casos aunque el resumen quede vacío o parcial. En el
-                   export siguen siendo dos columnas (SEGUROS TESO y ESTADO SEGUROS). *@
+                @* Columna unificada de seguros: seguro + estado, cada uno solo si todas las
+                   OPs del expediente coinciden — sin regla "peor caso": si difieren, la celda
+                   queda vacía y es el detalle el que muestra todos los casos. El badge está
+                   siempre que el expediente tenga OPs en seguros, y pasa a warning cuando los
+                   seguros están mezclados (celda vacía sin estar vacío el dato). En el export
+                   siguen siendo dos columnas (SEGUROS TESO y ESTADO SEGUROS). *@
                 <RadzenDataGridColumn TItem="SAF.Application.Pagos.Dtos.PagoViewModel" Property="SegurosResumen" Title="Seguros Teso" Width="210px">
                     <Template Context="item">
                         @item.SegurosResumen
@@ -172,7 +173,7 @@
                             <button type="button" class="saf-boton-badge"
                                     aria-label="@($"Ver el detalle de seguros del expediente {item.Expediente}")"
                                     @onclick="@(() => VerOpsSeguro(item))" @onclick:stopPropagation="true">
-                                <RadzenBadge BadgeStyle="BadgeStyle.Light"
+                                <RadzenBadge BadgeStyle="@(item.SeguroMezclado ? BadgeStyle.Warning : BadgeStyle.Light)"
                                              Text="@($"{item.SeguroOps} OP")"
                                              class="saf-badge-compacto"
                                              MouseEnter="@(el => MostrarOpsSeguro(el, item))"
@@ -378,8 +379,8 @@
                 }
 
                 <small>
-                    En la columna, el seguro se resume con la peor OP y el estado se
-                    muestra solo cuando todas las OPs del expediente coinciden.
+                    El seguro y el estado se muestran en la columna solo cuando todas
+                    las OPs del expediente coinciden.
                 </small>
             </RadzenStack>
         , new TooltipOptions
@@ -419,8 +420,8 @@
                 </table>
 
                 <small>
-                    En la columna, el seguro se resume con la peor OP y el estado se
-                    muestra solo cuando todas las OPs del expediente coinciden.
+                    El seguro y el estado se muestran en la columna solo cuando todas
+                    las OPs del expediente coinciden.
                 </small>
             </RadzenStack>
         , new DialogOptions { Width = "640px" });

@@ -24,8 +24,8 @@ public class SeguroValidatorTests
     [DataRow(0)]
     public void SinEstadoDeSeguro_SeRechaza_PorElCruceConPagos(int? opcionId)
     {
-        // Sin estado la fila no participa del "peor caso gana" de Pagos: quedaría
-        // cargada pero invisible para la vista que la necesita.
+        // El resumen de Pagos exige que todas las OPs del expediente coincidan: una
+        // fila sin seguro deja el resumen vacío para todo el expediente.
         var vm = Valida();
         vm.SeguroOpcionId = opcionId;
         Assert.IsTrue(SeguroValidator.Validar(vm).Any(e => e.Contains("estado del seguro")));

@@ -19,7 +19,8 @@ public interface ISeguroRepository
     Task DeleteAsync(int id, byte[]? rowVersion, CancellationToken ct = default);
 
     /// <summary>
-    /// Devuelve el seguro (peor caso gana) y el estado de cada expediente solicitado, con
+    /// Devuelve el seguro y el estado de cada expediente solicitado (solo si sus OPs
+    /// coinciden; si difieren quedan vacíos y lo muestra el detalle), con
     /// el detalle por OP, cruzando por la clave financiera normalizada (case-insensitive).
     /// Una entrada por expediente.
     /// </summary>

@@ -111,8 +111,7 @@ public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISegu
         await using var db = await dbFactory.CreateDbContextAsync(ct);
 
         // Se traen TODAS las filas del expediente, tengan o no seguro asignado: el
-        // estado y el detalle por OP existen igual sin seguro; solo el resumen de
-        // seguro ignora las filas sin él (abajo).
+        // detalle por OP las muestra a todas y el resumen exige unanimidad.
         var rows = await db.ExpedientesSeguro.AsNoTracking()
             .Where(s => distinct.Contains(s.Expediente))
             .Select(s => new
@@ -122,8 +121,6 @@ public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISegu
                 s.ImporteNeto,
                 s.Estado,
                 Seguro = s.SeguroOpcion == null ? null : s.SeguroOpcion.Nombre,
-                EsOk = s.SeguroOpcion == null ? (bool?)null : s.SeguroOpcion.EsOk,
-                s.FechaModificacion,
                 s.Id,
             })
             .ToListAsync(ct);
@@ -134,18 +131,15 @@ public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISegu
                 g => g.Key,
                 g =>
                 {
-                    // Peor caso gana: si alguna fila del expediente NO está ok, se muestra esa
-                    // (la columna existe para frenar pagos con seguro pendiente). Desempate
-                    // determinista: modificación más reciente y luego Id.
-                    var seguro = g.Where(r => r.EsOk != null)
-                        .OrderBy(r => r.EsOk)                     // false (no ok) primero
-                        .ThenByDescending(r => r.FechaModificacion)
-                        .ThenByDescending(r => r.Id)
-                        .FirstOrDefault()?.Seguro;
+                    // Tanto el seguro como el estado se resumen solo por unanimidad: si las
+                    // OPs difieren (una sin valor ya difiere) no se muestra ninguno — mostrar
+                    // el de una sola sería informar el de todas — y es el detalle por OP el
+                    // que enseña todos los casos. Nada de "peor caso gana".
+                    var seguros = g
+                        .Select(r => string.IsNullOrWhiteSpace(r.Seguro) ? null : r.Seguro.Trim())
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
 
-                    // El estado es texto libre (no lista): no hay "peor caso" posible.
-                    // Se informa solo si todas las OPs coinciden (sin estado cuenta como
-                    // distinto); si difieren, la celda queda vacía y el detalle lo muestra.
                     var estados = g
                         .Select(r => string.IsNullOrWhiteSpace(r.Estado) ? null : r.Estado.Trim())
                         .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -153,7 +147,10 @@ public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISegu
 
                     return new ResumenSeguroViewModel
                     {
-                        Seguro = seguro,
+                        Seguro = seguros.Count == 1 ? seguros[0] : null,
+                        // Seguros mezclados = la celda queda vacía sin estar vacío el dato:
+                        // el badge lo destaca para que el detalle no pase inadvertido.
+                        SegurosMezclados = seguros.Count > 1,
                         Estado = estados.Count == 1 ? estados[0] : null,
                         Ops = g.Count(),
                         Lineas = g

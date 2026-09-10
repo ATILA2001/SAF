@@ -23,7 +23,7 @@ public class ExpedienteSeguro
     public string? Estado { get; set; }
 
     // Seguro normalizado a lista de valores (antes texto libre "ok"/"oK"/"CAF/ok").
-    // Alimenta SEGUROS TESO en Pagos con la regla "peor caso gana".
+    // Alimenta SEGUROS TESO en Pagos, solo si todas las OPs del expediente coinciden.
     public int? SeguroOpcionId { get; set; }
     public SeguroOpcion? SeguroOpcion { get; set; }
 

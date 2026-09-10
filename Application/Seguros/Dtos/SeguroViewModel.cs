@@ -35,7 +35,8 @@ public class SeguroViewModel
     [MaxLength(100)]
     public string? Estado { get; set; }
 
-    // Seguro normalizado a lista (ok / CAF/ok / Pendiente); regla "peor caso gana" en Pagos.
+    // Seguro normalizado a lista (ok / CAF/ok / Pendiente); en Pagos se resume solo
+    // si todas las OPs del expediente coinciden.
     // El Id no se audita: el cambio se registra por el nombre visible.
     [ExportIgnore, AuditIgnore]
     public int? SeguroOpcionId { get; set; }

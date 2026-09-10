@@ -13,9 +13,9 @@ public class SeguroOpcion : IOpcionLista
     public int Orden { get; set; }
 
     /// <summary>
-    /// True si el valor cuenta como "seguro en regla". En el cruce a Pagos
-    /// (SEGUROS TESO) rige "peor caso gana": si alguna fila del expediente
-    /// tiene una opción con EsOk=false, se muestra esa.
+    /// True si el valor cuenta como "seguro en regla". Clasificación de la opción
+    /// (se administra en Listas); el cruce a Pagos (SEGUROS TESO) resume por
+    /// unanimidad de las OPs del expediente, sin regla de peor caso.
     /// </summary>
     public bool EsOk { get; set; }
 

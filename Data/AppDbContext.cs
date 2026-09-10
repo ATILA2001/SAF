@@ -170,7 +170,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         );
 
         // Valores observados en la hoja SEGUROS del Excel (ok / CAF/ok, con typo "oK")
-        // + "Pendiente" como estado no-ok para la regla "peor caso gana".
+        // + "Pendiente" como estado no-ok.
         modelBuilder.Entity<SeguroOpcion>().HasData(
             new SeguroOpcion { Id = 1, Nombre = "ok", Orden = 1, EsOk = true },
             new SeguroOpcion { Id = 2, Nombre = "CAF/ok", Orden = 2, EsOk = true },

@@ -75,10 +75,15 @@ public class PagoViewModel
 
     // Estado de la hoja de seguros (ej. "OP firmada"), solo si todas las OPs del
     // expediente coinciden: con estados mezclados la celda queda vacía y el badge
-    // con el detalle por OP explica el porqué.
+    // con el detalle por OP explica el porqué. Misma regla que SegurosTeso.
     [Display(Name = "ESTADO SEGUROS")]
     [MaxLength(100)]
     public string? SeguroEstado { get; set; }
+
+    // Seguros distintos entre las OPs del expediente: la celda queda vacía sin estar
+    // vacío el dato, y el badge pasa a warning para que el detalle no pase inadvertido.
+    [ExportIgnore, AuditIgnore]
+    public bool SeguroMezclado { get; set; }
 
     // Cantidad de OPs del expediente en seguros: si hay al menos una, la columna
     // muestra el badge de detalle. AuditIgnore: derivada técnica, ensuciaría los snapshots.
@@ -86,9 +91,9 @@ public class PagoViewModel
     public int SeguroOps { get; set; }
 
     /// <summary>
-    /// Texto de la columna unificada de seguros de la grilla: seguro (peor caso) y
-    /// estado (si todas las OPs coinciden). Solo presentación — el export mantiene
-    /// SEGUROS TESO y ESTADO SEGUROS como columnas separadas.
+    /// Texto de la columna unificada de seguros de la grilla: seguro y estado, cada
+    /// uno solo si todas las OPs del expediente coinciden. Solo presentación — el
+    /// export mantiene SEGUROS TESO y ESTADO SEGUROS como columnas separadas.
     /// </summary>
     [ExportIgnore, AuditIgnore]
     public string? SegurosResumen =>

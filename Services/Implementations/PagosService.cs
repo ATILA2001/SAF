@@ -128,6 +128,7 @@ public class PagosService(
                 FechaNotificacion = extra?.FechaNotificacion,
                 StatusContable = DerivarStatusContable(extra?.StatusOpOpcion?.Nombre, sc?.StatusContableOpcion?.Nombre),
                 SegurosTeso = resumenSeguro?.Seguro,
+                SeguroMezclado = resumenSeguro?.SegurosMezclados ?? false,
                 SeguroEstado = resumenSeguro?.Estado,
                 SeguroOps = resumenSeguro?.Ops ?? 0,
                 SeguroLineas = resumenSeguro?.Lineas ?? Array.Empty<Application.Seguros.Dtos.LineaSeguroViewModel>(),

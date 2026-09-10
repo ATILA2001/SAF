@@ -16,10 +16,10 @@ public static class SeguroValidator
 
         Validaciones.Expediente(errores, vm.Expediente);
 
-        // Sin estado de seguro la fila no participa del cruce "peor caso gana" de Pagos:
-        // quedaría cargada pero invisible para la vista que la necesita.
+        // El resumen de Pagos exige que todas las OPs del expediente coincidan: una
+        // fila sin seguro deja el resumen vacío para todo el expediente.
         if (vm.SeguroOpcionId is null or <= 0)
-            errores.Add("Seleccioná el estado del seguro (sin estado la fila no se cruza con Pagos).");
+            errores.Add("Seleccioná el estado del seguro (sin él, el expediente queda sin resumen en Pagos).");
 
         Validaciones.ImporteNoNegativo(errores, vm.ImporteNeto, "El importe neto");
 
