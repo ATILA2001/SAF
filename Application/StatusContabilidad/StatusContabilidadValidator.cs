@@ -28,8 +28,13 @@ public static class StatusContabilidadValidator
     /// Los pedidos de factura van en orden: 1 → 2 → reiteración (3). Cada fecha
     /// cargada se compara contra la última anterior que tenga valor (los huecos se
     /// saltean). El pedido 1 no se edita (viene del devengado) pero sí es el piso de
-    /// los siguientes. Ni el rechazo ni el ingreso de la factura pueden ser anteriores
-    /// a ningún pedido (ambos suceden después de pedirla).
+    /// los siguientes. El ingreso de la factura no puede ser anterior a ningún pedido
+    /// (sucede después de pedirla).
+    ///
+    /// El rechazo solo se compara contra el pedido 1: los pedidos 2 y 3 suelen ser la
+    /// reacción AL rechazo, así que exigirle ser posterior a ellos rompía la secuencia
+    /// real. Y ninguna otra columna se valida contra el rechazo — tenerlo cargado no
+    /// condiciona lo que se pueda cargar en el resto de la fila.
     /// </summary>
     private static void ValidarCronologia(List<string> errores, StatusContabilidadViewModel vm)
     {
@@ -51,6 +56,11 @@ public static class StatusContabilidadValidator
             previa = (actual, nombre);
         }
 
+        // Única regla del rechazo: no puede preceder al primer pedido de factura.
+        if (vm.FechaPedidoFactura1 is DateTime pedido1)
+            ValidarPosteriorAlPedido(
+                errores, vm.FechaRechazo, "Fecha de rechazo", pedido1, "Fecha pedido de factura 1");
+
         // Contra el pedido más tardío alcanza: si además hay pedidos desordenados,
         // el error ya lo marcó la pasada de arriba.
         var tope = pedidos
@@ -59,7 +69,6 @@ public static class StatusContabilidadValidator
             .FirstOrDefault();
         if (tope.Fecha is not DateTime pedidoMasTardio) return;
 
-        ValidarPosteriorAlPedido(errores, vm.FechaRechazo, "Fecha de rechazo", pedidoMasTardio, tope.Nombre!);
         ValidarPosteriorAlPedido(errores, vm.FechaIngresoFactura, "Fecha de ingreso de factura", pedidoMasTardio, tope.Nombre!);
     }
 

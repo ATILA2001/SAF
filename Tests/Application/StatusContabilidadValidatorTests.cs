@@ -104,30 +104,47 @@ public class StatusContabilidadValidatorTests
     }
 
     [TestMethod]
-    public void Cronologia_RechazoPosteriorATodosLosPedidos_EsValido()
+    public void Cronologia_RechazoAnteriorAlPedido1_EsInvalido()
     {
+        // Única regla del rechazo: no puede preceder al primer pedido de factura.
         var vm = new StatusContabilidadViewModel
         {
+            FechaPedidoFactura1 = new DateTime(2026, 1, 12),
+            FechaRechazo = new DateTime(2026, 1, 5),
+        };
+        var errores = StatusContabilidadValidator.Validar(vm);
+        Assert.AreEqual(1, errores.Count);
+        StringAssert.Contains(errores[0], "Fecha de rechazo");
+        StringAssert.Contains(errores[0], "Fecha pedido de factura 1");
+    }
+
+    [TestMethod]
+    public void Cronologia_RechazoAnteriorALosPedidos2y3_EsValido()
+    {
+        // Los pedidos 2 y 3 suelen ser la reacción AL rechazo: exigirle ser posterior
+        // a ellos rompía la secuencia real. Solo se mide contra el pedido 1.
+        var vm = new StatusContabilidadViewModel
+        {
+            FechaPedidoFactura1 = new DateTime(2026, 1, 5),
             FechaPedidoFactura2 = new DateTime(2026, 1, 20),
             ReiterarPedidoFactura3 = new DateTime(2026, 1, 25),
-            FechaRechazo = new DateTime(2026, 1, 25),
+            FechaRechazo = new DateTime(2026, 1, 12),
         };
         Assert.AreEqual(0, StatusContabilidadValidator.Validar(vm).Count);
     }
 
     [TestMethod]
-    public void Cronologia_RechazoAnteriorAlUltimoPedido_EsInvalido()
+    public void Cronologia_RechazoNoCondicionaAlRestoDeLaFila()
     {
+        // Ninguna otra columna se valida contra el rechazo: con el rechazo cargado, el
+        // ingreso de factura se sigue midiendo solo contra los pedidos.
         var vm = new StatusContabilidadViewModel
         {
-            FechaPedidoFactura2 = new DateTime(2026, 1, 20),
-            ReiterarPedidoFactura3 = new DateTime(2026, 1, 25),
-            FechaRechazo = new DateTime(2026, 1, 22),
+            FechaPedidoFactura1 = new DateTime(2026, 1, 5),
+            FechaRechazo = new DateTime(2026, 1, 20),
+            FechaIngresoFactura = new DateTime(2026, 1, 12),
         };
-        var errores = StatusContabilidadValidator.Validar(vm);
-        Assert.AreEqual(1, errores.Count);
-        StringAssert.Contains(errores[0], "Fecha de rechazo");
-        StringAssert.Contains(errores[0], "Reiterar pedido de factura 3");
+        Assert.AreEqual(0, StatusContabilidadValidator.Validar(vm).Count);
     }
 
     [TestMethod]
