@@ -21,8 +21,6 @@ public static class SeguroValidator
         if (vm.SeguroOpcionId is null or <= 0)
             errores.Add("Seleccioná el estado del seguro (sin él, el expediente queda sin resumen en Pagos).");
 
-        Validaciones.ImporteNoNegativo(errores, vm.ImporteNeto, "El importe neto");
-
         Validaciones.Largo(errores, vm.Op, 50, "OP");
         Validaciones.Largo(errores, vm.Beneficiario, 255, "Beneficiario");
         Validaciones.Largo(errores, vm.Estado, 100, "Estado");

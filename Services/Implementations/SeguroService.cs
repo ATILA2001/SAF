@@ -70,7 +70,6 @@ public class SeguroService(ISeguroRepository repo, ILogger<SeguroService> logger
                 $"Expediente inválido: \"{vm.Expediente}\". Formatos aceptados: {ExpedienteKey.FormatosAceptados}.");
         e.Op = vm.Op;
         e.Beneficiario = vm.Beneficiario;
-        e.ImporteNeto = vm.ImporteNeto;
         e.Estado = vm.Estado;
         e.SeguroOpcionId = vm.SeguroOpcionId;
         // La versión que tenía la fila cuando el usuario la cargó: el UPDATE la exige
@@ -85,7 +84,6 @@ public class SeguroService(ISeguroRepository repo, ILogger<SeguroService> logger
         Expediente = e.Expediente,
         Op = e.Op,
         Beneficiario = e.Beneficiario,
-        ImporteNeto = e.ImporteNeto,
         Estado = e.Estado,
         SeguroOpcionId = e.SeguroOpcionId,
         SeguroNombre = e.SeguroOpcion?.Nombre,

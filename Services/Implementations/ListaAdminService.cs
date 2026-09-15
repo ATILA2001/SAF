@@ -11,8 +11,7 @@ namespace SAF.Services.Implementations;
 
 /// <summary>
 /// CRUD de las listas de opciones. La clave del catálogo se traduce acá a la
-/// entidad concreta; el resto es genérico porque todas comparten IOpcionLista
-/// (Seguros agrega EsOk y se contempla como caso especial en el mapeo).
+/// entidad concreta; el resto es genérico porque todas comparten IOpcionLista.
 /// </summary>
 public class ListaAdminService(IListaAdminRepository repo, ILogger<ListaAdminService> logger) : IListaAdminService
 {
@@ -133,7 +132,6 @@ public class ListaAdminService(IListaAdminRepository repo, ILogger<ListaAdminSer
         e.Nombre = vm.Nombre.Trim();
         e.Orden = vm.Orden;
         e.Activo = vm.Activo;
-        if (e is SeguroOpcion seguro) seguro.EsOk = vm.EsOk == true;
         return e;
     }
 
@@ -143,6 +141,5 @@ public class ListaAdminService(IListaAdminRepository repo, ILogger<ListaAdminSer
         Nombre = e.Nombre,
         Orden = e.Orden,
         Activo = e.Activo,
-        EsOk = e is SeguroOpcion seguro ? seguro.EsOk : null,
     };
 }

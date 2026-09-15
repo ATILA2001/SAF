@@ -118,7 +118,6 @@ public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISegu
             {
                 s.Expediente,
                 s.Op,
-                s.ImporteNeto,
                 s.Estado,
                 Seguro = s.SeguroOpcion == null ? null : s.SeguroOpcion.Nombre,
                 s.Id,
@@ -153,14 +152,14 @@ public class SeguroRepository(IDbContextFactory<AppDbContext> dbFactory) : ISegu
                         SegurosMezclados = seguros.Count > 1,
                         Estado = estados.Count == 1 ? estados[0] : null,
                         Ops = g.Count(),
+                        // Orden de carga (Id), como el resto de la tabla: por OP seria
+                        // alfabetico y dejaria "23954/25" entre "224072/25" y "328090/25".
                         Lineas = g
-                            .OrderBy(r => r.Op)
-                            .ThenBy(r => r.Id)
+                            .OrderBy(r => r.Id)
                             .Select(r => new LineaSeguroViewModel
                             {
                                 Op = r.Op,
-                                ImporteNeto = r.ImporteNeto,
-                                Seguro = r.Seguro,
+                                Seguro = string.IsNullOrWhiteSpace(r.Seguro) ? null : r.Seguro.Trim(),
                                 Estado = string.IsNullOrWhiteSpace(r.Estado) ? null : r.Estado.Trim(),
                             })
                             .ToList(),

@@ -19,7 +19,6 @@ public class ExpedienteSeguro
 
     public string? Op { get; set; }
     public string? Beneficiario { get; set; }
-    public decimal? ImporteNeto { get; set; }
     public string? Estado { get; set; }
 
     // Seguro normalizado a lista de valores (antes texto libre "ok"/"oK"/"CAF/ok").

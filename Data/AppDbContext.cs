@@ -92,7 +92,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(e => e.Op).HasMaxLength(50);
             entity.Property(e => e.Beneficiario).HasMaxLength(255);
             entity.Property(e => e.Estado).HasMaxLength(100);
-            entity.Property(e => e.ImporteNeto).HasPrecision(18, 2);
             entity.Property(e => e.RowVersion).IsRowVersion();
         });
 
@@ -170,11 +169,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         );
 
         // Valores observados en la hoja SEGUROS del Excel (ok / CAF/ok, con typo "oK")
-        // + "Pendiente" como estado no-ok.
+        // más "Pendiente", que la planilla usaba para el seguro sin resolver.
         modelBuilder.Entity<SeguroOpcion>().HasData(
-            new SeguroOpcion { Id = 1, Nombre = "ok", Orden = 1, EsOk = true },
-            new SeguroOpcion { Id = 2, Nombre = "CAF/ok", Orden = 2, EsOk = true },
-            new SeguroOpcion { Id = 3, Nombre = "Pendiente", Orden = 3, EsOk = false }
+            new SeguroOpcion { Id = 1, Nombre = "ok", Orden = 1 },
+            new SeguroOpcion { Id = 2, Nombre = "CAF/ok", Orden = 2 },
+            new SeguroOpcion { Id = 3, Nombre = "Pendiente", Orden = 3 }
         );
 
         modelBuilder.Entity<TramitadorLiquidacionesOpcion>().HasData(

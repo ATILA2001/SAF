@@ -12,7 +12,6 @@ public class SeguroValidatorTests
         Expediente = "01212221/26",
         SeguroOpcionId = 1,
         Beneficiario = "Proveedor",
-        ImporteNeto = 100m,
     };
 
     [TestMethod]
@@ -39,13 +38,5 @@ public class SeguroValidatorTests
         vm.Beneficiario = new string('x', 256); // nvarchar(255)
         vm.Estado = new string('x', 101);       // nvarchar(100)
         Assert.AreEqual(3, SeguroValidator.Validar(vm).Count);
-    }
-
-    [TestMethod]
-    public void ImporteNegativo_SeRechaza()
-    {
-        var vm = Valida();
-        vm.ImporteNeto = -1m;
-        Assert.AreEqual(1, SeguroValidator.Validar(vm).Count);
     }
 }

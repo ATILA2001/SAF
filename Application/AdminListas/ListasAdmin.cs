@@ -4,10 +4,10 @@ namespace SAF.Application.AdminListas;
 
 /// <summary>
 /// Una lista administrable: clave estable (viaja a la auditoría y al servicio),
-/// título visible, la vista cuyos desplegables alimenta (decide quién puede
-/// administrarla) y si la tabla tiene el campo extra EsOk (solo Seguros).
+/// título visible y la vista cuyos desplegables alimenta (decide quién puede
+/// administrarla).
 /// </summary>
-public sealed record ListaAdminDefinicion(string Key, string Titulo, string VistaUrl, bool TieneEsOk = false);
+public sealed record ListaAdminDefinicion(string Key, string Titulo, string VistaUrl);
 
 /// <summary>
 /// Catálogo de las listas de opciones que se administran en /admin/listas.
@@ -31,6 +31,6 @@ public static class ListasAdmin
         new(StatusContable, "Status Contable", "/status-contabilidad"),
         new(TramitadoresCuentasPagar, "Tramitadores Cuentas a Pagar", "/status-contabilidad"),
         new(TramitadoresLiquidaciones, "Tramitadores Liquidaciones", "/status-contabilidad"),
-        new(Seguros, "Seguros", "/seguros", TieneEsOk: true),
+        new(Seguros, "Seguros", "/seguros"),
     ];
 }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SAF.Data;
 
@@ -11,9 +12,11 @@ using SAF.Data;
 namespace SAF.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260915032822_QuitarImporteNetoDeSeguros")]
+    partial class QuitarImporteNetoDeSeguros
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -384,6 +387,10 @@ namespace SAF.Data.Migrations
                         .HasColumnType("bit")
                         .HasColumnName("activo");
 
+                    b.Property<bool>("EsOk")
+                        .HasColumnType("bit")
+                        .HasColumnName("es_ok");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)")
@@ -402,6 +409,7 @@ namespace SAF.Data.Migrations
                         {
                             Id = 1,
                             Activo = true,
+                            EsOk = true,
                             Nombre = "ok",
                             Orden = 1
                         },
@@ -409,6 +417,7 @@ namespace SAF.Data.Migrations
                         {
                             Id = 2,
                             Activo = true,
+                            EsOk = true,
                             Nombre = "CAF/ok",
                             Orden = 2
                         },
@@ -416,6 +425,7 @@ namespace SAF.Data.Migrations
                         {
                             Id = 3,
                             Activo = true,
+                            EsOk = false,
                             Nombre = "Pendiente",
                             Orden = 3
                         });

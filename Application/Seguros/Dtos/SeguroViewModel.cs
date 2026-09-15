@@ -28,9 +28,6 @@ public class SeguroViewModel
     [MaxLength(255)]
     public string? Beneficiario { get; set; }
 
-    [Display(Name = "IMPORTE NETO")]
-    public decimal? ImporteNeto { get; set; }
-
     [Display(Name = "ESTADO")]
     [MaxLength(100)]
     public string? Estado { get; set; }

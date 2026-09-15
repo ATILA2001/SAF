@@ -453,7 +453,6 @@ if (rutaSeguros is not null)
             Expediente = expediente,
             Op = Truncar(op, 50, "Seguros", f, "OP"),
             Beneficiario = Truncar(LeerTexto(fila.Cell("D")), 255, "Seguros", f, "BENEFICIARIO"),
-            ImporteNeto = LeerDecimal(fila.Cell("E"), "Seguros", f, "IMPORTE NETO"),
             Estado = Truncar(LeerTexto(fila.Cell("F")), 100, "Seguros", f, "ESTADO"),
             SeguroOpcionId = Mapear(seguroOpc, LeerTexto(fila.Cell("G")), "Seguros: SEGURO"),
             FechaCreacion = DateTime.UtcNow,

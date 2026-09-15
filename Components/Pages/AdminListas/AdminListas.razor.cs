@@ -45,7 +45,6 @@ public partial class AdminListas
         // Al final de la lista: es lo esperable para un valor nuevo y evita
         // renumerar; el orden fino se ajusta editando la columna Orden.
         Orden = _items.Count == 0 ? 1 : _items.Max(x => x.Orden) + 1,
-        EsOk = _lista.TieneEsOk ? false : null,
     };
 
     protected override void PrepararParaGuardar(OpcionListaViewModel item) =>

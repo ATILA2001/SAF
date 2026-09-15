@@ -357,19 +357,17 @@
                 <strong>Expediente @item.Expediente · @item.SeguroOps OP en seguros</strong>
 
                 <RadzenRow Gap="1rem">
-                    <RadzenColumn Size="3" class="rz-text-nowrap"><strong>OP</strong></RadzenColumn>
-                    <RadzenColumn Size="3" class="rz-text-nowrap"><strong>Importe neto</strong></RadzenColumn>
-                    <RadzenColumn Size="3" class="rz-text-nowrap"><strong>Seguro</strong></RadzenColumn>
-                    <RadzenColumn Size="3" class="rz-text-nowrap"><strong>Estado</strong></RadzenColumn>
+                    <RadzenColumn Size="4" class="rz-text-nowrap"><strong>OP</strong></RadzenColumn>
+                    <RadzenColumn Size="4" class="rz-text-nowrap"><strong>Seguro</strong></RadzenColumn>
+                    <RadzenColumn Size="4" class="rz-text-nowrap"><strong>Estado</strong></RadzenColumn>
                 </RadzenRow>
 
                 @foreach (var linea in item.SeguroLineas.Take(MaxLineasTooltip))
                 {
                     <RadzenRow Gap="1rem" AlignItems="AlignItems.Center">
-                        <RadzenColumn Size="3" class="rz-text-nowrap"><span>@linea.Op</span></RadzenColumn>
-                        <RadzenColumn Size="3" class="rz-text-nowrap"><span>@linea.ImporteNeto?.ToString("N2")</span></RadzenColumn>
-                        <RadzenColumn Size="3" class="rz-text-nowrap"><span>@(linea.Seguro ?? "-")</span></RadzenColumn>
-                        <RadzenColumn Size="3" class="rz-text-nowrap"><span>@(linea.Estado ?? "-")</span></RadzenColumn>
+                        <RadzenColumn Size="4" class="rz-text-nowrap"><span>@(linea.Op ?? "-")</span></RadzenColumn>
+                        <RadzenColumn Size="4" class="rz-text-nowrap"><span>@(linea.Seguro ?? "-")</span></RadzenColumn>
+                        <RadzenColumn Size="4" class="rz-text-nowrap"><span>@(linea.Estado ?? "-")</span></RadzenColumn>
                     </RadzenRow>
                 }
 
@@ -404,14 +402,13 @@
 
                 <table class="saf-tabla-detalle">
                     <thead>
-                        <tr><th>OP</th><th>Importe neto</th><th>Seguro</th><th>Estado</th></tr>
+                        <tr><th>OP</th><th>Seguro</th><th>Estado</th></tr>
                     </thead>
                     <tbody>
                         @foreach (var linea in item.SeguroLineas)
                         {
                             <tr>
-                                <td>@linea.Op</td>
-                                <td>@linea.ImporteNeto?.ToString("N2")</td>
+                                <td>@(linea.Op ?? "-")</td>
                                 <td>@(linea.Seguro ?? "-")</td>
                                 <td>@(linea.Estado ?? "-")</td>
                             </tr>
@@ -424,6 +421,6 @@
                     las OPs del expediente coinciden.
                 </small>
             </RadzenStack>
-        , new DialogOptions { Width = "640px" });
+        , new DialogOptions { Width = "560px" });
     }
 }

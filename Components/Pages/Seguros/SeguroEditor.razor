@@ -25,10 +25,6 @@
             <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">Beneficiario</span>
             <span style="font-size: 0.9rem; line-height: 1.45;">@(string.IsNullOrWhiteSpace(Item.Beneficiario) ? "—" : Item.Beneficiario)</span>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-            <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">Importe Neto</span>
-            <span style="font-size: 1.3rem; font-weight: 700; color: var(--custom-primary-accent); font-variant-numeric: tabular-nums;">@(Item.ImporteNeto?.ToString("N2") ?? "—")</span>
-        </div>
         <div style="flex-grow: 1;"></div>
         @* El seguro elegido y el estado, como contexto (en el alta, en vivo). *@
         <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -79,14 +75,9 @@
                     </RadzenColumn>
                 </RadzenRow>
                 <RadzenRow Gap="1rem">
-                    <RadzenColumn Size="8">
+                    <RadzenColumn Size="12">
                         <RadzenFormField Text="Beneficiario" Variant="Variant.Outlined" Style="width: 100%;">
                             <RadzenTextBox @bind-Value="Borrador.Beneficiario" />
-                        </RadzenFormField>
-                    </RadzenColumn>
-                    <RadzenColumn Size="4">
-                        <RadzenFormField Text="Importe Neto" Variant="Variant.Outlined" Style="width: 100%;">
-                            <RadzenNumeric TValue="decimal?" @bind-Value="Borrador.ImporteNeto" ShowUpDown="false" />
                         </RadzenFormField>
                     </RadzenColumn>
                 </RadzenRow>

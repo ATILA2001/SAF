@@ -6,7 +6,6 @@ namespace SAF.Application.Seguros.Dtos;
 public class LineaSeguroViewModel
 {
     public string? Op { get; set; }
-    public decimal? ImporteNeto { get; set; }
     public string? Seguro { get; set; }
     public string? Estado { get; set; }
 }
