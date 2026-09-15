@@ -57,9 +57,10 @@ public static class StatusContabilidadValidator
         }
 
         // Única regla del rechazo: no puede preceder al primer pedido de factura.
-        if (vm.FechaPedidoFactura1 is DateTime pedido1)
+        var (fechaPedido1, nombrePedido1) = pedidos[0];
+        if (fechaPedido1 is DateTime pedido1)
             ValidarPosteriorAlPedido(
-                errores, vm.FechaRechazo, "Fecha de rechazo", pedido1, "Fecha pedido de factura 1");
+                errores, vm.FechaRechazo, "Fecha de rechazo", pedido1, nombrePedido1);
 
         // Contra el pedido más tardío alcanza: si además hay pedidos desordenados,
         // el error ya lo marcó la pasada de arriba.
