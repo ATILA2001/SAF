@@ -150,6 +150,8 @@ public static class SafBuilderExtensions
         builder.Services.AddScoped<IExportService, ExportService>();
         builder.Services.AddScoped<IDevengadoSyncService, DevengadoSyncService>();
         builder.Services.AddScoped<SAF.Shared.INotificationHelper, SAF.Shared.NotificationHelper>();
+        // Scoped a propósito: el estado de las grillas dura lo que dura el circuito.
+        builder.Services.AddScoped<SAF.Shared.EstadoGrillas>();
         builder.Services.AddScoped<IAuditoriaService, AuditoriaService>();
 
         // Permission service — reads perms_json claim from Auth.Web cookie

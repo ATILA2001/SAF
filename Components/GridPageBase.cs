@@ -27,6 +27,9 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     [Inject] protected DialogService DialogService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] protected IAuditoriaService Auditoria { get; set; } = null!;
+    // Filtros, orden, anchos y búsqueda rápida sobreviven a la navegación: la página
+    // se destruye al cambiar de vista, el estado no (ver EstadoGrillas).
+    [Inject] private EstadoGrillas EstadoGrillas { get; set; } = null!;
 
     protected RadzenDataGrid<TItem> _grid = null!;
     protected List<TItem> _items = new();
@@ -99,6 +102,36 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     /// <summary>Ruta de la página, para resolver permisos (ej: "/caf").</summary>
     protected abstract string PageUrl { get; }
 
+    /// <summary>
+    /// Clave bajo la que se guarda el estado de la grilla (filtros, orden, anchos y
+    /// búsqueda rápida) para reponerlo al volver a la vista. Por defecto, la ruta.
+    /// </summary>
+    protected virtual string ClaveEstadoGrilla => PageUrl;
+
+    private EstadoGrilla EstadoGrilla => EstadoGrillas.De(ClaveEstadoGrilla);
+
+    /// <summary>
+    /// Settings de Radzen (filtros, orden, anchos, columnas visibles), enlazados con
+    /// @bind-Settings en la grilla: cada cambio queda guardado, y la próxima instancia
+    /// de la página los repone en CargarSettingsGrilla.
+    /// </summary>
+    protected DataGridSettings? SettingsGrilla
+    {
+        get => EstadoGrilla.Settings;
+        set => EstadoGrilla.Settings = value;
+    }
+
+    /// <summary>
+    /// Handler de LoadSettings de la grilla: Radzen lo llama en el primer render, con
+    /// las columnas ya registradas, que es el único momento en que aplicar settings
+    /// tiene efecto.
+    /// </summary>
+    protected void CargarSettingsGrilla(DataGridLoadSettingsEventArgs args)
+    {
+        if (EstadoGrilla.Settings is { } guardados)
+            args.Settings = guardados;
+    }
+
     /// <summary>Nombre de la entidad en plural, para los mensajes ("expedientes CAF").</summary>
     protected abstract string TituloEntidad { get; }
 
@@ -169,6 +202,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     protected async Task OnBusquedaChanged(string texto)
     {
         _textoBusqueda = texto;
+        EstadoGrilla.TextoBusqueda = texto;
         if (_grid is not null) await _grid.Reload();
     }
 
@@ -182,10 +216,14 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     /// <summary>
     /// Hay algo para limpiar: búsqueda rápida o filtros de columna (los popups de
     /// filtro escriben FilterValue/SecondFilterValue). Habilita el botón de la toolbar.
+    /// Los filtros guardados cuentan también: al volver a la vista, la toolbar se pinta
+    /// antes de que la grilla nueva los reponga, y sin mirarlos el botón arrancaría
+    /// deshabilitado con la grilla ya filtrada.
     /// </summary>
     protected bool HayFiltrosActivos =>
         !string.IsNullOrWhiteSpace(_textoBusqueda)
-        || (_grid?.ColumnsCollection.Any(c => c.GetFilterValue() is not null || c.GetSecondFilterValue() is not null) ?? false);
+        || (_grid?.ColumnsCollection.Any(c => c.GetFilterValue() is not null || c.GetSecondFilterValue() is not null) ?? false)
+        || (EstadoGrilla.Settings?.Columns?.Any(c => c.FilterValue is not null || c.SecondFilterValue is not null) ?? false);
 
     /// <summary>Fila en blanco del alta inline.</summary>
     protected virtual TItem NuevaFila() => new();
@@ -266,6 +304,10 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
             _loading = false;
             return;
         }
+
+        // Antes de la carga: así la primera pintada ya sale filtrada por la búsqueda
+        // que el usuario dejó al irse (los filtros de columna los repone la grilla).
+        _textoBusqueda = EstadoGrilla.TextoBusqueda;
 
         try
         {
@@ -417,10 +459,16 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
         if (_grid is null) return;
 
         _textoBusqueda = string.Empty;
+        EstadoGrilla.TextoBusqueda = string.Empty;
         foreach (var columna in _grid.ColumnsCollection)
             columna.ClearFilters();
 
         await _grid.Reload();
+
+        // ClearFilters no avisa a SettingsChanged: sin esto, lo guardado seguiría con
+        // los filtros viejos y volverían solos al cambiar de vista. Se guarda el estado
+        // completo (y no null) para no perder anchos y orden de columnas.
+        _grid.SaveSettings();
     }
 
     /// <summary>

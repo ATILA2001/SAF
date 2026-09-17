@@ -8,8 +8,9 @@ using SAF.Services.Abstractions;
 namespace Tests.TestSupport;
 
 /// <summary>
-/// Autoriza al usuario de prueba y le da todos los permisos: es el piso para renderizar
-/// con bunit cualquier página que herede de PermissionPageBase.
+/// Autoriza al usuario de prueba y le da todos los permisos, y registra el estado de
+/// grillas que inyecta GridPageBase: es el piso para renderizar con bunit cualquier
+/// página que herede de PermissionPageBase.
 /// </summary>
 internal static class BunitPermissionTestExtensions
 {
@@ -30,5 +31,6 @@ internal static class BunitPermissionTestExtensions
             .Returns(Array.Empty<string>());
 
         context.Services.AddSingleton(permissionService.Object);
+        context.Services.AddScoped<SAF.Shared.EstadoGrillas>();
     }
 }

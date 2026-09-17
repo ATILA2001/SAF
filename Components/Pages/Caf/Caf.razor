@@ -34,6 +34,8 @@
                         TItem="SAF.Application.Caf.Dtos.CafViewModel"
                         Filter="@OnGridFilter"
                         FilterCleared="@OnGridFilter"
+                        @bind-Settings="@SettingsGrilla"
+                        LoadSettings="@CargarSettingsGrilla"
                         AllowFiltering="true"
                         AllowSorting="true"
                         AllowColumnResize="true"

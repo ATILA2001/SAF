@@ -57,6 +57,8 @@
                         TItem="SAF.Application.Pagos.Dtos.PagoViewModel"
                         Filter="@OnGridFilter"
                         FilterCleared="@OnGridFilter"
+                        @bind-Settings="@SettingsGrilla"
+                        LoadSettings="@CargarSettingsGrilla"
                         AllowFiltering="true"
                         AllowSorting="true"
                         AllowColumnResize="true"

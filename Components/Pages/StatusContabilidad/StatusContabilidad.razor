@@ -32,6 +32,8 @@
                         TItem="SAF.Application.StatusContabilidad.Dtos.StatusContabilidadViewModel"
                         Filter="@OnGridFilter"
                         FilterCleared="@OnGridFilter"
+                        @bind-Settings="@SettingsGrilla"
+                        LoadSettings="@CargarSettingsGrilla"
                         AllowFiltering="true"
                         AllowSorting="true"
                         AllowColumnResize="true"
