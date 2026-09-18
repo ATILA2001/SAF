@@ -111,20 +111,23 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     private EstadoGrilla EstadoGrilla => EstadoGrillas.De(ClaveEstadoGrilla);
 
     /// <summary>
-    /// Settings de Radzen (filtros, orden, anchos, columnas visibles), enlazados con
-    /// @bind-Settings en la grilla: cada cambio queda guardado, y la próxima instancia
-    /// de la página los repone en CargarSettingsGrilla.
+    /// Handler de SettingsChanged de la grilla: Radzen lo invoca en cada cambio de
+    /// filtros, orden, anchos o columnas visibles, con un objeto nuevo. Se guarda tal
+    /// cual y la próxima instancia de la página lo repone en CargarSettingsGrilla.
     /// </summary>
-    protected DataGridSettings? SettingsGrilla
-    {
-        get => EstadoGrilla.Settings;
-        set => EstadoGrilla.Settings = value;
-    }
+    protected void GuardarSettingsGrilla(DataGridSettings settings)
+        => EstadoGrilla.Settings = settings;
 
     /// <summary>
-    /// Handler de LoadSettings de la grilla: Radzen lo llama en el primer render, con
-    /// las columnas ya registradas, que es el único momento en que aplicar settings
-    /// tiene efecto.
+    /// Handler de LoadSettings de la grilla: Radzen lo llama en cada OnAfterRender,
+    /// con las columnas ya registradas, y aplica lo que se le entrega si difiere de lo
+    /// que ya tiene. Es EL camino para reponer, y a propósito NO se pasa el parámetro
+    /// Settings de la grilla: ese parámetro marca "aplicar" con una bandera que
+    /// cualquier re-render del padre vuelve a evaluar por referencia y deja en false;
+    /// en el servidor, entre el primer render de la grilla y su OnAfterRender hay una
+    /// ida y vuelta al navegador, y si en esa ventana llega un lote de fondo
+    /// (AddRange + Reload + StateHasChanged) los settings guardados nunca se aplican.
+    /// Con LoadSettings, la bandera se pone y se consume en el mismo OnAfterRender.
     /// </summary>
     protected void CargarSettingsGrilla(DataGridLoadSettingsEventArgs args)
     {

@@ -32,6 +32,8 @@ public class GridFiltrosPersistenTests
         public bool FiltrosActivos => HayFiltrosActivos;
         public Task Buscar(string texto) => OnBusquedaChanged(texto);
         public Task Limpiar() => LimpiarFiltros();
+        public bool CargandoResto => _cargandoResto;
+        public int CantidadFilas => _items.Count;
     }
 
     private static List<CafViewModel> Filas() =>
@@ -146,6 +148,116 @@ public class GridFiltrosPersistenTests
             StringAssert.Contains(segunda.Markup, "No hay filtros aplicados", "el botón Quitar filtros sigue habilitado");
         }, timeout: TimeSpan.FromSeconds(5));
         Assert.AreEqual(string.Empty, segunda.Instance.TextoBusqueda);
+    }
+
+    /// <summary>
+    /// Como en el servidor: el primer lote (100) pinta la grilla y el resto llega en
+    /// segundo plano con latencia y un Reload por lote. Pares e impares alternados,
+    /// para que un filtro por "PAR" tenga que sobrevivir a todos los lotes.
+    /// </summary>
+    private static void ArmarContextoProgresivo(Bunit.TestContext ctx, int total = 350, int latenciaMs = 150)
+    {
+        ctx.AddPermissivePermissions();
+        ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+
+        var todas = Enumerable.Range(1, total).Select(i => new CafViewModel
+        {
+            Id = i, Anio = 2026, Expediente = $"{i:00000000}/26",
+            Beneficiario = i % 2 == 0 ? "BENEF-PAR" : "BENEF-IMPAR",
+        }).ToList();
+
+        var caf = new Mock<ICafService>();
+        caf.Setup(s => s.GetPageAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .Returns(async (int skip, int take, CancellationToken ct) =>
+            {
+                if (skip > 0) await Task.Delay(latenciaMs, ct);   // los lotes de fondo tardan
+                return todas.Skip(skip).Take(take).ToList();
+            });
+
+        ctx.Services.AddSingleton(caf.Object);
+        ctx.Services.AddSingleton(Mock.Of<INotificationHelper>());
+        ctx.Services.AddSingleton(Mock.Of<IExportService>());
+        ctx.Services.AddSingleton(Mock.Of<IAuditoriaService>());
+        ctx.Services.AddSingleton(sp => new DialogService(
+            sp.GetRequiredService<NavigationManager>(),
+            sp.GetRequiredService<Microsoft.JSInterop.IJSRuntime>()));
+    }
+
+    private static void EsperarCargaCompleta(IRenderedComponent<CafPageProbe> cut, int total) =>
+        cut.WaitForAssertion(() =>
+        {
+            Assert.AreEqual(total, cut.Instance.CantidadFilas, "no llegaron todos los lotes");
+            Assert.IsFalse(cut.Instance.CargandoResto, "la carga de fondo no terminó");
+        }, timeout: TimeSpan.FromSeconds(10));
+
+    [TestMethod]
+    public async Task ElFiltroSobreviveALosLotesDeFondo()
+    {
+        using var ctx = new Bunit.TestContext();
+        ArmarContextoProgresivo(ctx);
+
+        var cut = Renderizar(ctx);
+        // Filtrar apenas pinta el primer lote, con el fondo todavía en vuelo.
+        await FiltrarBeneficiario(cut, "BENEF-PAR");
+        EsperarCargaCompleta(cut, 350);
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.IsFalse(cut.Markup.Contains("BENEF-IMPAR"), "un Reload de fondo pisó el filtro");
+            Assert.IsTrue(cut.Instance.FiltrosActivos);
+            StringAssert.Contains(cut.Markup, "de 350 (vista filtrada)");
+        }, timeout: TimeSpan.FromSeconds(5));
+    }
+
+    [TestMethod]
+    public async Task IrseEnMedioDeLaCargaYVolverConservaElFiltro()
+    {
+        using var ctx = new Bunit.TestContext();
+        // Latencia alta: hay que irse con el fondo todavia en vuelo, como en el servidor.
+        ArmarContextoProgresivo(ctx, latenciaMs: 3000);
+
+        var primera = Renderizar(ctx);
+        await FiltrarBeneficiario(primera, "BENEF-PAR");
+        Assert.IsTrue(primera.Instance.CargandoResto, "el escenario exige irse con el fondo en vuelo");
+
+        // Navegar a otra vista con la carga de fondo todavía corriendo...
+        ctx.DisposeComponents();
+
+        // ...y volver: la página nueva carga de cero y tiene que reponer el filtro.
+        var segunda = Renderizar(ctx);
+        EsperarCargaCompleta(segunda, 350);
+
+        segunda.WaitForAssertion(() =>
+        {
+            Assert.IsFalse(segunda.Markup.Contains("BENEF-IMPAR"), "se perdió el filtro al volver");
+            Assert.IsTrue(segunda.Instance.FiltrosActivos);
+            StringAssert.Contains(segunda.Markup, "Quitar todos los filtros");
+        }, timeout: TimeSpan.FromSeconds(5));
+    }
+
+    [TestMethod]
+    public async Task BusquedaRapidaYFiltroDeColumnaConvivenAlVolver()
+    {
+        using var ctx = new Bunit.TestContext();
+        ArmarContextoProgresivo(ctx);
+
+        var primera = Renderizar(ctx);
+        EsperarCargaCompleta(primera, 350);
+        await primera.InvokeAsync(() => primera.Instance.Buscar("BENEF"));   // matchea todo
+        await FiltrarBeneficiario(primera, "BENEF-PAR");
+
+        ctx.DisposeComponents();
+        var segunda = Renderizar(ctx);
+        EsperarCargaCompleta(segunda, 350);
+
+        // Con búsqueda activa, Data es un enumerable nuevo en cada render: el filtro
+        // de columna tiene que sobrevivir igual a todos esos cambios de Data.
+        Assert.AreEqual("BENEF", segunda.Instance.TextoBusqueda);
+        segunda.WaitForAssertion(() =>
+        {
+            Assert.IsFalse(segunda.Markup.Contains("BENEF-IMPAR"), "el cambio de Data por la búsqueda pisó el filtro de columna");
+            Assert.IsTrue(segunda.Instance.FiltrosActivos);
+        }, timeout: TimeSpan.FromSeconds(5));
     }
 
     [TestMethod]

@@ -34,7 +34,7 @@
                         TItem="SAF.Application.Seguros.Dtos.SeguroViewModel"
                         Filter="@OnGridFilter"
                         FilterCleared="@OnGridFilter"
-                        @bind-Settings="@SettingsGrilla"
+                        SettingsChanged="@GuardarSettingsGrilla"
                         LoadSettings="@CargarSettingsGrilla"
                         AllowFiltering="true"
                         AllowSorting="true"
