@@ -67,3 +67,4 @@ ScaffoldingReadMe.txt
 # appsettings.Development.json
 # appsettings.Test.json
 .vscode/tasks.json
+.vscode/launch.json
