@@ -129,9 +129,40 @@ public class DevengadoSyncService(
         if (nuevos.Count == 0)
             return new SyncResult(SyncStatus.YaActualizado, 0, ultimaFecha);
 
+        // Cada fila importada nace con sus datos manuales y Status DGAyF inicial, en la
+        // misma transacción que el devengado. Solo las nuevas: las filas que ya estaban
+        // conservan lo que el usuario haya cargado (o su vacío).
+        var statusInicialId = await ResolverStatusDgayfInicialAsync(db, ct);
         db.Devengados.AddRange(nuevos);
+        db.DevengadosExtra.AddRange(nuevos.Select(d => new DevengadoExtra
+        {
+            Devengado = d,          // la FK se resuelve en el mismo SaveChanges
+            TipoDev = d.TipoDev,
+            NroDev = d.NroDev,
+            StatusDgayfOpcionId = statusInicialId,
+        }));
         await db.SaveChangesAsync(ct);
         return new SyncResult(SyncStatus.Importado, nuevos.Count, ultimaFecha);
+    }
+
+    /// <summary>
+    /// Id de la opción "avanzar" de Status DGAyF, por nombre entre las activas. Si un
+    /// admin la desactivó o renombró desde Listas, la sync no falla: importa igual,
+    /// deja el status vacío y lo avisa en el log.
+    /// </summary>
+    private async Task<int?> ResolverStatusDgayfInicialAsync(AppDbContext db, CancellationToken ct)
+    {
+        var id = await db.StatusDgayfOpciones.AsNoTracking()
+            .Where(o => o.Activo && o.Nombre == ReglasDevengado.StatusDgayfInicial)
+            .Select(o => (int?)o.Id)
+            .FirstOrDefaultAsync(ct);
+
+        if (id is null)
+            logger.LogWarning(
+                "Sync devengados: no hay una opción activa \"{Nombre}\" en Status DGAyF; las filas nuevas quedan sin status.",
+                ReglasDevengado.StatusDgayfInicial);
+
+        return id;
     }
 
     public async Task<DeteccionCorrecciones> DetectarCorreccionesExpedienteAsync(CancellationToken ct = default)

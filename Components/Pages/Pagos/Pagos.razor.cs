@@ -62,7 +62,15 @@ public partial class Pagos
     protected override async Task<PagoViewModel?> ObtenerFilaAsync(PagoViewModel item, CancellationToken ct) =>
         item.Id != 0 ? await PagosService.GetByIdAsync(item.Id, ct) : null;
 
-    protected override PagoViewModel NuevaFila() => new() { FechaDevengado = DateTime.Today };
+    // Status DGAyF preseleccionado en "avanzar", igual que las filas que trae la sync:
+    // las dos vías de ingreso arrancan iguales. El usuario puede cambiarlo antes de crear.
+    protected override PagoViewModel NuevaFila() => new()
+    {
+        FechaDevengado = DateTime.Today,
+        StatusDgayfOpcionId = _statusDgayfOpciones
+            .FirstOrDefault(o => string.Equals(o.Nombre, ReglasDevengado.StatusDgayfInicial, StringComparison.OrdinalIgnoreCase))
+            ?.Id,
+    };
 
     protected override string DescripcionFila(PagoViewModel item) =>
         $"Devengado {item.TipoDev} {item.NroDev}";

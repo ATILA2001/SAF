@@ -21,7 +21,19 @@ public class PagosService(
         => await MapearAsync(await devengadoRepo.GetAllAsync(ct), ct);
 
     public async Task<IReadOnlyList<PagoViewModel>> GetPageAsync(int skip, int take, CancellationToken ct = default)
-        => await MapearAsync(await devengadoRepo.GetPageAsync(skip, take, ct), ct);
+    {
+        var devengados = await devengadoRepo.GetPageAsync(skip, take, ct);
+
+        // Extras solo de las filas del lote: desde que la sync crea uno por fila importada,
+        // la tabla tiene el tamaño del ledger, y releerla entera por cada lote de 500
+        // multiplicaría la lectura por la cantidad de lotes. El tablero sí se trae
+        // completo: solo tiene filas con datos cargados a mano.
+        var extrasTask = extraRepo.GetByDevengadoIdsAsync(devengados.Select(d => d.Id).ToList(), ct);
+        var statusContabsTask = statusContabRepo.GetAllAsync(ct);
+        await Task.WhenAll(extrasTask, statusContabsTask);
+
+        return await MapearAsync(devengados, extrasTask.Result, statusContabsTask.Result, ct);
+    }
 
     public async Task<PagoViewModel?> GetByIdAsync(int devengadoId, CancellationToken ct = default)
     {
@@ -47,7 +59,7 @@ public class PagosService(
     /// dependen de IVC (Fecha/Buzón SADE, Fecha Pago No CAF y Fecha Pago Total) quedan
     /// vacías y las rellena CompletarIvcAsync con la grilla ya visible: la primera
     /// conexión a IVC puede tardar segundos y no debe frenar la primera pintada.
-    /// Extras y tablero se traen completos porque solo tienen filas con datos manuales.
+    /// Carga completa: extras y tablero se traen enteros de una sola vez.
     /// </summary>
     private async Task<IReadOnlyList<PagoViewModel>> MapearAsync(
         IReadOnlyList<Devengado> devengados, CancellationToken ct)
@@ -187,27 +199,33 @@ public class PagosService(
         var errores = Application.Pagos.PagoValidator.ValidarEdicion(vm);
         if (errores.Count > 0) throw new ArgumentException(string.Join(" ", errores));
 
-        var entity = new SAF.Data.Entities.DevengadoExtra
-        {
-            DevengadoId = vm.Id,
-            TipoDev = vm.TipoDev,
-            NroDev = vm.NroDev,
-            StatusDgayfOpcionId = vm.StatusDgayfOpcionId,
-            StatusOpOpcionId = vm.StatusOpOpcionId,
-            FechaFirmaOp = vm.FechaFirmaOp,
-            Observaciones = vm.Observaciones,
-            Ccoo = vm.Ccoo,
-            FechaCcoo = vm.FechaCcoo,
-            FechaNotificacion = vm.FechaNotificacion,
-            // Derivadas (no se persisten): StatusContable, SegurosTeso, SeguroEstado, PedidoFactura2/3,
-            // FechaFacturaCorrecta, FechaDePagoNoCaf/Caf, FechaPagoTotal, FechaSade y BuzonSade.
-            CafSiNo = vm.CafSiNo,
-            // Versión que tenía el registro al cargarse: el upsert la exige para detectar
-            // que otro usuario lo modificó mientras esta fila estaba en edición.
-            RowVersion = vm.RowVersion,
-        };
+        var entity = MapearExtra(vm);
+        // Versión que tenía el registro al cargarse: el upsert la exige para detectar
+        // que otro usuario lo modificó mientras esta fila estaba en edición.
+        entity.RowVersion = vm.RowVersion;
         await extraRepo.UpsertAsync(entity, ct);
     }
+
+    /// <summary>
+    /// Los datos manuales de la fila tal como los persiste Pagos. Un solo cuerpo para la
+    /// edición y el alta, así un campo agregado a uno no puede faltar en el otro.
+    /// </summary>
+    private static DevengadoExtra MapearExtra(PagoViewModel vm) => new()
+    {
+        DevengadoId = vm.Id,
+        TipoDev = vm.TipoDev,
+        NroDev = vm.NroDev,
+        StatusDgayfOpcionId = vm.StatusDgayfOpcionId,
+        StatusOpOpcionId = vm.StatusOpOpcionId,
+        FechaFirmaOp = vm.FechaFirmaOp,
+        Observaciones = vm.Observaciones,
+        Ccoo = vm.Ccoo,
+        FechaCcoo = vm.FechaCcoo,
+        FechaNotificacion = vm.FechaNotificacion,
+        // Derivadas (no se persisten): StatusContable, SegurosTeso, SeguroEstado, PedidoFactura2/3,
+        // FechaFacturaCorrecta, FechaDePagoNoCaf/Caf, FechaPagoTotal, FechaSade y BuzonSade.
+        CafSiNo = vm.CafSiNo,
+    };
 
     public Task<DateTime?> GetUltimaFechaImputacionAsync(CancellationToken ct = default)
         => devengadoRepo.GetMaxFechaImputacionAsync(ct);
@@ -239,11 +257,17 @@ public class PagosService(
             ImportePp = vm.Importe,
             FechaImportacion = DateTime.UtcNow,
         };
-        await devengadoRepo.AddAsync(entity, ct);
+
+        // Los campos "opcionales" del alta (status, firma, CCOO, observaciones) se guardan
+        // con la fila, en la misma transacción. Como en la sync, la fila nace con su extra.
+        var extra = MapearExtra(vm);
+        extra.TipoDev = tipoDev;
+        await devengadoRepo.AddAsync(entity, extra, ct);
 
         vm.Id = entity.Id;
         vm.TipoDev = tipoDev;
         vm.Expediente = expediente;
+        vm.RowVersion = extra.RowVersion;
         return vm;
     }
 

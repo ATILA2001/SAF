@@ -26,8 +26,12 @@ public interface IDevengadoRepository
     /// </summary>
     Task<DateTime?> GetMaxFechaImputacionAsync(CancellationToken ct = default);
 
-    /// <summary>Alta manual de una fila del ledger (complementa la sincronización con IVC).</summary>
-    Task AddAsync(Devengado entity, CancellationToken ct = default);
+    /// <summary>
+    /// Alta manual de una fila del ledger (complementa la sincronización con IVC), con
+    /// sus datos manuales en la misma transacción: como en la sync, la fila nace con
+    /// su extra (status inicial y lo que se haya cargado en el alta).
+    /// </summary>
+    Task AddAsync(Devengado entity, DevengadoExtra extra, CancellationToken ct = default);
 
     /// <summary>Página del ledger con orden determinístico, para la carga progresiva.</summary>
     Task<IReadOnlyList<Devengado>> GetPageAsync(int skip, int take, CancellationToken ct = default);

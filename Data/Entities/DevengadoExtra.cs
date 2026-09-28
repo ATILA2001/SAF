@@ -6,6 +6,8 @@ namespace SAF.Data.Entities;
 /// Datos propios del SAF para la vista PAGOS.
 /// Un registro por FILA del ledger de devengados (DevengadoId): un devengado puede
 /// tener varias filas (neto + retenciones) y cada una se edita por separado.
+/// Nace junto con la fila (sync y alta manual) con el Status DGAyF inicial; las filas
+/// anteriores a esa regla pueden no tener registro hasta la primera edición.
 /// </summary>
 public class DevengadoExtra : IExtraEditable
 {

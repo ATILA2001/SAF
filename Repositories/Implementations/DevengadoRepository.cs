@@ -65,10 +65,12 @@ public class DevengadoRepository(IDbContextFactory<AppDbContext> dbFactory) : ID
             .MaxAsync(ct);
     }
 
-    public async Task AddAsync(Devengado entity, CancellationToken ct = default)
+    public async Task AddAsync(Devengado entity, DevengadoExtra extra, CancellationToken ct = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
+        extra.Devengado = entity; // la FK se resuelve en el mismo SaveChanges
         db.Devengados.Add(entity);
+        db.DevengadosExtra.Add(extra);
         await db.SaveChangesAsync(ct);
     }
 
