@@ -1,0 +1,202 @@
+@page "/control-op"
+@using SAF.Application.ControlOp.Dtos
+@inherits SAF.Components.GridPageBase<SAF.Application.ControlOp.Dtos.CorreccionOpViewModel>
+
+<PageTitle>Control OP</PageTitle>
+
+<RadzenStack>
+    @* Título de la página con la fecha de corte (la celda A1 de la hoja). La barra de
+       cada grilla va dentro de su pestaña, para que Nuevo y Exportar nunca actúen
+       sobre una grilla que no se está mirando. *@
+    <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="1.5rem" Wrap="FlexWrap.Wrap">
+        <h1 style="margin: 7px 0; font-size: 1.5rem;">Control OP</h1>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem">
+            <RadzenLabel Text="OP firmadas antes del" Component="fechaCorte" />
+            <RadzenDatePicker Name="fechaCorte" TValue="DateTime?" Value="@_fechaCorte"
+                              Change="@OnFechaCorteChanged" DateFormat="dd/MM/yyyy"
+                              Disabled="@_cargandoLista" Style="width: 150px" />
+        </RadzenStack>
+    </RadzenStack>
+
+    @* Client: las dos pestañas quedan renderizadas (y solo se ocultan), así la grilla
+       editable de la base existe aunque el usuario esté mirando la lista, y una
+       corrección hecha desde la lista puede recargarla. saf-tabs-grilla (app.css)
+       prolonga la cadena flex del body a través de las pestañas: sin eso, el grid,
+       que toma "el alto restante", colapsa a 0 dentro de un panel. *@
+    <RadzenTabs RenderMode="TabRenderMode.Client" class="saf-tabs-grilla">
+        <Tabs>
+            <RadzenTabsItem Text="@TituloTabLista">
+                <RadzenStack Gap="0.5rem">
+                    <GridToolbar SizeTitulo="7"
+                                 SizeAcciones="5"
+                                 Exportando="@_exportandoLista"
+                                 ExportarDeshabilitado="@ExportarListaDeshabilitado"
+                                 TituloExportarDeshabilitado="@MotivoExportarListaDeshabilitado"
+                                 OnExportar="@ExportarLista">
+                        <Contexto>
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">
+                                Devengados con la OP firmada antes del @_fechaCorte.ToString("dd/MM/yyyy") que todavía
+                                no cruzan con ninguna orden de pago pagada (sin anulados ni "avanzar CAF").
+                            </RadzenText>
+                        </Contexto>
+                        <Acciones>
+                            <RadzenButton Icon="refresh" Text="Actualizar" ButtonStyle="ButtonStyle.Light"
+                                          Click="@CargarListaAsync" Disabled="@_cargandoLista" />
+                        </Acciones>
+                    </GridToolbar>
+
+                    @* Montada siempre, con IsLoading mientras consulta IVC: así Reload
+                       refresca sin perder los filtros de columna y el usuario ve que
+                       está cargando sin que la grilla desaparezca. *@
+                    <RadzenDataGrid @ref="_gridLista"
+                                    Data="@_lista"
+                                    TItem="ControlOpViewModel"
+                                    IsLoading="@_cargandoLista"
+                                    SettingsChanged="@GuardarSettingsLista"
+                                    LoadSettings="@CargarSettingsLista"
+                                    AllowFiltering="true"
+                                    AllowSorting="true"
+                                    AllowColumnResize="true"
+                                    FilterMode="FilterMode.CheckBoxList"
+                                    ClearFilterText="@GridTextos.LimpiarFiltro"
+                                    ApplyFilterText="@GridTextos.AplicarFiltro"
+                                    EmptyText="@GridTextos.Vacio"
+                                    AllowPaging="false">
+                        <Columns>
+                            <RadzenDataGridColumn TItem="ControlOpViewModel" Property="TipoDev" Title="Tipo Dev" Width="120px" Frozen="true" />
+                            <RadzenDataGridColumn TItem="ControlOpViewModel" Property="NroDev" Title="Nro Dev" Width="120px" Frozen="true" TextAlign="TextAlign.Right" />
+                            <RadzenDataGridColumn TItem="ControlOpViewModel" Property="Expediente" Title="Expediente" Width="170px" Frozen="true" />
+                            <RadzenDataGridColumn TItem="ControlOpViewModel" Property="Empresa" Title="Empresa" Width="280px" />
+                            <RadzenDataGridColumn TItem="ControlOpViewModel" Property="Importe" Title="Importe" Width="160px" FormatString="{0:N2}" TextAlign="TextAlign.Right" />
+                            <RadzenDataGridColumn TItem="ControlOpViewModel" Property="FechaFirmaOp" Title="Fecha Firma OP" Width="160px" FormatString="{0:dd/MM/yyyy}" />
+                            <RadzenDataGridColumn TItem="ControlOpViewModel" Property="StatusDgayf" Title="Status DGAyF" Width="150px" />
+                            @if (CanCreate)
+                            {
+                                <RadzenDataGridColumn TItem="ControlOpViewModel" Title="Acciones" Width="150px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
+                                    <Template Context="item">
+                                        @* Sin expediente en el devengado no hay destino para la OP. *@
+                                        <RadzenButton Icon="search" Text="Buscar OP" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small"
+                                                      Click="@(() => BuscarOp(item))"
+                                                      Disabled="@string.IsNullOrWhiteSpace(item.Expediente)"
+                                                      title="@(string.IsNullOrWhiteSpace(item.Expediente) ? "El devengado no tiene expediente: cargalo en Pagos antes de corregir la OP" : "Buscar la orden de pago en la bajada de OP y asignarla a este expediente")" />
+                                    </Template>
+                                </RadzenDataGridColumn>
+                            }
+                        </Columns>
+                        <FooterTemplate>
+                            <GridFooterTotales Filas="@(_gridLista?.View?.Count() ?? 0)"
+                                               TotalFilas="@_lista.Count"
+                                               Importe="@(_gridLista?.View?.Sum(x => x.Importe ?? 0m) ?? 0m)"
+                                               CargaIncompleta="@_listaIncompleta" />
+                        </FooterTemplate>
+                    </RadzenDataGrid>
+                </RadzenStack>
+            </RadzenTabsItem>
+
+            <RadzenTabsItem Text="@TituloTabCorrecciones">
+                <RadzenStack Gap="0.5rem">
+                    <GridToolbar SizeTitulo="5"
+                                 SizeAcciones="7"
+                                 OnBuscar="@OnBusquedaChanged"
+                                 TextoBusqueda="@_textoBusqueda"
+                                 PlaceholderBusqueda="Buscar OP, expediente o beneficiario…"
+                                 LimpiarFiltrosDeshabilitado="@(!HayFiltrosActivos)"
+                                 MostrarNuevo="@CanCreate"
+                                 NuevoDeshabilitado="@_loading"
+                                 OnNuevo="@AddRow"
+                                 CargandoResto="@_cargandoResto"
+                                 Exportando="@_exportando"
+                                 ExportarDeshabilitado="@ExportarDeshabilitado"
+                                 TituloExportarDeshabilitado="@MotivoExportarDeshabilitado"
+                                 OnExportar="@ExportarExcel"
+                                 OnLimpiarFiltros="@LimpiarFiltros">
+                        <Contexto>
+                            <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">
+                                Órdenes de pago reasignadas a otro expediente. En Pagos, cada OP corregida cuenta solo
+                                para su expediente corregido. Eliminar una corrección la devuelve al expediente que trae la bajada de OP.
+                            </RadzenText>
+                        </Contexto>
+                    </GridToolbar>
+
+                    @if (_loading)
+                    {
+                        <EstadoCarga Texto="@($"Cargando {TituloEntidad}…")" />
+                    }
+                    else
+                    {
+                        <RadzenDataGrid @ref="_grid"
+                                        Data="@ItemsVisibles"
+                                        TItem="CorreccionOpViewModel"
+                                        Filter="@OnGridFilter"
+                                        FilterCleared="@OnGridFilter"
+                                        SettingsChanged="@GuardarSettingsGrilla"
+                                        LoadSettings="@CargarSettingsGrilla"
+                                        AllowFiltering="true"
+                                        AllowSorting="true"
+                                        AllowColumnResize="true"
+                                        FilterMode="FilterMode.CheckBoxList"
+                                        ClearFilterText="@GridTextos.LimpiarFiltro"
+                                        ApplyFilterText="@GridTextos.AplicarFiltro"
+                                        EmptyText="@GridTextos.Vacio"
+                                        AllowPaging="false"
+                                        EditMode="DataGridEditMode.Single"
+                                        RowEdit="@OnRowEdit"
+                                        RowUpdate="@OnRowUpdate"
+                                        RowCreate="@OnRowCreate">
+                            <Columns>
+                                @* La clave de la bajada solo se tipea en el alta: en edición identifica la fila. *@
+                                <RadzenDataGridColumn TItem="CorreccionOpViewModel" Property="NroDocResp" Title="Nro Doc Resp" Width="150px" Frozen="true" TextAlign="TextAlign.Right">
+                                    <EditTemplate Context="item">
+                                        <RadzenNumeric TValue="long" @bind-Value="Buffer(item).NroDocResp" Disabled="@(item.Id != 0)" ShowUpDown="false" Style="width:100%"
+                                                       class="@GetValidationCssClass(item.Id != 0 || Buffer(item).NroDocResp > 0)" />
+                                    </EditTemplate>
+                                </RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="CorreccionOpViewModel" Property="Op" Title="OP" Width="170px" Frozen="true">
+                                    <EditTemplate Context="item">
+                                        <RadzenTextBox @bind-Value="Buffer(item).Op" Disabled="@(item.Id != 0)" Placeholder="C41-356190-2026" Style="width:100%"
+                                                       class="@GetValidationCssClass(item.Id != 0 || !string.IsNullOrWhiteSpace(Buffer(item).Op))" />
+                                    </EditTemplate>
+                                </RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="CorreccionOpViewModel" Property="ExpedienteOriginal" Title="Expediente en la bajada" Width="180px">
+                                    <Template Context="item">@(item.ExpedienteOriginal ?? (item.Id == 0 ? "" : "(vacío)"))</Template>
+                                </RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="CorreccionOpViewModel" Property="ExpedienteCorregido" Title="Expediente corregido" Width="230px">
+                                    <EditTemplate Context="item">
+                                        <ExpedienteEditor @bind-Value="Buffer(item).ExpedienteCorregido" />
+                                    </EditTemplate>
+                                </RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="CorreccionOpViewModel" Property="Beneficiario" Title="Beneficiario" Width="240px" />
+                                <RadzenDataGridColumn TItem="CorreccionOpViewModel" Property="ImporteOp" Title="Importe OP" Width="150px" FormatString="{0:N2}" TextAlign="TextAlign.Right" />
+                                <RadzenDataGridColumn TItem="CorreccionOpViewModel" Property="FechaPago" Title="Fecha Pago" Width="140px" FormatString="{0:dd/MM/yyyy}" />
+                                <RadzenDataGridColumn TItem="CorreccionOpViewModel" Property="FechaModificacion" Title="Modificado" Width="160px" FormatString="{0:dd/MM/yyyy HH:mm}" />
+                                @if (CanEdit || CanDelete || CanCreate)
+                                {
+                                    <RadzenDataGridColumn TItem="CorreccionOpViewModel" Title="Acciones" Width="160px" Frozen="true" FrozenPosition="FrozenColumnPosition.Right" Filterable="false" Sortable="false">
+                                        <Template Context="item">
+                                            <AccionesFila MostrarEditar="@CanEdit"
+                                                          MostrarEliminar="@CanDelete"
+                                                          OnEditar="@(() => _grid.EditRow(item))"
+                                                          OnEliminar="@(() => DeleteRow(item))"
+                                                          OnHistorial="@(() => VerHistorial(item))" />
+                                        </Template>
+                                        <EditTemplate Context="item">
+                                            <AccionesFila Edicion="true"
+                                                          OnGuardar="@(() => GuardarFila(item))"
+                                                          OnCancelar="@(() => CancelEdit(item))" />
+                                        </EditTemplate>
+                                    </RadzenDataGridColumn>
+                                }
+                            </Columns>
+                            <FooterTemplate>
+                                <GridFooterTotales Filas="@(_grid?.View?.Count() ?? 0)"
+                                                   TotalFilas="@_items.Count"
+                                                   Cargando="@_cargandoResto"
+                                                   CargaIncompleta="@_cargaIncompleta" />
+                            </FooterTemplate>
+                        </RadzenDataGrid>
+                    }
+                </RadzenStack>
+            </RadzenTabsItem>
+        </Tabs>
+    </RadzenTabs>
+</RadzenStack>

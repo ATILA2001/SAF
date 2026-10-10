@@ -1,6 +1,8 @@
 @* Barra superior común de las páginas de grilla: título, botón Nuevo (opcional),
    aviso de carga de fondo y export. Los controles propios de una vista (p. ej.
-   Sincronizar en Pagos) entran por el fragmento Acciones, antes del botón Nuevo. *@
+   Sincronizar en Pagos) entran por el fragmento Acciones, antes del botón Nuevo.
+   Sin Titulo no hay h1: es la barra de una grilla dentro de una pestaña (Control OP),
+   donde el título de la página ya está arriba. *@
 
 <RadzenRow AlignItems="AlignItems.Center" JustifyContent="JustifyContent.SpaceBetween">
     <RadzenColumn Size="@SizeTitulo">
@@ -8,7 +10,10 @@
             @* h1 y no h2: es el título de la página (FocusOnNavigate lo enfoca al navegar
                y la jerarquía de headings arranca en 1). Tamaño de h2 y márgenes mínimos:
                el título no debe robarle alto a la grilla. *@
-            <h1 style="margin: 7px 0; font-size: 1.5rem;">@Titulo</h1>
+            @if (!string.IsNullOrEmpty(Titulo))
+            {
+                <h1 style="margin: 7px 0; font-size: 1.5rem;">@Titulo</h1>
+            }
             @Contexto
         </RadzenStack>
     </RadzenColumn>
@@ -75,7 +80,7 @@
 </RadzenRow>
 
 @code {
-    [Parameter, EditorRequired] public string Titulo { get; set; } = string.Empty;
+    [Parameter] public string? Titulo { get; set; }
 
     // Reparto del ancho cuando la barra lleva muchos controles (ver Pagos).
     [Parameter] public int? SizeTitulo { get; set; }

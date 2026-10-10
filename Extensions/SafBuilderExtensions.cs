@@ -134,6 +134,7 @@ public static class SafBuilderExtensions
         builder.Services.AddTransient<IDevengadoRepository, DevengadoRepository>();
         builder.Services.AddTransient<ISadeRepository, SadeRepository>();
         builder.Services.AddTransient<ISigafOpRepository, SigafOpRepository>();
+        builder.Services.AddTransient<ISigafOpCorreccionRepository, SigafOpCorreccionRepository>();
         builder.Services.AddTransient<IDevengadoExtraRepository, DevengadoExtraRepository>();
         builder.Services.AddTransient<IStatusContabilidadExtraRepository, StatusContabilidadExtraRepository>();
         builder.Services.AddTransient<ICafRepository, CafRepository>();
@@ -145,6 +146,7 @@ public static class SafBuilderExtensions
         builder.Services.AddScoped<IStatusContabilidadService, StatusContabilidadService>();
         builder.Services.AddScoped<ICafService, CafService>();
         builder.Services.AddScoped<ISeguroService, SeguroService>();
+        builder.Services.AddScoped<IControlOpService, ControlOpService>();
         builder.Services.AddScoped<ILookupService, LookupService>();
         builder.Services.AddScoped<IListaAdminService, ListaAdminService>();
         builder.Services.AddScoped<IExportService, ExportService>();

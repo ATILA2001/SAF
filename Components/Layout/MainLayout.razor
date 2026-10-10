@@ -55,6 +55,10 @@
             {
                 <RadzenPanelMenuItem Text="Seguros" Icon="verified_user" Path="/seguros" />
             }
+            @if (CanShowPage("/control-op"))
+            {
+                <RadzenPanelMenuItem Text="Control OP" Icon="fact_check" Path="/control-op" />
+            }
             @if (CanShowPage("/admin/listas"))
             {
                 <RadzenPanelMenuItem Text="Listas" Icon="checklist" Path="/admin/listas" />

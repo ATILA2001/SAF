@@ -1,0 +1,57 @@
+@* Panel de identidad de los diálogos "en ventana": la columna verde fija de la
+   izquierda con la clave de la fila (título grande), sus datos de identidad y, al
+   pie, los hitos con fecha. Es el mismo panel que arman inline PagoEditor,
+   CafEditor, SeguroEditor y StatusContabilidadEditor; Control OP lo usa como
+   componente y los editores pueden migrar cuando se los toque. Requiere
+   DialogOptions con ShowTitle=false y CssClass "saf-dialog-panel". *@
+
+<div style="width: 280px; flex-shrink: 0; background: var(--rz-primary-dark); color: #ffffff; padding: 26px 24px; display: flex; flex-direction: column; gap: 22px; box-sizing: border-box;">
+    <div style="display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">@Etiqueta</span>
+        <span style="font-size: 1.6rem; font-weight: 700; overflow-wrap: anywhere;">@(string.IsNullOrWhiteSpace(Titulo) ? "—" : Titulo)</span>
+    </div>
+    <div style="height: 1px; background: rgba(255,255,255,0.16);"></div>
+    @foreach (var dato in Datos)
+    {
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+            <span style="font-size: 0.65rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.55);">@dato.Etiqueta</span>
+            @if (dato.Destacado)
+            {
+                <span style="font-size: 1.3rem; font-weight: 700; color: var(--custom-primary-accent); font-variant-numeric: tabular-nums;">@(string.IsNullOrWhiteSpace(dato.Valor) ? "—" : dato.Valor)</span>
+            }
+            else
+            {
+                <span style="font-size: 0.95rem; font-weight: 500; line-height: 1.45; font-variant-numeric: tabular-nums; overflow-wrap: anywhere;">@(string.IsNullOrWhiteSpace(dato.Valor) ? "—" : dato.Valor)</span>
+            }
+        </div>
+    }
+    <div style="flex-grow: 1;"></div>
+    @if (Hitos.Count > 0)
+    {
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+            @foreach (var hito in Hitos)
+            {
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--custom-primary-accent); flex-shrink: 0;"></div>
+                    <span style="font-size: 0.75rem; color: rgba(255,255,255,0.75);">@hito</span>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Un dato del panel; Destacado lo pinta grande y en el color de acento (los importes).</summary>
+    public sealed record Dato(string Etiqueta, string? Valor, bool Destacado = false);
+
+    /// <summary>Qué es la clave (ej. "Devengado", "Expediente CAF").</summary>
+    [Parameter, EditorRequired] public string Etiqueta { get; set; } = string.Empty;
+
+    /// <summary>La clave en sí (ej. "DGG 468380").</summary>
+    [Parameter, EditorRequired] public string? Titulo { get; set; }
+
+    [Parameter] public IReadOnlyList<Dato> Datos { get; set; } = [];
+
+    /// <summary>Hitos con fecha al pie (ej. "OP firmada · 29/06/2026").</summary>
+    [Parameter] public IReadOnlyList<string> Hitos { get; set; } = [];
+}

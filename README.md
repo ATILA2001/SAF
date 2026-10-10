@@ -16,6 +16,7 @@ Se sigue la misma metodología de capas que `Auth.Web` para preservar separació
 Application/                 # Modelos de aplicación (DTOs por feature)
 ├─ Caf/Dtos/
 ├─ Common/                   # Utilidades transversales (diff de auditoría, atributos)
+├─ ControlOp/                # Reglas de la hoja "control OP" y correcciones de OP de SIGAF
 ├─ Pagos/Dtos/
 ├─ Seguros/Dtos/
 └─ StatusContabilidad/Dtos/
@@ -25,6 +26,7 @@ Components/                  # UI Blazor (.razor + code-behind .razor.cs)
 ├─ Layout/
 ├─ Pages/
 │  ├─ Caf/
+│  ├─ ControlOp/            # Lista de devengados sin OP relacionada + correcciones de OP
 │  ├─ Pagos/
 │  ├─ Seguros/
 │  └─ StatusContabilidad/

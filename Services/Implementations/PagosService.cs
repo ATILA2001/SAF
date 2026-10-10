@@ -2,6 +2,7 @@
 using SAF.Data.Entities;
 using SAF.Repositories.Abstractions;
 using SAF.Services.Abstractions;
+using SAF.Application.Pagos;
 using SAF.Application.Pagos.Dtos;
 
 namespace SAF.Services.Implementations;
@@ -15,8 +16,6 @@ public class PagosService(
     ICafRepository cafRepo,
     ISeguroRepository seguroRepo) : IPagosService
 {
-    private const string StatusAvanzarCaf = "avanzar CAF";
-
     public async Task<IReadOnlyList<PagoViewModel>> GetAllAsync(CancellationToken ct = default)
         => await MapearAsync(await devengadoRepo.GetAllAsync(ct), ct);
 
@@ -117,7 +116,7 @@ public class PagosService(
             // teniendo alguna OP pendiente; y el MAX nunca desempataba nada, porque las
             // OPs saldadas de un expediente comparten fecha.
             Application.Caf.Dtos.ResumenCafViewModel? resumenCaf =
-                EsAvanzarCaf(statusDgayf) && d.Expediente is not null
+                ReglasPago.EsAvanzarCaf(statusDgayf) && d.Expediente is not null
                 && cafPagos.TryGetValue(d.Expediente, out var rc) ? rc : null;
             DateTime? fechaDePagoCaf = resumenCaf?.TodasPagadas == true ? resumenCaf.UltimoPago : null;
             result.Add(new PagoViewModel
@@ -175,6 +174,7 @@ public class PagosService(
         if (expedientes.Count > 0)
         {
             // En paralelo: cada repositorio crea su propio DbContext (IDbContextFactory).
+            // El repositorio de SIGAF aplica solo las correcciones de OP (Control OP).
             var sadeTask = sadeRepo.GetByExpedientesAsync(expedientes, ct);
             var sigafTask = sigafRepo.GetFechaPagoByExpedientesAsync(expedientes, ct);
             await Task.WhenAll(sadeTask, sigafTask);
@@ -190,7 +190,7 @@ public class PagosService(
             p.FechaDePagoNoCaf = p.Expediente is not null && sigafPagos.TryGetValue(p.Expediente, out var fp)
                 ? fp : null;
             // Misma fórmula que siempre; FechaDePagoCaf ya viene de la fase propia.
-            p.FechaPagoTotal = CalcularFechaPagoTotal(p.StatusDgayfNombre, p.FechaDePagoNoCaf, p.FechaDePagoCaf);
+            p.FechaPagoTotal = ReglasPago.CalcularFechaPagoTotal(p.StatusDgayfNombre, p.FechaDePagoNoCaf, p.FechaDePagoCaf);
         }
     }
 
@@ -274,19 +274,7 @@ public class PagosService(
     public Task DeleteDevengadoAsync(int devengadoId, byte[]? extraRowVersion, CancellationToken ct = default)
         => devengadoRepo.DeleteAsync(devengadoId, extraRowVersion, ct);
 
-    private static bool EsAvanzarCaf(string? statusDgayf)
-        => string.Equals(statusDgayf, StatusAvanzarCaf, StringComparison.OrdinalIgnoreCase);
-
-    // FECHA PAGO TOTAL — Excel: =IF(StatusDGAyF="avanzar", P, IF(Q="","", MAX(P,Q)))
-    //   P = Fecha Pago No CAF (derivada de SIGAF_OP)   Q = Fecha Pago CAF (derivada de tabla CAF)
-    private static DateTime? CalcularFechaPagoTotal(string? statusDgayf, DateTime? noCaf, DateTime? caf)
-    {
-        if (string.Equals(statusDgayf, "avanzar", StringComparison.OrdinalIgnoreCase))
-            return noCaf;
-        if (caf is null)
-            return null;
-        return noCaf is DateTime n && n > caf.Value ? n : caf;
-    }
+    // FECHA PAGO TOTAL: ver ReglasPago.CalcularFechaPagoTotal (compartida con Control OP).
 
     // STATUS CONTABLE — Excel: =IF(OR(StatusOP="OP Firmada",StatusOP="Pasado al pago BONO"),
     //   "OP Lista", <Status Contable del tablero>). Cruce interno por (TipoDev, NroDev).

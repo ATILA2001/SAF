@@ -42,4 +42,12 @@ public interface IDevengadoRepository
     /// <summary>True si ya existe una fila idéntica (misma clave, fecha e importe).</summary>
     Task<bool> ExistsExactoAsync(string tipoDev, int nroDev, DateTime? fechaImputacion,
         decimal? importePp, CancellationToken ct = default);
+
+    /// <summary>
+    /// De los expedientes dados, cuáles tienen al menos una fila en el ledger
+    /// (comparación case-insensitive). Control OP lo usa como señal: una OP cuyo
+    /// expediente no existe en devengados casi seguro lo tiene mal cargado.
+    /// </summary>
+    Task<IReadOnlySet<string>> ExistenExpedientesAsync(
+        IReadOnlyCollection<string> expedientes, CancellationToken ct = default);
 }

@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ExpedienteCaf> ExpedientesCaf { get; set; }
     public DbSet<ExpedienteSeguro> ExpedientesSeguro { get; set; }
     public DbSet<SeguroOpcion> SeguroOpciones { get; set; }
+    public DbSet<SigafOpCorreccion> SigafOpCorrecciones { get; set; }
     public DbSet<CambioAuditoria> CambiosAuditoria { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -92,6 +93,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(e => e.Op).HasMaxLength(50);
             entity.Property(e => e.Beneficiario).HasMaxLength(255);
             entity.Property(e => e.Estado).HasMaxLength(100);
+            entity.Property(e => e.RowVersion).IsRowVersion();
+        });
+
+        modelBuilder.Entity<SigafOpCorreccion>(entity =>
+        {
+            // Una corrección vigente por OP: la clave de SIGAF es NRO_DOC_RESP + OP.
+            entity.HasIndex(e => new { e.NroDocResp, e.Op }).IsUnique();
+            // Fecha Pago No CAF se consulta por expediente corregido.
+            entity.HasIndex(e => e.ExpedienteCorregido);
+            entity.Property(e => e.Op).HasMaxLength(80);
+            entity.Property(e => e.ExpedienteOriginal).HasMaxLength(60);
+            entity.Property(e => e.ExpedienteCorregido).HasMaxLength(50);
+            entity.Property(e => e.Beneficiario).HasMaxLength(255);
+            entity.Property(e => e.ImporteOp).HasPrecision(18, 2);
             entity.Property(e => e.RowVersion).IsRowVersion();
         });
 

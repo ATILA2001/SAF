@@ -29,7 +29,9 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     [Inject] protected IAuditoriaService Auditoria { get; set; } = null!;
     // Filtros, orden, anchos y búsqueda rápida sobreviven a la navegación: la página
     // se destruye al cambiar de vista, el estado no (ver EstadoGrillas).
-    [Inject] private EstadoGrillas EstadoGrillas { get; set; } = null!;
+    // Protegido: una página con una segunda grilla (la lista de Control OP) guarda el
+    // estado de esa grilla bajo su propia clave, con el mismo mecanismo.
+    [Inject] protected EstadoGrillas EstadoGrillas { get; set; } = null!;
 
     protected RadzenDataGrid<TItem> _grid = null!;
     protected List<TItem> _items = new();
@@ -69,6 +71,16 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
     // usuario navega antes de que termine — sin esto, la continuación relanzaba el
     // trabajo completo para una grilla que ya no existía.
     private readonly CancellationTokenSource _ctsPagina = new();
+
+    /// <summary>
+    /// Token de vida de la página, para las cargas propias de una página (la lista de
+    /// control de Control OP): navegar las cancela igual que a la carga de la grilla.
+    /// Tras el Dispose devuelve un token ya cancelado: una continuación que llega
+    /// después de navegar (un refresco en segundo plano) se corta sin excepción.
+    /// </summary>
+    protected CancellationToken TokenPagina => _dispuesta ? new CancellationToken(true) : _ctsPagina.Token;
+
+    private bool _dispuesta;
 
     // Los editores escriben sobre una COPIA de la fila (el buffer) y no sobre el ítem
     // real: la vista filtrada de Radzen se re-evalúa en cada render, así que si los
@@ -447,6 +459,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
 
     public void Dispose()
     {
+        _dispuesta = true;
         _ctsPagina.Cancel();
         _ctsPagina.Dispose();
         _ctsLotes?.Cancel();
@@ -521,6 +534,14 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
 
     private static TItem Copiar(TItem origen, TItem destino)
         => Copiar(origen, destino, PropiedadesCopiables);
+
+    /// <summary>
+    /// Pisa la fila en pantalla con todo lo que devolvió el servicio (incluidas las
+    /// columnas derivadas): para un alta cuyo servicio completa datos que la auditoría
+    /// y el refresco en el lugar necesitan ver en la fila.
+    /// </summary>
+    protected static void Refrescar(TItem origen, TItem destino)
+        => Copiar(origen, destino, PropiedadesRefrescables);
 
     private static TItem Copiar(TItem origen, TItem destino, PropertyInfo[] propiedades)
     {
@@ -943,21 +964,7 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
             // recalcula desde los datos; sin esto el Excel saldría con una sola página.
             if (_grid is not null) await _grid.Reload();
             var filas = _grid?.View?.ToList() ?? _items;
-
-            // La generación es CPU puro y sincrónica: en un hilo del pool no bloquea el
-            // circuito, y al ser el primer await que suspende de verdad, deja que Blazor
-            // pinte el estado "Exportando..." del botón antes de ponerse a trabajar.
-            var bytes = await Task.Run(() => ExportService.ExportToXlsx(filas, ExportNombreHoja));
-
-            // El archivo viaja como stream (Blazor lo trocea en chunks por SignalR):
-            // sin base64 no hay +33% en la red, ni string gigante en el heap, ni un
-            // único mensaje que congele el circuito mientras se transfiere.
-            using var stream = new MemoryStream(bytes);
-            using var streamRef = new DotNetStreamReference(stream);
-            await JS.InvokeVoidAsync("downloadFileFromStream", ExportNombreArchivo, streamRef,
-                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-
-            Notification.ShowSuccess($"Se exportaron {filas.Count} filas.", "Exportación completada");
+            await DescargarXlsxAsync(filas, ExportNombreHoja, ExportNombreArchivo);
         }
         catch (Exception ex)
         {
@@ -967,5 +974,28 @@ public abstract class GridPageBase<TItem> : PermissionPageBase, IDisposable wher
         {
             _exportando = false;
         }
+    }
+
+    /// <summary>
+    /// Genera el xlsx y lo baja al navegador. Compartido por el export de la grilla y
+    /// por los exports propios de una página (la lista de control de Control OP), así
+    /// la receta de descarga vive en un solo lugar.
+    /// </summary>
+    protected async Task DescargarXlsxAsync<T>(IReadOnlyList<T> filas, string hoja, string archivo)
+    {
+        // La generación es CPU puro y sincrónica: en un hilo del pool no bloquea el
+        // circuito, y al ser el primer await que suspende de verdad, deja que Blazor
+        // pinte el estado "Exportando..." del botón antes de ponerse a trabajar.
+        var bytes = await Task.Run(() => ExportService.ExportToXlsx(filas, hoja));
+
+        // El archivo viaja como stream (Blazor lo trocea en chunks por SignalR):
+        // sin base64 no hay +33% en la red, ni string gigante en el heap, ni un
+        // único mensaje que congele el circuito mientras se transfiere.
+        using var stream = new MemoryStream(bytes);
+        using var streamRef = new DotNetStreamReference(stream);
+        await JS.InvokeVoidAsync("downloadFileFromStream", archivo, streamRef,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+        Notification.ShowSuccess($"Se exportaron {filas.Count} filas.", "Exportación completada");
     }
 }

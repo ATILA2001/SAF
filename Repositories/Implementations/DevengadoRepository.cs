@@ -122,4 +122,24 @@ public class DevengadoRepository(IDbContextFactory<AppDbContext> dbFactory) : ID
             d.TipoDev == tipoDev && d.NroDev == nroDev
             && d.FechaImputacion == fechaImputacion && d.ImportePp == importePp, ct);
     }
+
+    public async Task<IReadOnlySet<string>> ExistenExpedientesAsync(
+        IReadOnlyCollection<string> expedientes, CancellationToken ct = default)
+    {
+        var distinct = expedientes
+            .Where(e => !string.IsNullOrWhiteSpace(e))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (distinct.Count == 0)
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        var existentes = await db.Devengados.AsNoTracking()
+            .Where(d => d.Expediente != null && distinct.Contains(d.Expediente))
+            .Select(d => d.Expediente!)
+            .Distinct()
+            .ToListAsync(ct);
+
+        return new HashSet<string>(existentes, StringComparer.OrdinalIgnoreCase);
+    }
 }

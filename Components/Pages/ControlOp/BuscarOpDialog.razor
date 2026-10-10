@@ -1,0 +1,270 @@
+@using SAF.Application.ControlOp
+@using SAF.Application.ControlOp.Dtos
+
+@* Búsqueda de la orden de pago en la bajada para un devengado que no cruza, con el
+   mismo esquema que los editores en ventana: panel de identidad a la izquierda (el
+   devengado, siempre a la vista) y el trabajo a la derecha. Como en el Excel, se
+   busca por beneficiario (la empresa del devengado), fecha de pago desde la firma de
+   la OP y mirando el importe; arranca buscando con esos datos y los criterios se
+   aflojan a mano. Las candidatas son tarjetas de dos líneas: la OP con su importe y
+   fecha, y el expediente que trae la bajada con, en palabras, en qué difiere del
+   buscado. Si la primera coincide en importe, se destaca como mejor coincidencia
+   con el porqué. Cierra devolviendo la candidata elegida; cualquier otro cierre no
+   asigna nada. Requiere DialogOptions con ShowTitle=false y CssClass "saf-dialog-panel". *@
+
+<div style="display: flex; align-items: stretch; min-height: 620px;">
+
+    <PanelIdentidad Etiqueta="Devengado"
+                    Titulo="@($"{Fila.TipoDev} {Fila.NroDev}")"
+                    Datos="@_datosPanel"
+                    Hitos="@_hitosPanel" />
+
+    <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 24px 0 24px;">
+            <div>
+                <RadzenText TextStyle="TextStyle.H6" Style="margin: 0; font-size: 1.15rem;">Buscar orden de pago</RadzenText>
+                <RadzenText TextStyle="TextStyle.Caption" Style="margin: 0; color: var(--rz-text-secondary-color);">
+                    @ResumenResultados
+                </RadzenText>
+            </div>
+            <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Text" Size="ButtonSize.Small"
+                          Click="@(() => DialogService.Close(null))" title="Cerrar sin asignar" />
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 16px; padding: 16px 24px 0 24px;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <RadzenFormField Text="Beneficiario (contiene)" Variant="Variant.Outlined" Style="flex: 1 1 0; min-width: 0;">
+                    <RadzenTextBox @bind-Value="_beneficiario" />
+                </RadzenFormField>
+                <RadzenFormField Text="Pagada desde" Variant="Variant.Outlined" Style="width: 160px; flex-shrink: 0;">
+                    <RadzenDatePicker @bind-Value="_desde" DateFormat="dd/MM/yyyy" AllowClear="true" />
+                </RadzenFormField>
+                <RadzenFormField Text="Pagada hasta" Variant="Variant.Outlined" Style="width: 160px; flex-shrink: 0;">
+                    <RadzenDatePicker @bind-Value="_hasta" DateFormat="dd/MM/yyyy" AllowClear="true" />
+                </RadzenFormField>
+                <RadzenFormField Text="Importe de ref." Variant="Variant.Outlined" Style="width: 140px; flex-shrink: 0;">
+                    <RadzenNumeric TValue="decimal?" @bind-Value="_importe" ShowUpDown="false" />
+                </RadzenFormField>
+                <RadzenButton Icon="search" ButtonStyle="ButtonStyle.Primary" Style="flex-shrink: 0;"
+                              Click="@Buscar" IsBusy="@_buscando" title="Buscar" aria-label="Buscar" />
+            </div>
+
+            @if (_mensaje is not null)
+            {
+                <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-warning-dark);">@_mensaje</RadzenText>
+            }
+
+            <div style="display: flex; flex-direction: column; gap: 8px; max-height: 380px; overflow-y: auto; padding-right: 4px;">
+                @if (_candidatas.Count == 0)
+                {
+                    <RadzenText TextStyle="TextStyle.Body2" Style="margin: 0; color: var(--rz-text-secondary-color);">
+                        @(_buscando ? "Buscando en la bajada de OP…" : _busco ? "No se encontraron OPs con esos criterios." : "Ingresá criterios y buscá.")
+                    </RadzenText>
+                }
+                @foreach (var v in _candidatas)
+                {
+                    var c = v.Candidata;
+                    <div @key="@($"{c.NroDocResp}|{c.Op}")" class="@(v.EsMejor ? "saf-candidata saf-candidata--mejor" : "saf-candidata")">
+                        <div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+                            @if (v.EsMejor)
+                            {
+                                <span class="saf-candidata__mejor">Mejor coincidencia</span>
+                            }
+                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <strong style="font-size: 1rem;">@c.Op</strong>
+                                @switch (c.Coincidencia)
+                                {
+                                    case CoincidenciaImporte.Igual:
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="igual" class="saf-badge-compacto" title="Mismo importe que el devengado" />
+                                        break;
+                                    case CoincidenciaImporte.Parcial:
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Info" Text="parcial" class="saf-badge-compacto" title="La OP es menor que el importe del devengado: puede ser un pago en partes" />
+                                        break;
+                                    case CoincidenciaImporte.Mayor:
+                                        <RadzenBadge BadgeStyle="BadgeStyle.Light" Text="mayor" class="saf-badge-compacto" title="La OP es mayor que el importe del devengado" />
+                                        break;
+                                }
+                                <span style="color: var(--rz-text-secondary-color); font-size: 0.8rem;">
+                                    @(c.FechaPago is DateTime fp ? $"pagada {fp:dd/MM/yyyy}" : "sin fecha de pago") · doc resp @(c.NroDocResp?.ToString() ?? "—")
+                                </span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.9rem;">
+                                <span>En la bajada:</span>
+                                <span style="font-variant-numeric: tabular-nums;">@(c.ExpedienteSigaf ?? "(vacío)")</span>
+                                @if (v.Diferencia is not null)
+                                {
+                                    <span style="color: var(--rz-text-secondary-color); font-size: 0.8rem;">@v.Diferencia</span>
+                                }
+                                @if (c.ExpedienteSinDevengado)
+                                {
+                                    <RadzenBadge BadgeStyle="BadgeStyle.Warning" Text="sin devengado" class="saf-badge-compacto"
+                                                 title="Ese expediente no existe en devengados: señal de error de carga en la OP" />
+                                }
+                                @if (c.CorregidaEnSafA is not null)
+                                {
+                                    <RadzenBadge BadgeStyle="BadgeStyle.Dark" Text="@($"ya corregida → {c.CorregidaEnSafA}")" class="saf-badge-compacto"
+                                                 title="SAF ya reasignó esta OP: editá esa corrección en la pestaña Correcciones" />
+                                }
+                                @if (c.CorregidaEnIvc)
+                                {
+                                    <RadzenBadge BadgeStyle="BadgeStyle.Light" Text="corregida en IVC" class="saf-badge-compacto"
+                                                 title="La bajada de OP ya trae esta OP con expediente corregido" />
+                                }
+                                @if (v.BeneficiarioDistinto)
+                                {
+                                    <span style="color: var(--rz-text-secondary-color); font-size: 0.8rem;">· @c.Beneficiario</span>
+                                }
+                            </div>
+                            @if (v.Motivos.Count > 0)
+                            {
+                                <span style="font-size: 0.85rem;">@string.Join(" · ", v.Motivos)</span>
+                            }
+                        </div>
+                        <span style="font-size: 1.1rem; font-variant-numeric: tabular-nums; white-space: nowrap;">@(c.ImporteOp?.ToString("N2") ?? "—")</span>
+                        <RadzenButton Text="Asignar" ButtonStyle="@(v.EsMejor ? ButtonStyle.Primary : ButtonStyle.Light)" Size="ButtonSize.Small"
+                                      Click="@(() => DialogService.Close(c))"
+                                      Disabled="@(c.CorregidaEnSafA is not null || c.NroDocResp is null)"
+                                      title="@(c.CorregidaEnSafA is not null ? "Ya tiene corrección: editala en Correcciones"
+                                             : c.NroDocResp is null ? "La bajada no trae el NRO DOC RESP de esta OP: no se puede identificar"
+                                             : $"Asignar la OP {c.Op} al expediente {Fila.Expediente}")" />
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 16px 24px 20px 24px; border-top: 1px solid var(--surface-border, rgba(128,128,128,.25)); margin-top: auto;">
+            <span style="flex: 1 1 0; min-width: 0; font-size: 0.75rem; color: var(--rz-text-secondary-color);">
+                Hasta @CriteriosBusquedaOp.MaxResultados OPs, las de importe más cercano primero. Igual = mismo importe que el devengado;
+                parcial = menor (pago en partes).
+            </span>
+            <RadzenButton Text="Cancelar" ButtonStyle="ButtonStyle.Light" Style="flex-shrink: 0;" Click="@(() => DialogService.Close(null))" />
+        </div>
+    </div>
+</div>
+
+@code {
+    [Inject] private DialogService DialogService { get; set; } = null!;
+    [Inject] private SAF.Services.Abstractions.IControlOpService Servicio { get; set; } = null!;
+    [Inject] private ILogger<BuscarOpDialog> Logger { get; set; } = null!;
+
+    /// <summary>El devengado que no cruza: precarga los criterios y es el destino de la OP.</summary>
+    [Parameter, EditorRequired] public ControlOpViewModel Fila { get; set; } = null!;
+
+    private string? _beneficiario;
+    private DateTime? _desde;
+    private DateTime? _hasta;
+    private decimal? _importe;
+
+    private List<CandidataVista> _candidatas = [];
+    private bool _buscando;
+    private bool _busco;
+    private string? _mensaje;
+
+    private IReadOnlyList<PanelIdentidad.Dato> _datosPanel = [];
+    private IReadOnlyList<string> _hitosPanel = [];
+
+    /// <summary>
+    /// La candidata más lo que la vista deriva de ella frente al devengado: la diferencia
+    /// de expediente en palabras, si es la mejor coincidencia y por qué. Se calcula una
+    /// vez por búsqueda, no en cada render.
+    /// </summary>
+    private sealed record CandidataVista(
+        CandidataOpViewModel Candidata,
+        string? Diferencia,
+        bool BeneficiarioDistinto,
+        bool EsMejor,
+        IReadOnlyList<string> Motivos);
+
+    private string ResumenResultados =>
+        _candidatas.Count == 0 ? "Buscá la OP que corresponde a este expediente y asignala."
+        : _candidatas.Count == 1 ? "1 candidata"
+        : $"{_candidatas.Count} candidatas · las de importe más cercano primero";
+
+    // Como en el Excel: empresa del devengado, pagadas desde la firma de la OP, y el
+    // importe para ordenar y marcar. La primera búsqueda sale sola con esos datos.
+    protected override async Task OnInitializedAsync()
+    {
+        _datosPanel =
+        [
+            new("Expediente", Fila.Expediente),
+            new("Empresa", Fila.Empresa),
+            new("Importe", Fila.Importe?.ToString("N2"), Destacado: true),
+            new("Status DGAyF", Fila.StatusDgayf),
+        ];
+        _hitosPanel = Fila.FechaFirmaOp is DateTime firma ? [$"OP firmada · {firma:dd/MM/yyyy}"] : [];
+
+        _beneficiario = Fila.Empresa;
+        _desde = Fila.FechaFirmaOp;
+        _importe = Fila.Importe;
+        await Buscar();
+    }
+
+    // El error se traduce: la bajada vive en IVC, que puede no responder, y el detalle
+    // técnico no le sirve al usuario; las validaciones (ArgumentException) sí son para él.
+    private async Task Buscar()
+    {
+        var criterios = new CriteriosBusquedaOp(_beneficiario, _desde, _hasta, _importe);
+        _buscando = true;
+        _mensaje = null;
+        try
+        {
+            var encontradas = await Servicio.BuscarCandidatasAsync(criterios);
+            _candidatas = Presentar(encontradas);
+            _busco = true;
+            if (encontradas.Count >= CriteriosBusquedaOp.MaxResultados)
+                _mensaje = $"Hay {CriteriosBusquedaOp.MaxResultados} OPs o más con esos criterios: se muestran las primeras. Acotá la búsqueda.";
+        }
+        catch (ArgumentException ex)
+        {
+            _mensaje = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "La búsqueda en la bajada de OP falló.");
+            _mensaje = "No se pudo consultar la bajada de OP. Si persiste, avisá a Sistemas.";
+        }
+        finally
+        {
+            _buscando = false;
+        }
+    }
+
+    /// <summary>
+    /// La mejor coincidencia es la primera (vienen ordenadas por cercanía de importe)
+    /// solo si su importe es igual al del devengado y no está corregida ya: con una
+    /// parcial o mayor arriba no hay nada que destacar.
+    /// </summary>
+    private List<CandidataVista> Presentar(IReadOnlyList<CandidataOpViewModel> encontradas) =>
+        encontradas.Select((c, i) =>
+        {
+            var mismoBeneficiario = MismoTexto(c.Beneficiario, Fila.Empresa);
+            var esMejor = i == 0 && c.Coincidencia == CoincidenciaImporte.Igual && c.CorregidaEnSafA is null;
+            return new CandidataVista(
+                c,
+                ExpedienteDiff.Describir(c.ExpedienteSigaf, Fila.Expediente),
+                BeneficiarioDistinto: !mismoBeneficiario && !string.IsNullOrWhiteSpace(c.Beneficiario),
+                esMejor,
+                esMejor ? Motivos(c, mismoBeneficiario) : []);
+        }).ToList();
+
+    // Las razones, en palabras, por las que la candidata destacada parece ser la OP del
+    // devengado: es lo que el usuario verificaba a ojo en la consulta de la bajada.
+    private IReadOnlyList<string> Motivos(CandidataOpViewModel c, bool mismoBeneficiario)
+    {
+        var motivos = new List<string> { "Mismo importe que el devengado" };
+        if (mismoBeneficiario) motivos.Add("mismo beneficiario");
+        if (c.FechaPago is DateTime pago && Fila.FechaFirmaOp is DateTime firma)
+        {
+            var dias = (pago.Date - firma.Date).Days;
+            motivos.Add(dias == 0 ? "pagada el día de la firma"
+                : dias > 0 ? $"pagada {dias} día(s) después de la firma"
+                : $"pagada {-dias} día(s) antes de la firma");
+        }
+        if (c.ExpedienteSinDevengado) motivos.Add("su expediente no existe en devengados");
+        return motivos;
+    }
+
+    private static bool MismoTexto(string? a, string? b) =>
+        !string.IsNullOrWhiteSpace(a) && !string.IsNullOrWhiteSpace(b)
+        && string.Equals(a.Trim(), b.Trim(), StringComparison.OrdinalIgnoreCase);
+}

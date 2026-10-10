@@ -421,6 +421,74 @@ namespace SAF.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SAF.Data.Entities.SigafOpCorreccion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Beneficiario")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)")
+                        .HasColumnName("beneficiario");
+
+                    b.Property<string>("ExpedienteCorregido")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("expediente_corregido");
+
+                    b.Property<string>("ExpedienteOriginal")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)")
+                        .HasColumnName("expediente_original");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("fecha_creacion");
+
+                    b.Property<DateTime>("FechaModificacion")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("fecha_modificacion");
+
+                    b.Property<DateTime?>("FechaPago")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("fecha_pago");
+
+                    b.Property<decimal?>("ImporteOp")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("importe_op");
+
+                    b.Property<long>("NroDocResp")
+                        .HasColumnType("bigint")
+                        .HasColumnName("nro_doc_resp");
+
+                    b.Property<string>("Op")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)")
+                        .HasColumnName("op");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion")
+                        .HasColumnName("row_version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExpedienteCorregido");
+
+                    b.HasIndex("NroDocResp", "Op")
+                        .IsUnique();
+
+                    b.ToTable("SigafOpCorrecciones");
+                });
+
             modelBuilder.Entity("SAF.Data.Entities.StatusContabilidadExtra", b =>
                 {
                     b.Property<int>("Id")

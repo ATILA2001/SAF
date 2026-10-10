@@ -1,6 +1,7 @@
 #nullable enable
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using SAF.Application.ControlOp.Dtos;
 using SAF.Data;
 using SAF.Data.Entities;
 using SAF.Repositories.Abstractions;
@@ -33,6 +34,35 @@ public class DevengadoExtraRepository(IDbContextFactory<AppDbContext> dbFactory)
         await using var db = await DbFactory.CreateDbContextAsync(ct);
         return await Query(db)
             .Where(e => devengadoIds.Contains(e.DevengadoId))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<ControlOpViewModel>> GetConFirmaOpAnteriorAsync(
+        DateTime fechaCorte, IReadOnlyCollection<string> statusExcluidos, CancellationToken ct = default)
+    {
+        await using var db = await DbFactory.CreateDbContextAsync(ct);
+        // Proyección y no entidades: el conjunto incluye todo devengado con OP firmada
+        // (pagado o no, eso lo decide IVC después), así que crece con el ledger y no
+        // conviene arrastrar las columnas anchas ni el lookup de Status OP.
+        return await db.DevengadosExtra.AsNoTracking()
+            .Where(e => e.FechaFirmaOp != null && e.FechaFirmaOp < fechaCorte
+                     && (e.StatusDgayfOpcion == null || !statusExcluidos.Contains(e.StatusDgayfOpcion.Nombre)))
+            // Las firmas más viejas primero: son las que más tiempo llevan sin cruzar.
+            .OrderBy(e => e.FechaFirmaOp)
+            .ThenBy(e => e.TipoDev)
+            .ThenBy(e => e.NroDev)
+            .ThenBy(e => e.Id)
+            .Select(e => new ControlOpViewModel
+            {
+                DevengadoId = e.DevengadoId,
+                TipoDev = e.Devengado!.TipoDev,
+                NroDev = e.Devengado.NroDev,
+                Expediente = e.Devengado.Expediente,
+                Empresa = e.Devengado.Empresa,
+                Importe = e.Devengado.ImportePp,
+                FechaFirmaOp = e.FechaFirmaOp,
+                StatusDgayf = e.StatusDgayfOpcion == null ? null : e.StatusDgayfOpcion.Nombre,
+            })
             .ToListAsync(ct);
     }
 

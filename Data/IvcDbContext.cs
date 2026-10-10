@@ -46,11 +46,18 @@ public class IvcDbContext(DbContextOptions<IvcDbContext> options) : DbContext(op
 
         modelBuilder.Entity<SigafOpPago>(entity =>
         {
-            entity.HasNoKey(); // Solo lectura; la bajada IVC tiene 43 columnas, solo mapeamos 2.
+            entity.HasNoKey(); // Solo lectura; la bajada IVC tiene 43 columnas, solo mapeamos las que SAF consume.
             entity.ToTable("SIGAF_OP", "dbo");
 
+            // Nombres reales de columna verificados contra IVC.dbo.SIGAF_OP (sys.columns).
+            entity.Property(e => e.Op).HasColumnName("OP");
+            entity.Property(e => e.NroDocResp).HasColumnName("NRO_DOC_RESP");
             entity.Property(e => e.EeFinanciera).HasColumnName("EE_FINANCIERA");
             entity.Property(e => e.FechaPago).HasColumnName("FECHA_PAGO");
+            entity.Property(e => e.BenefOpDesc).HasColumnName("BENEF_OP_DESC");
+            entity.Property(e => e.ImpOp).HasColumnName("IMP_OP").HasPrecision(18, 2);
+            entity.Property(e => e.Correcion).HasColumnName("CORRECION");
+            entity.Property(e => e.ExpCorregido).HasColumnName("EXP_CORREGIDO");
         });
     }
 }

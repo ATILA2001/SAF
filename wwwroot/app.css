@@ -56,7 +56,7 @@ html, body, #app {
 
 /* El RadzenStack que envuelve una página con grid ocupa todo el alto restante del
    body (sólo cuando contiene un grid directo, para no afectar formularios/dashboard). */
-.rz-body > .rz-stack:has(> .rz-data-grid) {
+.rz-body > .rz-stack:has(> .rz-data-grid, > .saf-tabs-grilla) {
     flex: 1 1 0;
     min-height: 0;
     gap: 0.5rem; /* menos aire entre la toolbar y la grilla */
@@ -76,6 +76,39 @@ html, body, #app {
     flex: 1 1 0;
     min-height: 0;
     overflow: auto;
+}
+
+/* Grillas dentro de pestañas (Control OP). La regla de arriba le da al grid
+   "el alto restante" (flex 1 1 0), pero eso exige que la cadena de contenedores
+   flex llegue sin cortes desde .rz-body; el RadzenTabs la corta (sus paneles son
+   bloques de alto automático) y el grid colapsaba a 2 px: las filas estaban en el
+   DOM y salían en el export, pero no se veían. Acá se extiende la cadena a través
+   del tabview hasta el stack que envuelve a cada grid (el stack raíz ya lo cubre
+   la regla de arriba). El panel no activo lo oculta Radzen con display:none
+   inline, que gana a este display:flex. */
+.saf-tabs-grilla {
+    flex: 1 1 0;
+    min-height: 0;
+}
+
+.saf-tabs-grilla > .rz-tabview-panels {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow: hidden; /* el scroll es del área de datos del grid, no del panel */
+}
+
+.saf-tabs-grilla > .rz-tabview-panels > .rz-tabview-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+}
+
+.saf-tabs-grilla > .rz-tabview-panels > .rz-tabview-panel > .rz-stack {
+    flex: 1 1 0;
+    min-height: 0;
 }
 
 /* La tabla nunca es más angosta que el contenedor; para el scroll horizontal
@@ -163,4 +196,31 @@ html, body, #app {
 
 .saf-tabla-detalle th {
     border-bottom: 1px solid var(--surface-border, rgba(128, 128, 128, .35));
+}
+
+/* ===========================================================================
+   Control OP: tarjetas de candidatas del diálogo Buscar OP
+   =========================================================================== */
+.saf-candidata {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 14px;
+    border: 1px solid var(--surface-border, rgba(128,128,128,.25));
+    border-radius: 8px;
+    background: var(--rz-base-background-color, #fff);
+}
+
+/* La mejor coincidencia se distingue del resto por borde y fondo, no solo por texto. */
+.saf-candidata--mejor {
+    border: 2px solid var(--rz-primary);
+    background: var(--saf-tooltip-detalle-bg);
+}
+
+.saf-candidata__mejor {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--rz-primary);
 }

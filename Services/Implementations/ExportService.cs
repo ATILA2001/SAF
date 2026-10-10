@@ -76,6 +76,12 @@ public class ExportService : IExportService
                 celda.Value = entero;
                 break;
 
+            case long entero:
+                // NRO DOC RESP y similares: como número, no como texto (sin el triángulo
+                // verde de Excel y con orden/filtro numéricos).
+                celda.Value = entero;
+                break;
+
             case string texto:
                 celda.Value = texto;
                 break;
