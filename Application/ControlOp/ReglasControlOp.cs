@@ -19,7 +19,7 @@ public static class ReglasControlOp
     /// Status cuyo pago no sale de SIGAF: anulado no se paga; avanzar CAF se paga por CAF.
     /// Se comparan sin distinguir mayúsculas, como el Excel.
     /// </summary>
-    public const string StatusAnulado = "anulado";
+    public const string StatusAnulado = ReglasPago.StatusAnulado;
     public static readonly string[] StatusExcluidos = [StatusAnulado, ReglasPago.StatusAvanzarCaf];
 
     /// <summary>La celda A1 de la hoja: hoy menos los días de corte.</summary>

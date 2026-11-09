@@ -24,8 +24,17 @@ public class StatusContabilidadViewModel
     [Display(Name = "EMPRESA")]
     public string? Empresa { get; set; }
 
+    // Suma de las líneas del grupo TipoDev+NroDev; las anuladas en Pagos suman cero.
     [Display(Name = "IMPORTE")]
-    public decimal? ImporteTotal { get; set; }      // suma por grupo TipoDev+NroDev
+    public decimal? ImporteTotal { get; set; }
+
+    /// <summary>
+    /// Todas las líneas del devengado tienen Status DGAyF "anulado" en Pagos: el importe
+    /// queda en cero y la factura ya no se espera (no corren los avisos de atraso).
+    /// Con algunas anuladas y otras no, el devengado sigue vigente por lo que queda.
+    /// </summary>
+    [ExportIgnore, AuditIgnore]
+    public bool AnuladoEnPagos { get; set; }
 
     /// <summary>
     /// Cuántas líneas del ledger resume esta fila (neto + retenciones). El tablero agrupa
@@ -133,10 +142,11 @@ public class StatusContabilidadViewModel
         : null;
 
     // ─── Avisos de pedidos de factura atrasados ──────────────────────────────
-    // La factura todavía no ingresó: sin fecha correcta y sin marca "Sin factura"
-    // (N/C · CCOO · PAV · Anulado, que significan que no va a ingresar).
+    // La factura todavía no ingresó y se la sigue esperando: sin fecha correcta, sin
+    // marca "Sin factura" (N/C · CCOO · PAV · Anulado, que significan que no va a
+    // ingresar) y sin el devengado anulado entero en Pagos, que significa lo mismo.
     private bool SinIngresoFactura =>
-        FechaIngresoFactura is null && string.IsNullOrWhiteSpace(SinFacturaMotivo);
+        !AnuladoEnPagos && FechaIngresoFactura is null && string.IsNullOrWhiteSpace(SinFacturaMotivo);
 
     /// <summary>
     /// Toca hacer el 2º pedido: pasaron más de 7 días corridos desde el pedido 1,
