@@ -297,7 +297,7 @@
 
                 @if (item.DetalleLineas.SinDiferencias)
                 {
-                    <span>Las líneas traen los mismos datos; el tablero suma los importes.</span>
+                    <span>Las líneas traen los mismos datos; el tablero suma los importes de las no anuladas.</span>
                 }
                 else
                 {
@@ -340,8 +340,10 @@
                 }
 
                 <small>
-                    Solo se listan los datos que difieren. De la línea principal salen el
-                    expediente, la empresa y los datos cargados; el importe es la suma.
+                    Solo se listan los datos que difieren. De la línea principal (la de
+                    mayor importe no anulada) salen el expediente, la empresa y los datos
+                    cargados; el importe es la suma de las líneas no anuladas en Pagos
+                    (Status DGAyF "anulado" suma cero).
                 </small>
             </RadzenStack>
         , new TooltipOptions
@@ -366,7 +368,7 @@
                 {
                     <span>
                         Las @item.CantidadLineas líneas traen los mismos datos; el tablero
-                        suma los importes.
+                        suma los importes de las no anuladas.
                     </span>
                 }
                 else
@@ -402,8 +404,10 @@
                 }
 
                 <small>
-                    Solo se listan los datos que difieren. De la línea principal salen el
-                    expediente, la empresa y los datos cargados; el importe es la suma.
+                    Solo se listan los datos que difieren. De la línea principal (la de
+                    mayor importe no anulada) salen el expediente, la empresa y los datos
+                    cargados; el importe es la suma de las líneas no anuladas en Pagos
+                    (Status DGAyF "anulado" suma cero).
                 </small>
             </RadzenStack>
         , new DialogOptions { Width = "640px" });

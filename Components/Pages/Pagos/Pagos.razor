@@ -257,7 +257,10 @@
                 }
             </Columns>
             <FooterTemplate>
-                @* View y no _items: es lo que queda a la vista con los filtros aplicados. *@
+                @* View y no _items: es lo que queda a la vista con los filtros aplicados.
+                   Las líneas anuladas suman con su importe a propósito: Pagos es el ledger
+                   tal como lo devengó SIGAF. El que las pone en cero es el tablero de
+                   Status Contabilidad, así que los dos totales difieren en lo anulado. *@
                 <GridFooterTotales Filas="@(_grid?.View?.Count() ?? 0)"
                                    TotalFilas="@_items.Count"
                                    Importe="@(_grid?.View?.Sum(x => x.Importe ?? 0m) ?? 0m)"

@@ -44,6 +44,14 @@ public class StatusContabilidadAvisosTests
     }
 
     [TestMethod]
+    public void Pedido2_AnuladoEnPagos_NoSeMarca()
+    {
+        var vm = Fila();
+        vm.AnuladoEnPagos = true;
+        Assert.IsFalse(vm.PedidoFactura2Atrasado);
+    }
+
+    [TestMethod]
     public void Pedido2_YaCargado_NoSeMarca()
     {
         var vm = Fila();
@@ -77,6 +85,15 @@ public class StatusContabilidadAvisosTests
         var vm = Fila();
         vm.FechaPedidoFactura2 = DateTime.Today.AddDays(-8);
         vm.ReiterarPedidoFactura3 = DateTime.Today;
+        Assert.IsFalse(vm.PedidoFactura3Atrasado);
+    }
+
+    [TestMethod]
+    public void Pedido3_AnuladoEnPagos_NoSeMarca()
+    {
+        var vm = Fila();
+        vm.FechaPedidoFactura2 = DateTime.Today.AddDays(-8);
+        vm.AnuladoEnPagos = true;
         Assert.IsFalse(vm.PedidoFactura3Atrasado);
     }
 

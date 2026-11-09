@@ -15,23 +15,23 @@ public class StatusContabilidadService(
     {
         var devengados = await devengadoRepo.GetAllAsync(ct);
 
-        // Una fila por (TipoDev, NroDev): datos de la fila representante + IMPORTE = suma
-        // de todas las filas del devengado (en Pagos se ven separadas; acá agrupadas).
-        // Representante = la de mayor importe, que es la línea del neto (las retenciones
-        // son montos menores); desempate por Id para que no dependa del orden que
-        // devuelva SQL. De ella salen expediente, empresa, fecha y los datos cargados.
-        var grouped = devengados
-            .GroupBy(d => (d.TipoDev, d.NroDev))
-            .ToDictionary(
-                g => g.Key,
-                g => Agrupar(g));
-
         // BUZÓN SADE / ÚLTIMO MOVIMIENTO (derivadas de IVC.PASES_SADE) quedan vacías en
         // esta fase y las rellena CompletarIvcAsync con la grilla ya visible: la primera
         // conexión a IVC puede tardar segundos y no debe frenar la primera pintada.
         var (pagosDict, extrasDict) = await LoadPropiasAsync();
 
-        // Extras de Pagos: uno por fila del ledger; el tablero usa el de la primera fila del grupo.
+        // Una fila por (TipoDev, NroDev): datos de la línea representante + IMPORTE = suma
+        // de las líneas del devengado, con las anuladas en Pagos en cero (en Pagos se ven
+        // separadas; acá agrupadas; ver ImporteEnTablero). Representante = la de mayor
+        // importe no anulada (ver Agrupar). Se agrupa después de cargar Pagos porque la
+        // elección depende del Status DGAyF de cada línea.
+        var grouped = devengados
+            .GroupBy(d => (d.TipoDev, d.NroDev))
+            .ToDictionary(
+                g => g.Key,
+                g => Agrupar(g, pagosDict));
+
+        // Extras de Pagos: uno por fila del ledger; el tablero usa el de la representante.
         async Task<(Dictionary<int, Data.Entities.DevengadoExtra>,
                     Dictionary<(string, int), Data.Entities.StatusContabilidadExtra>)> LoadPropiasAsync()
         {
@@ -65,10 +65,8 @@ public class StatusContabilidadService(
         if (extraTask.Result is { } extra)
             extrasDict[(extra.TipoDev, extra.NroDev)] = extra;
 
-        return Mapear(
-            Agrupar(lineas),
-            pagosTask.Result.ToDictionary(e => e.DevengadoId),
-            extrasDict);
+        var pagosDict = pagosTask.Result.ToDictionary(e => e.DevengadoId);
+        return Mapear(Agrupar(lineas, pagosDict), pagosDict, extrasDict);
     }
 
     /// <summary>
@@ -76,13 +74,14 @@ public class StatusContabilidadService(
     /// por la carga completa y la relectura de una sola fila, para que no se separen.
     /// </summary>
     private static StatusContabilidadViewModel Mapear(
-        (Data.Entities.Devengado Fila, decimal ImporteTotal, List<Data.Entities.Devengado> Ordenadas) grupo,
+        (Data.Entities.Devengado Fila, List<Data.Entities.Devengado> Ordenadas) grupo,
         Dictionary<int, Data.Entities.DevengadoExtra> pagosDict,
         Dictionary<(string, int), Data.Entities.StatusContabilidadExtra> extrasDict)
     {
         var d = grupo.Fila;
         pagosDict.TryGetValue(d.Id, out var pago);
         extrasDict.TryGetValue((d.TipoDev, d.NroDev), out var extra);
+        var (importe, anulado) = ImporteEnTablero(grupo.Ordenadas, pagosDict);
 
         var vm = new StatusContabilidadViewModel
         {
@@ -90,7 +89,8 @@ public class StatusContabilidadService(
             NroDev = d.NroDev,
             Expediente = d.Expediente,
             Empresa = d.Empresa,
-            ImporteTotal = grupo.ImporteTotal,
+            ImporteTotal = importe,
+            AnuladoEnPagos = anulado, // antes de CalcularAtraso: un anulado no espera factura
             CantidadLineas = grupo.Ordenadas.Count,
             DetalleLineas = CompararLineas(grupo.Ordenadas, pagosDict),
             StatusDgayfNombre = pago?.StatusDgayfOpcion?.Nombre,
@@ -141,19 +141,69 @@ public class StatusContabilidadService(
     }
 
     /// <summary>
-    /// Resume las líneas de un devengado: importe sumado, y como representante la de mayor
-    /// importe (el neto) con desempate por Id. Sin ese orden explícito el tablero podía
-    /// mostrar un expediente distinto entre dos cargas.
+    /// Ordena las líneas de un devengado y toma como representante la primera: la de
+    /// mayor importe que no esté anulada en Pagos. Normalmente es el neto (las retenciones
+    /// son montos menores); si el neto está anulado, la que le sigue en importe, y así.
+    /// Si todas están anuladas, la de mayor importe. Desempate por Id: sin un orden
+    /// explícito el tablero podía mostrar un expediente distinto entre dos cargas.
+    ///
+    /// Se descarta la anulada para que la fila no muestre "anulado" con un importe que
+    /// suma lo vigente: Status DGAyF, Status OP, expediente, empresa, fecha y los datos
+    /// cargados en Pagos (observaciones, CCOO, notificación) salen de una línea que sí
+    /// cuenta. Consecuencia: anular el neto cambia de qué línea salen esos datos, y lo
+    /// cargado en Pagos solo sobre el neto deja de verse hasta que se revierta.
+    ///
+    /// Las vigentes van primero y las anuladas al final, cada grupo por importe: así el
+    /// detalle de líneas marca como principal la primera y lista lo anulado debajo.
     /// </summary>
-    private static (Data.Entities.Devengado Fila, decimal ImporteTotal, List<Data.Entities.Devengado> Ordenadas)
-        Agrupar(IEnumerable<Data.Entities.Devengado> filas)
+    private static (Data.Entities.Devengado Fila, List<Data.Entities.Devengado> Ordenadas)
+        Agrupar(
+            IEnumerable<Data.Entities.Devengado> filas,
+            Dictionary<int, Data.Entities.DevengadoExtra> pagosPorLinea)
     {
         var ordenadas = filas
-            .OrderByDescending(d => d.ImportePp ?? decimal.MinValue)
+            .OrderBy(d => EstaAnulada(d, pagosPorLinea))
+            .ThenByDescending(d => d.ImportePp ?? decimal.MinValue)
             .ThenBy(d => d.Id)
             .ToList();
 
-        return (ordenadas[0], ordenadas.Sum(d => d.ImportePp ?? 0m), ordenadas);
+        return (ordenadas[0], ordenadas);
+    }
+
+    private static bool EstaAnulada(
+        Data.Entities.Devengado linea,
+        Dictionary<int, Data.Entities.DevengadoExtra> pagosPorLinea)
+        => pagosPorLinea.TryGetValue(linea.Id, out var pago)
+           && Application.Pagos.ReglasPago.EsAnulado(pago.StatusDgayfOpcion?.Nombre);
+
+    /// <summary>
+    /// Importe del devengado en el tablero: la suma de sus líneas, sin las que tienen
+    /// Status DGAyF "anulado" en Pagos. Anulado = todas sus líneas lo están.
+    ///
+    /// Por línea y no por devengado, porque el status se carga en cada línea (neto y
+    /// retenciones): todas anuladas da cero y, si solo algunas, suma lo que sigue
+    /// vigente. Se descartó poner cero cuando la línea principal está anulada: es más
+    /// simple, pero esconde las líneas que no lo están. Si se anula solo el neto, la
+    /// fila toma los datos de la retención de mayor importe (ver Agrupar) y el detalle
+    /// de líneas muestra el neto anulado al final.
+    ///
+    /// Se calcula al leer y no se guarda en el ledger: la sync y el diff de expedientes
+    /// reconocen cada línea por tipo, número, fecha e importe, así que con el importe
+    /// pisado la línea dejaría de reconocerse contra IVC (y si es del último día, la sync
+    /// la importaría de nuevo, duplicada). Así, además, sacar el "anulado" devuelve el
+    /// importe solo.
+    ///
+    /// Solo cuenta el status de Pagos: las marcas "Anulado" del propio tablero (Status
+    /// Contable y Sin factura) son seguimiento de la factura y no tocan el importe.
+    /// </summary>
+    private static (decimal Importe, bool Anulado) ImporteEnTablero(
+        List<Data.Entities.Devengado> lineas,
+        Dictionary<int, Data.Entities.DevengadoExtra> pagosPorLinea)
+    {
+        var vigentes = lineas.Where(l => !EstaAnulada(l, pagosPorLinea)).ToList();
+
+        // Las líneas nunca vienen vacías (el grupo sale de al menos una fila del ledger).
+        return (vigentes.Sum(l => l.ImportePp ?? 0m), vigentes.Count == 0);
     }
 
     // Columnas del tablero que se alimentan de Pagos, en el orden en que se ven.
@@ -182,6 +232,8 @@ public class StatusContabilidadService(
             {
                 [ColExpediente] = d.Expediente ?? string.Empty,
                 [ColEmpresa] = d.Empresa ?? string.Empty,
+                // El importe original también en las anuladas: junto al Status DGAyF de
+                // cada línea explica por qué el total de la fila suma menos.
                 [ColImporte] = d.ImportePp?.ToString("N2") ?? string.Empty,
                 [ColStatusDgayf] = pago?.StatusDgayfOpcion?.Nombre ?? string.Empty,
                 [ColFirmada] = pago?.StatusOpOpcion?.Nombre ?? string.Empty,
